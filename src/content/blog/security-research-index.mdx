@@ -1,0 +1,43 @@
+---
+title: "Security Research & Exploit Development Link Index"
+description: "A searchable cheatsheet of security researchers, technical writeups, mitigation bypasses, exploitation techniques, and reference material."
+locale: "en"
+publishDate: 2026-07-15
+draft: false
+featured: true
+tags:
+  - security research
+  - exploit development
+  - windows kernel
+author: "kwpwn"
+toc: false
+wide: true
+---
+
+import ResearchCheatsheet from "../../components/blog/ResearchCheatsheet.astro";
+
+This is my working index for security research and exploit-development material.
+It is intentionally practical: use the search box to jump from a researcher to
+a technique, mitigation, tool, or low-level API reference without digging
+through bookmarks.
+
+The first pass is anchored on [afflicted.sh](https://afflicted.sh/blog/) and
+three posts worth keeping close:
+
+- [The KASLR graveyard](https://afflicted.sh/blog/posts/kaslr-graveyard.html)
+- [amwrtdrv: AOMEI Backupper hands every local user the disk](https://afflicted.sh/blog/posts/amwrtdrv-aomei-lpe.html)
+- [SignalRGB: standard user to SYSTEM](https://afflicted.sh/blog/posts/signalrgb-service-lpe.html)
+
+The researcher table separates people and blogs from individual resources. The
+second table collects the actual techniques, evasion material, tools, and API
+references cited by or closely connected to those posts. This index will grow
+as I work through more research.
+
+<ResearchCheatsheet />
+
+## Scope and attribution
+
+Descriptions are short navigation notes, not substitutes for the original
+research. Follow the source links for technical details and credit. Inclusion
+does not imply that every linked researcher authored every technique listed;
+the source column identifies the relevant publication.

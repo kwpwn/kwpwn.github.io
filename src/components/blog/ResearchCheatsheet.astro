@@ -1,0 +1,293 @@
+---
+const researchers = [
+  {
+    name: "._SiCk",
+    site: "afflicted.sh",
+    url: "https://afflicted.sh/blog/",
+    profile: "https://github.com/0xdeadbeefnetwork",
+    focus:
+      "Windows and Linux kernel exploitation, local privilege escalation, vulnerable drivers, firmware, IoT, and exploit-development tooling.",
+  },
+  {
+    name: "Yarden Shafir",
+    site: "Windows Internals",
+    url: "https://windows-internals.com/author/yarden/",
+    profile: "https://github.com/yardenshafir",
+    focus:
+      "Windows internals, kernel mitigations, VBS and secure-kernel research, KDP, CET, I/O rings, and kernel exploitation primitives.",
+  },
+  {
+    name: "L0ch",
+    site: "Hackyboiz",
+    url: "https://hackyboiz.github.io/2025/04/13/l0ch/bypassing-kernel-mitigation-part0/en/",
+    profile: "https://github.com/hackyboiz",
+    focus:
+      "Windows kernel exploit development, mitigation analysis, KASLR leak restrictions, and side-channel-based bypasses.",
+  },
+  {
+    name: "Yazid (xacone)",
+    site: "xacone.github.io",
+    url: "https://xacone.github.io/",
+    profile: "https://github.com/xacone",
+    focus:
+      "Windows kernel driver exploitation, physical-to-virtual memory primitives, HVCI-compatible drivers, and KASLR bypasses.",
+  },
+  {
+    name: "Luis Casvella",
+    site: "Quarkslab Blog",
+    url: "https://blog.quarkslab.com/exploiting-lenovo-driver-cve-2025-8061.html",
+    profile: "https://blog.quarkslab.com/",
+    focus:
+      "Vulnerability research and reverse engineering, including Windows kernel-driver analysis and exploitation.",
+  },
+  {
+    name: "carrot_c4k3",
+    site: "exploits.forsale",
+    url: "https://exploits.forsale/",
+    profile: "https://github.com/exploits-forsale",
+    focus:
+      "Windows kernel vulnerability research, exploit development, Pwn2Own work, KASLR side channels, and public exploit tooling.",
+  },
+];
+
+const resources = [
+  {
+    title: "The KASLR graveyard: leaking ntoskrnl on Windows 11 25H2",
+    url: "https://afflicted.sh/blog/posts/kaslr-graveyard.html",
+    source: "afflicted.sh",
+    category: "Technique / Evasion",
+    tags: "windows kernel kaslr ntoskrnl infoleak ExIsRestrictedCaller WIL GDT IDT desktop heap prefetch",
+    note: "A practical catalog of failed and working kernel-base leak paths on a specific Windows 11 25H2 target.",
+  },
+  {
+    title: "amwrtdrv: AOMEI Backupper hands every local user the disk",
+    url: "https://afflicted.sh/blog/posts/amwrtdrv-aomei-lpe.html",
+    source: "afflicted.sh",
+    category: "Windows LPE",
+    tags: "vulnerable driver raw disk gpt fat12 uefi boot pre-kernel secure boot",
+    note: "Turns unprivileged raw-disk access through amwrtdrv.sys into a GPT-redirection and UEFI execution chain.",
+  },
+  {
+    title: "SignalRGB: standard user to SYSTEM",
+    url: "https://afflicted.sh/blog/posts/signalrgb-service-lpe.html",
+    source: "afflicted.sh",
+    category: "Windows LPE",
+    tags: "service acl writable binary appdata local system cwe-732 cwe-276",
+    note: "A clean service-permission case study: a user-writable executable is launched by an auto-start LocalSystem service.",
+  },
+  {
+    title: "KASLR Leaks Restriction",
+    url: "https://windows-internals.com/kaslr-leaks-restriction/",
+    source: "Windows Internals",
+    category: "Mitigation",
+    tags: "windows kernel kaslr ExIsRestrictedCaller NtQuerySystemInformation SeDebugPrivilege",
+    note: "Yarden Shafir's internal analysis of the Windows restriction that removes kernel-address leaks from unprivileged callers.",
+  },
+  {
+    title: "An End to KASLR Bypasses?",
+    url: "https://windows-internals.com/an-end-to-kaslr-bypasses/",
+    source: "Windows Internals",
+    category: "Mitigation",
+    tags: "windows kernel kaslr pointers restricted caller mitigation",
+    note: "Background on Microsoft's effort to restrict kernel pointer disclosure and its effect on established exploit techniques.",
+  },
+  {
+    title: "Bypassing Windows Kernel Mitigations: Part 0",
+    url: "https://hackyboiz.github.io/2025/04/13/l0ch/bypassing-kernel-mitigation-part0/en/",
+    source: "Hackyboiz / L0ch",
+    category: "Technique / Evasion",
+    tags: "windows 24h2 kernel kaslr prefetch side channel EntryBleed KVA shadow Intel AMD",
+    note: "Explains the 24H2 KASLR restriction and applies a prefetch timing side channel to recover the Windows kernel base.",
+  },
+  {
+    title: "Breaking KASLR on Windows 11 24H2 with physical memory access",
+    url: "https://xacone.github.io/kaslr_leak_24h2.html",
+    source: "xacone / Yazid",
+    category: "Technique / Evasion",
+    tags: "windows 24h2 kernel kaslr hvci physical memory driver cr3 page table",
+    note: "A driver-assisted physical-memory technique for locating kernel structures under newer KASLR restrictions.",
+  },
+  {
+    title: "Exploiting eneio64.sys through physical memory R/W",
+    url: "https://xacone.github.io/eneio-driver.html",
+    source: "xacone / Yazid",
+    category: "Windows Kernel",
+    tags: "vulnerable driver byovd physical memory virtual memory hvci eneio64 cve-2020-12446",
+    note: "Builds virtual kernel read/write capabilities from an HVCI-compatible driver's physical-memory primitive.",
+  },
+  {
+    title: "Exploiting a vulnerable Lenovo driver (CVE-2025-8061)",
+    url: "https://blog.quarkslab.com/exploiting-lenovo-driver-cve-2025-8061.html",
+    source: "Quarkslab / Luis Casvella",
+    category: "Windows Kernel",
+    tags: "windows driver exploitation lenovo cve-2025-8061 lpe reverse engineering",
+    note: "A full vulnerable-driver analysis and exploitation reference cited by the KASLR graveyard.",
+  },
+  {
+    title: "Exploiting the NT Kernel in 24H2",
+    url: "https://exploits.forsale/24h2-nt-exploit/",
+    source: "exploits.forsale",
+    category: "Windows Kernel",
+    tags: "windows 24h2 nt kernel double fetch exploit kaslr prefetch side channel",
+    note: "Kernel bug discovery and exploitation on 24H2, including a prefetch-based KASLR bypass.",
+  },
+  {
+    title: "prefetch-tool",
+    url: "https://github.com/exploits-forsale/prefetch-tool",
+    source: "exploits.forsale",
+    category: "Tool",
+    tags: "windows kaslr bypass prefetch side channel assembly timing Intel AMD",
+    note: "Proof-of-concept tooling for resolving the Windows kernel base through prefetch timing behavior.",
+  },
+  {
+    title: "System Informer: ntexapi.h",
+    url: "https://github.com/winsiderss/systeminformer/blob/master/phnt/include/ntexapi.h",
+    source: "System Informer / phnt",
+    category: "Reference",
+    tags: "windows native api NtQuerySystemInformation SYSTEM_INFORMATION_CLASS ntexapi",
+    note: "Native API declarations and system-information classes useful during Windows internals and exploit research.",
+  },
+  {
+    title: "System Informer: ntpsapi.h",
+    url: "https://github.com/winsiderss/systeminformer/blob/master/phnt/include/ntpsapi.h",
+    source: "System Informer / phnt",
+    category: "Reference",
+    tags: "windows native api process thread information ntpsapi",
+    note: "Process and thread native API structures, enums, and declarations from the phnt headers.",
+  },
+  {
+    title: "NtDoc: PROCESSINFOCLASS",
+    url: "https://ntdoc.m417z.com/processinfoclass",
+    source: "NtDoc",
+    category: "Reference",
+    tags: "windows native api process information class undocumented ntdll",
+    note: "A browsable reference for process information classes used by NtQueryInformationProcess.",
+  },
+];
+---
+
+<div class="research-index" data-research-index>
+  <div class="research-index__search">
+    <label for="research-search">Search the index</label>
+    <input
+      id="research-search"
+      type="search"
+      placeholder="Try: KASLR, service ACL, prefetch, driver, Yarden..."
+      autocomplete="off"
+      data-research-search
+    />
+    <p data-research-status aria-live="polite">
+      {researchers.length} researchers and {resources.length} resources
+    </p>
+  </div>
+
+  <section aria-labelledby="researchers-heading">
+    <div class="research-index__heading">
+      <div>
+        <p class="research-index__kicker">People to follow</p>
+        <h2 id="researchers-heading">Researchers &amp; blogs</h2>
+      </div>
+      <span>{researchers.length} entries</span>
+    </div>
+    <div class="research-index__table-wrap">
+      <table>
+        <thead><tr><th>Researcher</th><th>Blog</th><th>Primary focus</th></tr></thead>
+        <tbody data-researcher-body>
+          {researchers.map((item) => (
+            <tr data-index-row data-searchable={`${item.name} ${item.site} ${item.focus}`}>
+              <td><a href={item.profile} target="_blank" rel="noreferrer">{item.name}</a></td>
+              <td><a href={item.url} target="_blank" rel="noreferrer">{item.site}</a></td>
+              <td>{item.focus}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="research-index__none" data-researcher-empty hidden>No matching researchers.</p>
+  </section>
+
+  <section aria-labelledby="resources-heading">
+    <div class="research-index__heading">
+      <div>
+        <p class="research-index__kicker">Reading queue</p>
+        <h2 id="resources-heading">Techniques, evasion &amp; references</h2>
+      </div>
+      <span>{resources.length} entries</span>
+    </div>
+    <div class="research-index__table-wrap">
+      <table>
+        <thead><tr><th>Resource</th><th>Type</th><th>Why it matters</th></tr></thead>
+        <tbody data-resource-body>
+          {resources.map((item) => (
+            <tr data-index-row data-searchable={`${item.title} ${item.source} ${item.category} ${item.tags} ${item.note}`}>
+              <td>
+                <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a>
+                <small>{item.source}</small>
+              </td>
+              <td><span class="research-index__badge">{item.category}</span></td>
+              <td>{item.note}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="research-index__none" data-resource-empty hidden>No matching resources.</p>
+  </section>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-research-index]").forEach((root) => {
+    const input = root.querySelector<HTMLInputElement>("[data-research-search]");
+    const status = root.querySelector<HTMLElement>("[data-research-status]");
+    const researcherRows = [...root.querySelectorAll<HTMLElement>("[data-researcher-body] [data-index-row]")];
+    const resourceRows = [...root.querySelectorAll<HTMLElement>("[data-resource-body] [data-index-row]")];
+    const researcherEmpty = root.querySelector<HTMLElement>("[data-researcher-empty]");
+    const resourceEmpty = root.querySelector<HTMLElement>("[data-resource-empty]");
+
+    const filterRows = (rows: HTMLElement[], query: string) => {
+      let visible = 0;
+      rows.forEach((row) => {
+        const matches = (row.dataset.searchable ?? "").toLowerCase().includes(query);
+        row.hidden = !matches;
+        if (matches) visible += 1;
+      });
+      return visible;
+    };
+
+    input?.addEventListener("input", () => {
+      const query = input.value.trim().toLowerCase();
+      const researcherCount = filterRows(researcherRows, query);
+      const resourceCount = filterRows(resourceRows, query);
+      if (researcherEmpty) researcherEmpty.hidden = researcherCount !== 0;
+      if (resourceEmpty) resourceEmpty.hidden = resourceCount !== 0;
+      if (status) status.textContent = `${researcherCount} researchers and ${resourceCount} resources`;
+    });
+  });
+</script>
+
+<style>
+  .research-index { display: grid; gap: var(--space-2xl); margin-top: var(--space-xl); }
+  .research-index__search { position: sticky; top: 4.75rem; z-index: 5; display: grid; grid-template-columns: auto minmax(16rem, 1fr) auto; align-items: center; gap: var(--space-md); padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-xl); background: color-mix(in srgb, var(--color-bg-primary) 94%, transparent); box-shadow: var(--shadow-md); backdrop-filter: blur(12px); }
+  .research-index__search label { font-weight: 700; }
+  .research-index__search input { width: 100%; min-height: 2.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-primary); color: var(--color-text-primary); padding: 0.65rem 0.85rem; font: inherit; }
+  .research-index__search p { margin: 0; color: var(--color-text-secondary); font-size: 0.8125rem; white-space: nowrap; }
+  .research-index section { display: grid; gap: var(--space-md); }
+  .research-index__heading { display: flex; align-items: end; justify-content: space-between; gap: var(--space-md); }
+  .research-index__heading h2, .research-index__kicker { margin: 0; }
+  .research-index__kicker { color: var(--color-text-secondary); font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  .research-index__heading > span { color: var(--color-text-secondary); font-size: 0.8125rem; }
+  .research-index__table-wrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-xl); }
+  .research-index table { width: 100%; min-width: 52rem; border-collapse: collapse; font-size: 0.9rem; }
+  .research-index th, .research-index td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+  .research-index th { background: var(--color-bg-secondary); color: var(--color-text-secondary); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; }
+  .research-index tbody tr:last-child td { border-bottom: 0; }
+  .research-index tbody tr:hover { background: var(--color-bg-secondary); }
+  .research-index td:first-child { width: 28%; font-weight: 650; }
+  .research-index td:nth-child(2) { width: 16%; }
+  .research-index a { color: var(--color-text-primary); text-underline-offset: 0.2rem; }
+  .research-index small { display: block; margin-top: 0.25rem; color: var(--color-text-secondary); font-weight: 400; }
+  .research-index__badge { display: inline-flex; border: 1px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-secondary); padding: 0.2rem 0.55rem; font-size: 0.72rem; font-weight: 650; white-space: nowrap; }
+  .research-index__none { margin: 0; padding: var(--space-lg); border: 1px dashed var(--color-border); border-radius: var(--radius-lg); color: var(--color-text-secondary); text-align: center; }
+  [data-index-row][hidden] { display: none; }
+  @media (max-width: 48rem) { .research-index__search { position: static; grid-template-columns: 1fr; } .research-index__search p { white-space: normal; } }
+</style>

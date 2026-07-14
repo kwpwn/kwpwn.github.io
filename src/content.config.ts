@@ -30,6 +30,7 @@ const blog = defineCollection({
       .array(z.object({ question: z.string(), answer: z.string() }))
       .optional(),
     toc: z.boolean().optional(),
+    wide: z.boolean().default(false),
     svgSlug: z.string().optional(),
     translationKey: z.string().optional(),
   }),
