@@ -8,23 +8,12 @@ test.describe("navigation chrome", () => {
     // Positive proof we're on this site, not a colliding dev server on 4321
     await expect(page.locator(".logo").first()).toHaveAttribute(
       "aria-label",
-      "Astro Cloudflare",
+      "CTF Writeups",
       { timeout: 30_000 },
     );
     await expect(page.locator(".header__list a").first()).toBeVisible({
       timeout: 30_000,
     });
-  });
-
-  test("language switcher is present and links to the other locale", async ({
-    page,
-  }) => {
-    test.setTimeout(60_000);
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    const switcher = page.locator(".language-switcher").first();
-    await expect(switcher).toBeVisible({ timeout: 30_000 });
-    const href = await switcher.getAttribute("href");
-    expect(href).toBeTruthy();
   });
 
   test("dark mode toggle flips the html dark class", async ({ page }) => {

@@ -4,7 +4,7 @@
 export type Locale = "en";
 
 export const SITE_CONFIG = {
-  url: "https://astro-cloudflare-starter.pages.dev",
+  url: process.env.SITE_URL ?? "https://kwpwn.github.io",
   /** Default locale for fallback. */
   defaultLocale: "en" as const,
   /** Supported locales. */
@@ -18,7 +18,7 @@ export const SITE_CONFIG = {
     en: "en",
   } as const,
   /** Site name for metadata and JSON-LD. */
-  name: "Astro Cloudflare",
+  name: "CTF Writeups",
   /** Short description for metadata. */
-  description: "Marketing, blog, and docs starter — multilanguage-ready.",
+  description: "Capture the flag writeups, techniques, and notes from past challenges.",
 } as const;

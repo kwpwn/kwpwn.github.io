@@ -1,9 +1,8 @@
 {
-  "name": "Admin",
-  "bio": "Site administrator and content editor for the Astro Cloudflare starter.",
+  "name": "kwpwn",
+  "bio": "CTF player and writeup author.",
   "avatar": "/images/author.jpg",
   "social": {
-    "github": "milzamsz",
-    "linkedin": "milzamsz"
+    "github": "https://github.com/kwpwn"
   }
 }

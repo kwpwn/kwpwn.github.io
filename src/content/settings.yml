@@ -1,15 +1,14 @@
 # Site Settings
-# Edit this file in Git.
-name: "Astro Cloudflare"
-description: "Marketing, blog, and docs starter — multilanguage-ready."
-url: "https://astro-cloudflare-starter.pages.dev"
+name: "CTF Writeups"
+description: "Capture the flag writeups, techniques, and notes from past challenges."
+url: "https://kwpwn.github.io"
 defaultLocale: en
 analyticsProvider: none
 gtmId: ""
 umamiUrl: ""
 umamiId: ""
-mapLatitude: "-7.4941954"
-mapLongitude: "110.8065028"
+mapLatitude: ""
+mapLongitude: ""
 orgName: ""
 orgEmail: ""
 socialLinks: []

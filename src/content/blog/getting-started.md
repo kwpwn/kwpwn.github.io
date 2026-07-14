@@ -1,85 +1,43 @@
 ---
-title: "Getting Started with Astro + Cloudflare"
-description: "A step-by-step guide to building a fast site with Astro and Cloudflare Pages."
+title: "Binary Exploitation Notes: Finding the Offset with Cyclic Patterns"
+description: "Using a cyclic pattern to determine the exact offset before controlling a saved return address."
 locale: "en"
-publishDate: 2026-06-25
+publishDate: 2026-07-12
 draft: false
 tags:
-  - astro
-  - tutorial
-  - cloudflare
-author: "Admin"
-translationKey: "getting-started"
+  - pwn
+  - pwntools
+author: "kwpwn"
 ---
 
-## Why This Stack?
+## Goal
 
-Building a fast marketing website requires a combination of tools that work
-well together. **Astro** provides the static site generation, **Markdown in Git**
-keeps content versioned and reviewable, and **Cloudflare Pages** handles global
-deployment.
+Before building a ROP chain, we need to know how many bytes are required to
+reach the saved instruction pointer.
 
-## Setting Up Content Collections
+## Generate a unique pattern
 
-Content collections are the backbone of your site. Define a schema in
-`src/content.config.ts`:
+Pwntools can generate a non-repeating cyclic sequence:
 
-```typescript
-const blog = defineCollection({
-  loader: glob({
-    pattern: "**/*.md",
-    base: "./src/content/blog",
-    generateId: ({ entry }) => entry.replace(/\.[^/.]+$/, ""),
-  }),
-  schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    locale: z.enum(["en"]),
-    publishDate: z.date(),
-    draft: z.boolean().default(false),
-    tags: z.array(z.string()).default([]),
-    author: z.string().default("Admin"),
-    translationKey: z.string().optional(),
-  }),
-});
+```python
+from pwn import *
+
+payload = cyclic(300)
+process("./chall").sendline(payload)
 ```
 
-## Creating Your First Post
+After the process crashes, inspect the overwritten value in a debugger and pass
+it to `cyclic_find`:
 
-Create a new Markdown file in `src/content/blog/`:
-
-```markdown
----
-title: "My First Post"
-description: "A short description"
-locale: "en"
-publishDate: 2026-06-25
-draft: false
-tags:
-  - tutorial
-author: "Admin"
----
-
-## Content Here
-
-Write your post content using **Markdown**.
+```python
+offset = cyclic_find(0x6161616c)
+print(offset)
 ```
 
-## Multilanguage-Ready
+The returned number is the exact padding length required before the next address
+in the payload.
 
-The starter is English-only by default, but the i18n engine is wired up. To add
-a language, widen the `Locale` type, register the locale in the config files, add
-a `src/i18n/<locale>.json` translations file, and create localized content. See
-the Internationalization guide in the docs for the full walkthrough.
+## Takeaway
 
-## Previewing Drafts
-
-Draft posts are excluded from production builds. Set `draft: true` in the
-frontmatter while you work, and remove it (or set `false`) when you're ready to
-publish.
-
-## Going Further
-
-- Customize the [Tailwind CSS](https://tailwindcss.com) theme in `src/styles/global.css`
-- Add new sections to pages via the page content collections
-- Set up analytics with GTM or Umami via the site settings
+A cyclic pattern is safer and faster than guessing the offset manually. Always
+confirm the architecture and endianness when copying the crash value.

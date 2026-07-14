@@ -1,64 +1,42 @@
 ---
-translationKey: seo-guide
-locale: en
-title: Optimizing SEO for Multilingual Websites
-description: Technical SEO best practices for sites with multiple languages.
-publishDate: 2026-06-22
+title: "Reverse Engineering: Recovering a Flag from a Simple Checker"
+description: "A repeatable approach for locating comparison logic and reconstructing an expected input from a stripped binary."
+locale: "en"
+publishDate: 2026-07-08
 draft: false
 tags:
-  - seo
-  - i18n
-  - performance
-author: Admin
+  - reverse
+  - ghidra
+author: "kwpwn"
 ---
 
-## Why SEO Matters for Multilingual Sites
+## Initial triage
 
-Search engines need clear signals about language and regional targeting. A well-structured multilingual site can rank in multiple countries simultaneously.
+Start with basic file information and printable strings:
 
-## Hreflang Tags
-
-Hreflang tells Google which language version of a page to show:
-
-```html
-<link rel="alternate" hreflang="en" href="https://example.com/en/about" />
-<link rel="alternate" hreflang="id" href="https://example.com/id/about" />
-<link rel="alternate" hreflang="x-default" href="https://example.com/about" />
+```bash
+file ./checker
+checksec --file=./checker
+strings -n 6 ./checker | less
 ```
 
-This starter includes automatic hreflang generation via the `hreflangLinks()` function in `src/lib/seo.ts`.
+The binary does not contain the flag as plain text, but it does contain the
+success and failure messages. Their cross-references lead to the validation
+function in Ghidra.
 
-## Canonical URLs
+## Validation logic
 
-Every page should have a self-referencing canonical URL:
+The checker loops over the input and XORs each byte with a fixed key before
+comparing it against an encoded byte array. Reversing the operation is direct:
 
-```typescript
-export function canonicalUrl(locale: Locale, path: string): string {
-  const prefix = localePrefix(locale);
-  const normalized = path.replace(/\/$/, "");
-  return `${SITE_CONFIG.url}${prefix}${normalized || ""}`;
-}
+```python
+encoded = [0x32, 0x1f, 0x24, 0x24]
+key = 0x55
+print(bytes(value ^ key for value in encoded))
 ```
 
-## Structured Data (JSON-LD)
+## Takeaway
 
-Use `jsonLdWebSite()` for the home page and `jsonLdBlogPost()` for articles:
-
-```typescript
-const websiteJsonLd = jsonLdWebSite({
-  title: "My Site",
-  description: "Site description",
-  locale: "en",
-  url: "https://example.com",
-});
-```
-
-## Sitemap
-
-The `@astrojs/sitemap` integration generates a sitemap-index.xml that includes all locale variants of every page, ensuring search engines discover all language versions.
-
-## Performance Considerations
-
-- **Static generation**: Pages are pre-built, ensuring fast load times
-- **CDN delivery**: Cloudflare's global network caches content at the edge
-- **Core Web Vitals**: Astro's zero-JS architecture helps achieve good scores
+Work backward from observable behavior. Success strings, comparison functions,
+and input length checks often provide faster anchors than reading `main` from
+top to bottom.

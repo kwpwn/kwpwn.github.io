@@ -1,6 +1,4 @@
 import { defineCollection, z } from "astro:content";
-import { docsLoader } from "@astrojs/starlight/loaders";
-import { docsSchema } from "@astrojs/starlight/schema";
 import { glob } from "astro/loaders";
 import { i18nConfig } from "./config/i18n.config";
 
@@ -35,11 +33,6 @@ const blog = defineCollection({
     svgSlug: z.string().optional(),
     translationKey: z.string().optional(),
   }),
-});
-
-const docs = defineCollection({
-  loader: docsLoader(),
-  schema: docsSchema(),
 });
 
 const pageSectionSchema = z.object({
@@ -175,7 +168,6 @@ const settings = defineCollection({
 
 export const collections = {
   blog,
-  docs,
   pages,
   services,
   settings,

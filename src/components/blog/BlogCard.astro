@@ -44,7 +44,7 @@ const dateLabel = publishDate.toLocaleDateString("en-US", {
     <BlogImageSVG slug={post.data.svgSlug ?? post.id} title={post.data.title} />
   </a>
   <div class="blog-card__body">
-    {variant === "list" && <span class="blog-card__kicker">Featured</span>}
+    {variant === "list" && <span class="blog-card__kicker">Nổi bật</span>}
     <p class="blog-card__meta">
       <time datetime={publishDate.toISOString()}>{dateLabel}</time>
       <span class="blog-card__dot" aria-hidden="true">&middot;</span>

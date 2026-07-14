@@ -6,7 +6,6 @@ import { resolveRoute, detectLocale, stripLocale } from "../../i18n/routes";
 import { mainNav } from "../../config/nav.config";
 import { siteConfig } from "../../config/site.config";
 import Logo from "./Logo.astro";
-import LanguageSwitcher from "./LanguageSwitcher.astro";
 import ThemeToggle from "./ThemeToggle.astro";
 
 export interface Props {
@@ -106,10 +105,6 @@ const githubUrl = siteConfig.socialLinks.find(
         <Icon name="lucide:search" class="header__icon" aria-hidden="true" />
         <kbd class="header__kbd">⌘K</kbd>
       </button>
-      <LanguageSwitcher
-        currentLocale={effectiveLocale}
-        currentPath={currentPath}
-      />
       {showThemeToggle && <ThemeToggle locale={effectiveLocale} />}
       <button
         type="button"

@@ -1,8 +1,8 @@
 {
-  "name": "astro-cloudflare",
+  "name": "ctf-writeups",
   "version": "1.0.0",
   "private": true,
-  "description": "Multilingual marketing + blog + docs starter with Astro and Cloudflare Pages",
+  "description": "Static CTF writeup blog deployed to GitHub Pages",
   "license": "MIT",
   "packageManager": "pnpm@8.15.0",
   "type": "module",

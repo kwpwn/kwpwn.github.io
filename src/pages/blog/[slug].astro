@@ -16,7 +16,7 @@ const { slug } = Astro.params as { slug: string };
 const post = await getEntry("blog", slug);
 if (!post) return new Response(null, { status: 404 });
 
-const locale = "en";
+const locale = "en" as const;
 const { Content, headings } = await render(post);
 ---
 

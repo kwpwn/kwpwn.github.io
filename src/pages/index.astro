@@ -1,164 +1,64 @@
 ---
-import MarketingLayout from "../layouts/MarketingLayout.astro";
-import Hero from "../components/Hero.astro";
-import FAQ from "../components/FAQ.astro";
-import CTA from "../components/CTA.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
 import { getCollection, type CollectionEntry } from "astro:content";
-import {
-  FeatureTabs,
-  StackMarquee,
-  Credibility,
-  LighthouseScores,
-} from "../components/landing/index";
-import { t } from "../i18n/ui";
+import { BlogCard } from "../components/blog/index";
+import { siteConfig } from "../config/site.config";
+import { slugify } from "../lib/utils";
 
-const stackEntries = (await getCollection("stack"))
-  .sort(
-    (a: CollectionEntry<"stack">, b: CollectionEntry<"stack">) =>
-      a.data.order - b.data.order,
-  )
-  .map((entry: CollectionEntry<"stack">) => entry.data);
-
-const locale = (Astro.currentLocale || "en") as "en";
-const tabs = [
-  {
-    id: "performance",
-    icon: "zap",
-    heading: "Performance",
-    description:
-      "A lightweight, static-first stack that ships minimal JavaScript and renders from Cloudflare's edge network.",
-    points: [
-      "Static-first rendering by default",
-      "Zero-JS islands architecture",
-      "Edge delivery with smart caching",
-    ],
-    visual: "$ npm run build\n✓ 25 pages built in 6.4s\n→ Deployed to the edge",
-  },
-  {
-    id: "content",
-    icon: "pen-line",
-    heading: "Content",
-    description:
-      "Author in Markdown with a Git-based workflow. Blog, docs, and services are type-safe content collections.",
-    points: [
-      "Type-safe Markdown collections",
-      "Versioned and reviewed in Git",
-      "Blog, docs, and service pages",
-    ],
-    visual:
-      "src/content/\n├─ blog/\n├─ docs/\n├─ services/\n└─ pages/",
-  },
-  {
-    id: "growth",
-    icon: "trending-up",
-    heading: "Growth",
-    description:
-      "Everything search engines and social platforms need is generated for you on every build.",
-    points: [
-      "Sitemap, RSS, and robots.txt",
-      "Canonical URLs and JSON-LD",
-      "Dynamic Open Graph images",
-    ],
-    visual:
-      "<meta property=\"og:image\" ... />\n<link rel=\"canonical\" ... />\n<script type=\"application/ld+json\">",
-  },
-];
+const locale = "en" as const;
+const currentTag = Astro.url.searchParams.get("tag") ?? "";
+const allPosts: CollectionEntry<"blog">[] = await getCollection("blog");
+const posts = allPosts
+  .filter((post) => post.data.locale === locale && !post.data.draft)
+  .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime());
+const filteredPosts = currentTag
+  ? posts.filter((post) => post.data.tags.some((tag) => slugify(tag) === currentTag))
+  : posts;
+const tags = [...new Set(posts.flatMap((post) => post.data.tags))].sort();
 ---
 
-<MarketingLayout
-  title={t(locale, "nav.home")}
-  description="A boilerplate for fast marketing websites."
+<BaseLayout
+  title={siteConfig.name}
+  description={siteConfig.description}
   locale={locale}
   path="/"
 >
-  <Hero
-    variant="centered"
-    eyebrow="Marketing Starter"
-    headline={t(locale, "hero.title")}
-    subheadline={t(locale, "hero.subtitle")}
-    primaryCta={{ label: t(locale, "hero.cta"), href: "/services" }}
-    secondaryCta={{ label: "Read the blog", href: "/blog" }}
-    locale={locale}
-  />
-
-  <section class="container py-16">
-    <header class="section-head">
-      <p class="section-head__eyebrow">Why this stack</p>
-      <h2 class="section-head__title">Built for performance and scale</h2>
-      <p class="section-head__lead">
-        Everything you need to ship a fast marketing site.
-      </p>
+  <section class="writeups container py-12">
+    <header class="writeups__header">
+      <p class="writeups__eyebrow">Capture the flag</p>
+      <h1>CTF Writeups</h1>
+      <p>Solutions, techniques, and notes from web, pwn, reverse engineering, crypto, and forensics challenges.</p>
     </header>
-    <FeatureTabs client:visible tabs={tabs} />
+
+    {tags.length > 0 && (
+      <nav class="writeups__filters" aria-label="Filter writeups by category">
+        <a href="/" aria-current={currentTag ? undefined : "page"}>All</a>
+        {tags.map((tag) => {
+          const value = slugify(tag);
+          return <a href={`/?tag=${value}`} aria-current={currentTag === value ? "page" : undefined}>{tag}</a>;
+        })}
+      </nav>
+    )}
+
+    {filteredPosts.length > 0 ? (
+      <div class="writeups__grid">
+        {filteredPosts.map((post) => <BlogCard post={post} locale={locale} headingLevel="h2" />)}
+      </div>
+    ) : (
+      <p class="writeups__empty">No writeups found for this category.</p>
+    )}
   </section>
+</BaseLayout>
 
-  <section class="container py-10">
-    <header class="section-head">
-      <h2 class="section-head__title">Powered by a modern stack</h2>
-    </header>
-    <StackMarquee items={stackEntries} />
-  </section>
-
-  <section class="container py-16">
-    <Credibility
-      stats={[
-        { value: "55+", label: "Pages" },
-        { value: "100%", label: "Static-first" },
-        { value: "A11y", label: "WCAG AA" },
-      ]}
-      logos={[
-        { name: "Astro", src: undefined },
-        { name: "Cloudflare", src: undefined },
-        { name: "Tailwind", src: undefined },
-      ]}
-    />
-  </section>
-
-  <section class="container py-16">
-    <header class="section-head">
-      <h2 class="section-head__title">Perfect Lighthouse scores</h2>
-      <p class="section-head__lead">
-        Target scores, verified with Lighthouse — optimized out of the box for
-        performance, accessibility, and SEO.
-      </p>
-    </header>
-    <LighthouseScores />
-  </section>
-
-  <FAQ
-    title="Frequently asked questions"
-    items={[
-      {
-        question: "Is this multilanguage-ready?",
-        answer:
-          "Yes. The i18n engine is wired up and ships English-first, so adding more locales is a matter of dropping in translations and content.",
-      },
-      {
-        question: "Is SEO handled out of the box?",
-        answer:
-          "Meta tags, canonical URLs, sitemap, RSS, JSON-LD, and dynamic OG images are all connected by default.",
-      },
-      {
-        question: "Where does it deploy?",
-        answer:
-          "It's built for Cloudflare Pages with optional R2 media storage, but the static output runs on any modern host.",
-      },
-      {
-        question: "How do I manage content?",
-        answer:
-          "Content lives in Markdown collections (blog, docs, services, pages) that are versioned and reviewed in Git.",
-      },
-    ]}
-  />
-
-  <CTA
-    eyebrow="Get started"
-    title="Ready to build your site?"
-    content="Explore the services or dive into the docs — the whole stack is ready to go."
-    ctaText="Explore services"
-    ctaHref="/services"
-    secondaryText="Read the docs"
-    secondaryHref="/docs"
-    locale={locale}
-  />
-</MarketingLayout>
+<style>
+  .writeups { display: grid; gap: var(--space-xl); }
+  .writeups__header { max-width: 48rem; }
+  .writeups__eyebrow { margin: 0 0 var(--space-xs); color: var(--color-text-secondary); font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; }
+  .writeups__header h1 { margin: 0; font-size: clamp(2.5rem, 6vw, 4.75rem); line-height: 1; letter-spacing: -0.04em; }
+  .writeups__header > p:last-child { max-width: 42rem; margin: var(--space-md) 0 0; color: var(--color-text-secondary); font-size: 1.0625rem; line-height: 1.7; }
+  .writeups__filters { display: flex; flex-wrap: wrap; gap: var(--space-xs); padding-bottom: var(--space-lg); border-bottom: 1px solid var(--color-border); }
+  .writeups__filters a { padding: 0.375rem 0.875rem; border: 1px solid var(--color-border); border-radius: var(--radius-full); color: var(--color-text-secondary); font-size: 0.8125rem; text-decoration: none; }
+  .writeups__filters a[aria-current="page"] { border-color: var(--color-text-primary); background: var(--color-text-primary); color: var(--color-bg-primary); }
+  .writeups__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); gap: var(--space-lg); }
+  .writeups__empty { padding: var(--space-2xl); border: 1px dashed var(--color-border); border-radius: var(--radius-xl); color: var(--color-text-secondary); text-align: center; }
+</style>

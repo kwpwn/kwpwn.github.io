@@ -1,6 +1,7 @@
 ---
 import type { Locale } from "../../lib/site-config";
 import { Badge } from "../ui/index";
+import { slugify } from "../../lib/utils";
 
 export interface Props {
   tags: string[];
@@ -8,16 +9,7 @@ export interface Props {
   locale?: Locale;
 }
 
-const { tags, basePath = "/blog", locale = "en" } = Astro.props as Props;
-
-function slugify(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/['"]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+const { tags, basePath = "/", locale = "en" } = Astro.props as Props;
 ---
 
 {

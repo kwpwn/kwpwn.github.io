@@ -138,7 +138,7 @@ const allPosts = await getCollection("blog");
     <RelatedPosts currentPost={post} allPosts={allPosts} locale={locale} />
 
     <nav class="blog-layout__back">
-      <a href={resolveRoute(locale, "/blog")}>
+      <a href={resolveRoute(locale, "/")}>
         <span aria-hidden="true">&larr;</span>
         {t(locale, "blog.backToBlog")}
       </a>

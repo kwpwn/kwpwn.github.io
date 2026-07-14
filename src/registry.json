@@ -1,5 +1,5 @@
 {
-  "name": "astro-cloudflare",
+  "name": "ctf-writeups",
   "description": "Machine-readable catalog of the three-tier architecture: Components -> Sections -> Pages.",
   "tiers": ["component", "section", "page"],
   "importAliases": {
@@ -313,14 +313,8 @@
     }
   ],
   "pages": [
-    { "name": "Home", "path": "src/pages/index.astro", "locales": ["en"] },
-    { "name": "About", "path": "src/pages/about.astro", "locales": ["en"] },
-    { "name": "Services", "path": "src/pages/services.astro", "locales": ["en"] },
-    { "name": "Pricing", "path": "src/pages/pricing.astro", "locales": ["en"] },
-    { "name": "Contact", "path": "src/pages/contact.astro", "locales": ["en"] },
-    { "name": "Blog", "path": "src/pages/blog.astro", "locales": ["en"] },
-    { "name": "Sections showcase", "path": "src/pages/sections.astro", "locales": ["en"] },
-    { "name": "Pages overview", "path": "src/pages/pages.astro", "locales": ["en"] }
+    { "name": "Writeup index", "path": "src/pages/index.astro", "locales": ["en"] },
+    { "name": "Writeup detail", "path": "src/pages/blog/[slug].astro", "locales": ["en"] }
   ]
 }
 
