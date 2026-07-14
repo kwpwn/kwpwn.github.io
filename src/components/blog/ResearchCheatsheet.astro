@@ -1,328 +1,114 @@
 ---
-const researchers = [
-  {
-    name: "._SiCk",
-    site: "afflicted.sh",
-    url: "https://afflicted.sh/blog/",
-    profile: "https://github.com/0xdeadbeefnetwork",
-    focus:
-      "Windows and Linux kernel exploitation, local privilege escalation, vulnerable drivers, firmware, IoT, and exploit-development tooling.",
-  },
-  {
-    name: "Yarden Shafir",
-    site: "Windows Internals",
-    url: "https://windows-internals.com/author/yarden/",
-    profile: "https://github.com/yardenshafir",
-    focus:
-      "Windows internals, kernel mitigations, VBS and secure-kernel research, KDP, CET, I/O rings, and kernel exploitation primitives.",
-  },
-  {
-    name: "L0ch",
-    site: "Hackyboiz",
-    url: "https://hackyboiz.github.io/2025/04/13/l0ch/bypassing-kernel-mitigation-part0/en/",
-    profile: "https://github.com/hackyboiz",
-    focus:
-      "Windows kernel exploit development, mitigation analysis, KASLR leak restrictions, and side-channel-based bypasses.",
-  },
-  {
-    name: "Yazid (xacone)",
-    site: "xacone.github.io",
-    url: "https://xacone.github.io/",
-    profile: "https://github.com/xacone",
-    focus:
-      "Windows kernel driver exploitation, physical-to-virtual memory primitives, HVCI-compatible drivers, and KASLR bypasses.",
-  },
-  {
-    name: "Luis Casvella",
-    site: "Quarkslab Blog",
-    url: "https://blog.quarkslab.com/exploiting-lenovo-driver-cve-2025-8061.html",
-    profile: "https://blog.quarkslab.com/",
-    focus:
-      "Vulnerability research and reverse engineering, including Windows kernel-driver analysis and exploitation.",
-  },
-  {
-    name: "carrot_c4k3",
-    site: "exploits.forsale",
-    url: "https://exploits.forsale/",
-    profile: "https://github.com/exploits-forsale",
-    focus:
-      "Windows kernel vulnerability research, exploit development, Pwn2Own work, KASLR side channels, and public exploit tooling.",
-  },
+type Researcher = [string, string, string, string, string];
+type Resource = [string, string, string, string, number, string, string];
+type ResourceGroup = { id: string; kicker: string; title: string; items: Resource[] };
+
+const researchers: Researcher[] = [
+  ["._SiCk", "afflicted.sh", "https://afflicted.sh/blog/", "https://github.com/0xdeadbeefnetwork", "Kernel exploitation, vulnerable drivers, firmware, and exploit-development tooling."],
+  ["Yarden Shafir", "Windows Internals", "https://windows-internals.com/author/yarden/", "https://github.com/yardenshafir", "Windows internals, kernel mitigations, VBS, KDP, CET, I/O rings, and exploitation primitives."],
+  ["carrot_c4k3", "exploits.forsale", "https://exploits.forsale/", "https://github.com/exploits-forsale", "Windows kernel vulnerability research, Pwn2Own work, KASLR side channels, and exploit tooling."],
+  ["Yazid (xacone)", "xacone.github.io", "https://xacone.github.io/", "https://github.com/xacone", "Windows driver exploitation, physical-memory primitives, HVCI, and modern KASLR bypasses."],
+  ["L0ch", "Hackyboiz", "https://hackyboiz.github.io/", "https://github.com/hackyboiz", "Windows kernel exploit development, mitigation analysis, and side-channel-based KASLR bypasses."],
+  ["pwn2nimron", "pwn2nimron", "https://pwn2nimron.com/blog", "https://pwn2nimron.com/blog", "Modern Windows kernel vulnerability research and detailed exploit-development case studies."],
+  ["Kernullist", "Kernullist Blog", "https://kernullist.github.io/kernullist-blog/", "https://kernullist.github.io/kernullist-blog/", "Windows kernel internals, rootkit techniques, DKOM, BYOVD, and cross-view detection."],
+  ["Connor McGarr", "connormcgarr.github.io", "https://connormcgarr.github.io/", "https://github.com/connormcgarr", "Windows exploitation, kernel pool internals, browser exploitation, and mitigation bypasses."],
+  ["Tandasat", "tandasat.github.io", "https://tandasat.github.io/blog/", "https://github.com/tandasat", "Windows virtualization, hypervisors, Intel VT, kernel protections, and security research tooling."],
+  ["ewilded", "HACKINGISCOOL", "https://hackingiscool.pl/", "https://hackingiscool.pl/", "Reverse engineering, offensive security, Windows internals, and practical research notes."],
+  ["5pider", "GitHub", "https://github.com/Cracked5pider", "https://github.com/Cracked5pider", "Offensive Windows tooling, injection techniques, evasion research, and malware development."],
 ];
 
-const resources = [
-  {
-    title: "The KASLR graveyard: leaking ntoskrnl on Windows 11 25H2",
-    url: "https://afflicted.sh/blog/posts/kaslr-graveyard.html",
-    source: "afflicted.sh",
-    category: "Technique / Evasion",
-    tags: "windows kernel kaslr ntoskrnl infoleak ExIsRestrictedCaller WIL GDT IDT desktop heap prefetch",
-    note: "A practical catalog of kernel-base leak paths tested on a specific Windows 11 25H2 target, including the exact reason each approach worked or failed. It is useful as a decision tree for modern KASLR work because it covers restricted NtQuery* outputs, descriptor tables, desktop heap ideas, physical-memory approaches, CPU differences, and the eventual working path.",
-  },
-  {
-    title: "amwrtdrv: AOMEI Backupper hands every local user the disk",
-    url: "https://afflicted.sh/blog/posts/amwrtdrv-aomei-lpe.html",
-    source: "afflicted.sh",
-    category: "Windows LPE",
-    tags: "vulnerable driver raw disk gpt fat12 uefi boot pre-kernel secure boot",
-    note: "Shows how an insecure kernel driver turns ordinary-user access into raw reads and writes against the live system disk. The post then develops that primitive into a pre-kernel execution chain by placing a FAT12 image in the pre-partition gap, redirecting the GPT entry, and letting UEFI load the planted binary before Windows protections start.",
-  },
-  {
-    title: "SignalRGB: standard user to SYSTEM",
-    url: "https://afflicted.sh/blog/posts/signalrgb-service-lpe.html",
-    source: "afflicted.sh",
-    category: "Windows LPE",
-    tags: "service acl writable binary appdata local system cwe-732 cwe-276",
-    note: "A clear Windows service-permission case study where an auto-start LocalSystem service executes a binary stored in a user-writable profile directory. It also documents the operational detail many writeups omit: replacing a running image, understanding SERVICE_START versus stop rights, and choosing between reboot and a chained restart trigger.",
-  },
-  {
-    title: "KASLR Leaks Restriction",
-    url: "https://windows-internals.com/kaslr-leaks-restriction/",
-    source: "Windows Internals",
-    category: "Mitigation",
-    tags: "windows kernel kaslr ExIsRestrictedCaller NtQuerySystemInformation SeDebugPrivilege",
-    note: "Yarden Shafir's internal analysis of the Windows mitigation that removes many kernel-address disclosures from unprivileged callers. Read this first to understand ExIsRestrictedCaller, the affected system-information paths, the role of caller privileges, and why exploit developers can no longer treat NtQuerySystemInformation as a universal KASLR bypass.",
-  },
-  {
-    title: "An End to KASLR Bypasses?",
-    url: "https://windows-internals.com/an-end-to-kaslr-bypasses/",
-    source: "Windows Internals",
-    category: "Mitigation",
-    tags: "windows kernel kaslr pointers restricted caller mitigation",
-    note: "Background on Microsoft's broader effort to restrict kernel pointer disclosure and its effect on established exploit-development workflows. The article is valuable for understanding the mitigation's original scope, how integrity levels and sandbox boundaries influenced the design, and which assumptions older Windows kernel exploits made about address disclosure.",
-  },
-  {
-    title: "Bypassing Windows Kernel Mitigations: Part 0",
-    url: "https://hackyboiz.github.io/2025/04/13/l0ch/bypassing-kernel-mitigation-part0/en/",
-    source: "Hackyboiz / L0ch",
-    category: "Technique / Evasion",
-    tags: "windows 24h2 kernel kaslr prefetch side channel EntryBleed KVA shadow Intel AMD",
-    note: "Explains the Windows 11 24H2 KASLR restriction from an exploit developer's perspective, then adapts an EntryBleed-style prefetch timing side channel to Windows. It connects page-table behavior, KVA shadowing, TLB state, CPU-specific timing differences, and the practical process of recovering the ntoskrnl base without the legacy query APIs.",
-  },
-  {
-    title: "Breaking KASLR on Windows 11 24H2 with physical memory access",
-    url: "https://xacone.github.io/kaslr_leak_24h2.html",
-    source: "xacone / Yazid",
-    category: "Technique / Evasion",
-    tags: "windows 24h2 kernel kaslr hvci physical memory driver cr3 page table",
-    note: "A driver-assisted physical-memory approach for recovering the Windows kernel base and related structures after traditional pointer disclosures were restricted. Use it to study page-table traversal, CR3 discovery, physical-to-virtual translation, and how a vulnerable but HVCI-compatible driver can support a data-only exploitation path.",
-  },
-  {
-    title: "Exploiting eneio64.sys through physical memory R/W",
-    url: "https://xacone.github.io/eneio-driver.html",
-    source: "xacone / Yazid",
-    category: "Windows Kernel",
-    tags: "vulnerable driver byovd physical memory virtual memory hvci eneio64 cve-2020-12446",
-    note: "Starts from eneio64.sys exposing physical-memory access and develops the missing machinery needed for useful virtual kernel reads and writes. The walkthrough is a practical reference for locating CR3, translating virtual addresses through page tables, dealing with HVCI and the vulnerable-driver blocklist, and turning a limited driver primitive into an exploitation foundation.",
-  },
-  {
-    title: "Exploiting a vulnerable Lenovo driver (CVE-2025-8061)",
-    url: "https://blog.quarkslab.com/exploiting-lenovo-driver-cve-2025-8061.html",
-    source: "Quarkslab / Luis Casvella",
-    category: "Windows Kernel",
-    tags: "windows driver exploitation lenovo cve-2025-8061 lpe reverse engineering",
-    note: "A full vulnerable-driver analysis and exploitation reference cited by the KASLR graveyard. It demonstrates the workflow from reverse engineering Lenovo's driver interface and identifying the exposed primitives through building a working local privilege-escalation chain, making it useful both as a case study and as a methodology template.",
-  },
-  {
-    title: "Exploiting the NT Kernel in 24H2",
-    url: "https://exploits.forsale/24h2-nt-exploit/",
-    source: "exploits.forsale",
-    category: "Windows Kernel",
-    tags: "windows 24h2 nt kernel double fetch exploit kaslr prefetch side channel",
-    note: "Covers NT kernel bug discovery and exploit development on the Windows 11 24H2 preview, including double-fetch vulnerabilities introduced by changes to user-memory handling. Its KASLR section explains how prefetch timing was adapted to Windows and documents the important reliability differences observed across Intel, AMD, native, and virtualized systems.",
-  },
-  {
-    title: "prefetch-tool",
-    url: "https://github.com/exploits-forsale/prefetch-tool",
-    source: "exploits.forsale",
-    category: "Tool",
-    tags: "windows kaslr bypass prefetch side channel assembly timing Intel AMD",
-    note: "A focused proof-of-concept for resolving the Windows kernel base through prefetch timing behavior. Read it alongside the 24H2 exploit posts to connect the side-channel theory with the assembly-level timing loop and its hardware-specific reliability limits.",
-  },
+const groups: ResourceGroup[] = [
+  { id: "pwn", kicker: "Build the primitive", title: "Exploit Development & Pwn", items: [
+    ["Swimming in the (Kernel) Pool, Part 1", "https://connormcgarr.github.io/swimming-in-the-kernel-pool-part-1/", "Connor McGarr", "2021", 5, "HEVD pool exploitation, kLFH behavior, and low-integrity pool attacks", "Builds a Windows kernel pool exploit from allocator behavior upward, including an out-of-bounds read used for KASLR defeat. The careful treatment of kLFH makes it a strong foundation for understanding why heap shaping works rather than merely copying a spray."],
+    ["ROP Gadget Hunting on Windows", "https://core-jmp.org/2026/06/rop-scanner-windows-rop-gadget-hunting-exploit-chain/", "core-jmp", "2026", 5, "ROP JOP gadgets CFG DEP VirtualProtect stack pivot", "Walks from instruction-pointer control to a bad-byte-clean VirtualProtect chain using ROP, JOP, syscall, and stack-pivot gadgets. It also considers CFG-aware gadget selection, making the article useful for designing a repeatable modern gadget-hunting workflow."],
+    ["Exploiting the NT Kernel in 24H2", "https://exploits.forsale/24h2-nt-exploit/", "exploits.forsale", "2024", 5, "Windows 11 24H2 double fetch KASLR prefetch", "Covers bug discovery and exploit development against Windows 11 24H2, including double-fetch flaws introduced by user-memory handling changes. Its KASLR section connects prefetch timing with the reliability differences seen across Intel, AMD, native, and virtualized targets."],
+    ["Physical-memory KASLR bypass on Windows 11 24H2", "https://xacone.github.io/kaslr_leak_24h2.html", "xacone", "2024", 5, "physical memory CR3 page tables HVCI KASLR", "Turns driver-assisted physical-memory access into a kernel-base disclosure after legacy pointer leaks were restricted. The post is an excellent practical reference for CR3 discovery, page-table traversal, and physical-to-virtual translation under HVCI."],
+    ["From arbitrary pointer dereference to kernel R/W", "https://hnsecurity.it/blog/from-arbitrary-pointer-dereference-to-arbitrary-read-write-in-latest-windows-11/", "Hacking Notes", "2024", 5, "Windows 11 arbitrary pointer dereference SMEP kernel read write", "Develops a constrained arbitrary-pointer dereference into an arbitrary kernel read/write capability on a current Windows 11 target. The value lies in the intermediate reasoning: primitive refinement, SMEP constraints, and the choices needed to reach reliable privilege escalation."],
+    ["Non-Paged Pool Overflow Exploitation", "https://github.com/vp777/Windows-Non-Paged-Pool-Overflow-Exploitation", "vp777", "2021", 4, "CVE-2020-17087 pool overflow off by one named pipe", "A hands-on collection for exploiting named-pipe non-paged-pool corruption, including CVE-2020-17087 and an off-by-one variant. It is useful for comparing allocator manipulation and exploitation techniques across older and newer Windows releases."],
+    ["Shadow SSDT hijacking via R/W primitives", "https://www.exploitpack.com/blogs/news/shadow-ssdt-hijacking-to-achieve-kernel-code-execution-via-rw-primitives", "Exploit Pack", "2026", 4, "Shadow SSDT VBS HVCI kCET kernel execution", "Explores converting kernel read/write into code execution by targeting the Shadow SSDT while VBS, HVCI, and kernel CET are active. Treat it as a specialized chain-design study and validate assumptions against the exact Windows build you target."],
+    ["HEVD SMEP bypass", "https://fluidattacks.com/blog/hevd-smep-bypass", "Fluid Attacks", "2020", 4, "HEVD SMEP bypass ROP kernel exploitation", "Introduces SMEP's effect on classic kernel shellcode execution and adapts an HEVD exploit to bypass it. The tutorial is especially useful as a bridge from older token-stealing exercises to ROP-based kernel exploitation."],
+  ]},
+  { id: "mitigations", kicker: "Understand the boundary", title: "Mitigations & Windows Internals", items: [
+    ["The KASLR graveyard: leaking ntoskrnl on Windows 11 25H2", "https://afflicted.sh/blog/posts/kaslr-graveyard.html", "afflicted.sh", "2026", 5, "Windows 11 25H2 KASLR leaks GDT IDT desktop heap prefetch", "Tests a wide catalog of kernel-base disclosure paths against a concrete Windows 11 25H2 target and explains why each succeeds or fails. The result works like a modern KASLR decision tree spanning restricted queries, descriptor tables, desktop heaps, physical memory, CPU differences, and prefetch behavior."],
+    ["Bypassing Windows Kernel Mitigations: Part 0", "https://hackyboiz.github.io/2025/04/13/l0ch/bypassing-kernel-mitigation-part0/en/", "Hackyboiz / L0ch", "2025", 5, "Windows 11 24H2 KASLR prefetch EntryBleed KVA shadow", "Explains the Windows 11 24H2 KASLR restriction from an exploit developer's perspective, then adapts an EntryBleed-style prefetch timing side channel. It connects page tables, KVA shadowing, TLB state, and CPU-specific timing behavior to practical ntoskrnl-base recovery."],
+    ["Windows Exploit Mitigations", "https://github.com/nccgroup/exploit_mitigations/blob/main/windows_mitigations.md", "NCC Group", "Living", 5, "Windows mitigations DEP ASLR CFG CET reference", "A maintained knowledge base that maps Windows exploit mitigations to their purpose, scope, and implementation context. Use it as a high-level map before diving into a single bypass or comparing protections across platform generations."],
+    ["KASLR Leaks Restriction", "https://windows-internals.com/kaslr-leaks-restriction/", "Windows Internals", "2024", 5, "ExIsRestrictedCaller NtQuerySystemInformation KASLR", "Explains the Windows changes that remove many kernel-address disclosures from unprivileged callers. It is the best starting point for understanding ExIsRestrictedCaller, affected system-information classes, and why older disclosure assumptions no longer hold."],
+    ["An End to KASLR Bypasses?", "https://windows-internals.com/an-end-to-kaslr-bypasses/", "Windows Internals", "2024", 4, "kernel pointers restricted caller integrity level", "Provides the broader design context behind Microsoft's restriction of kernel pointer disclosures. It helps connect integrity levels and sandbox boundaries to the mitigation and identifies assumptions embedded in older Windows kernel exploits."],
+    ["Windows Kernel Shadow Stack Mitigation", "https://www.synacktiv.com/sites/default/files/2025-06/sstic_windows_kernel_shadow_stack_mitigation.pdf", "Synacktiv / SSTIC", "2025", 5, "kernel shadow stack CET mitigation PDF", "A deep technical treatment of Windows kernel shadow stacks and their consequences for control-flow hijacking. The slides are dense but valuable when evaluating which exploitation paths kernel CET removes and what remains available."],
+    ["The new Windows Component Filter mitigation", "https://big5-sec.github.io/posts/component-filter-mitigation/", "BIG5", "2024", 5, "Windows Component Filter kernel mitigation KASLR", "Reverse engineers the Component Filter mitigation and explains how Windows restricts sensitive system information by caller context. Read it alongside the KASLR restriction posts to understand both policy and implementation details."],
+    ["Intel VT-rp, Part 1", "https://tandasat.github.io/blog/2023/07/05/intel-vt-rp-part-1.html", "Tandasat", "2023", 5, "Intel VT remapping HLAT KDP g_CiOptions", "Introduces a virtualization-based remapping attack and the role of Hypervisor-managed Linear Address Translation. It demonstrates how page-remapping ideas interact with KDP and g_CiOptions, connecting hardware virtualization to Windows kernel protection research."],
+    ["Windows Internals archive", "https://windows-internals.com/category/windows-internals/", "Winsider", "Living", 5, "Windows internals kernel secure kernel VBS", "A concentrated archive of original Windows internals research spanning the kernel, secure kernel, mitigations, and low-level APIs. Use it as a topic index and favor the individual articles when recording a technique or claim."],
+  ]},
+  { id: "evasion", kicker: "Observe and evade", title: "Evasion & EDR", items: [
+    ["About Hiding on Windows", "https://kernullist.github.io/kernullist-blog/posts/hiding-on-windows/", "Kernullist", "2026", 5, "DKOM injection BYOVD hiding cross-view detection", "Surveys hiding processes, threads, DLLs, drivers, callbacks, and executable regions using DKOM, injection, and BYOVD techniques. Its cross-view detection discussion is particularly useful because it pairs offensive manipulation with the defender's competing sources of truth."],
+    ["Attacking EDRs Part 1: EDR Drivers", "https://labs.infoguard.ch/posts/edr_part1_intro_-_security_analysis_of_edr_drivers/", "InfoGuard Labs", "2025", 5, "EDR driver callbacks attack surface reverse engineering", "Establishes a methodology for analyzing the kernel drivers that give EDR products visibility and enforcement power. It maps callbacks, exposed interfaces, and attack surface so later bypass work is grounded in how the product actually collects telemetry."],
+    ["awesome-edr-bypass", "https://github.com/tkmru/awesome-edr-bypass", "tkmru", "Living", 4, "EDR bypass curated research tools", "A curated directory of EDR bypass research, techniques, presentations, and tooling. It is best used as a discovery index; verify individual techniques against modern product versions before treating them as operationally current."],
+    ["KernelCallbackTable Injection PoC", "https://github.com/0xHossam/KernelCallbackTable-Injection-PoC#introduction", "0xHossam", "2024", 4, "process injection PEB KernelCallbackTable execution hijack", "Demonstrates process injection by replacing a callback pointer in the target's PEB-backed KernelCallbackTable. The compact PoC makes the execution flow easy to trace and provides a useful basis for studying telemetry and defensive detection."],
+    ["kurasagi: runtime PatchGuard bypass", "https://github.com/NeoMaster831/kurasagi", "NeoMaster831", "2025", 4, "Windows 11 PatchGuard bypass 24H2 25H2", "A research implementation targeting runtime PatchGuard bypass on Windows 11 24H2 and 25H2. Because it depends strongly on undocumented and build-specific behavior, use it as an advanced study target rather than a portable technique."],
+    ["BYOVD and legitimate certificates", "https://blog.ghostwolflab.com/apt/737/", "Ghost Wolf Lab", "2026", 3, "BYOVD APT certificates vulnerable drivers", "Discusses how BYOVD tradecraft is shifting from obviously vulnerable drivers toward trust inherited from legitimate certificates. It is a useful threat-research perspective for connecting driver abuse, signing policy, and the limits of blocklist-only defenses."],
+  ]},
+  { id: "cves", kicker: "Study complete cases", title: "CVE & Case Studies", items: [
+    ["CVE-2025-8061: exploiting a Lenovo driver", "https://blog.quarkslab.com/exploiting-lenovo-driver-cve-2025-8061.html", "Quarkslab", "2025", 5, "Lenovo driver LPE reverse engineering CVE-2025-8061", "Follows a vulnerable Lenovo driver from interface reverse engineering through primitive discovery to a working local privilege-escalation chain. The end-to-end methodology makes it useful well beyond this single CVE."],
+    ["eneio64.sys physical-memory R/W", "https://xacone.github.io/eneio-driver.html", "xacone", "2023", 5, "CVE-2020-12446 BYOVD HVCI physical memory", "Starts from exposed physical-memory access in eneio64.sys and builds the translation machinery required for useful virtual kernel reads and writes. It also covers HVCI and driver-blocklist constraints that simplified BYOVD writeups often omit."],
+    ["AOMEI amwrtdrv raw-disk LPE", "https://afflicted.sh/blog/posts/amwrtdrv-aomei-lpe.html", "afflicted.sh", "2026", 5, "raw disk GPT FAT12 UEFI pre-kernel LPE", "Turns ordinary-user raw-disk access into a pre-kernel execution chain by planting a FAT12 image and redirecting a GPT entry. The post is exceptional for showing how a seemingly narrow driver permission error crosses storage, firmware, and boot trust boundaries."],
+    ["SignalRGB: standard user to SYSTEM", "https://afflicted.sh/blog/posts/signalrgb-service-lpe.html", "afflicted.sh", "2026", 4, "service ACL writable binary LocalSystem LPE", "Analyzes a LocalSystem auto-start service whose executable resides in a user-writable directory. It also explains practical replacement and restart constraints, turning a familiar service-permission bug into a complete operational case study."],
+    ["SAS CTF Windows 7 challenge explained", "https://securelist.com/sas-ctf-windows-7-challenge-explained/114180/", "Kaspersky Securelist", "2024", 4, "kernel shellcode persistence APT Windows 7 CTF", "Connects a Windows 7 CTF challenge to a kernel-shellcode persistence technique observed in APT activity. The article is valuable for seeing how a real threat technique can be distilled into a reverse-engineering and exploitation exercise."],
+    ["CVE-2026-21222: information disclosure", "https://windowsforum.com/threads/cve-2026-21222-windows-kernel-information-disclosure-risk-and-mitigation.400816/", "WindowsForum", "2026", 2, "Windows kernel information disclosure mitigation", "A secondary overview of the reported Windows kernel information-disclosure issue and basic mitigation guidance. Use it as a lead rather than an authoritative technical reference, then confirm details in Microsoft advisories and original research when available."],
+  ]},
+  { id: "tools", kicker: "Keep beside the debugger", title: "Tools & Technical References", items: [
+    ["prefetch-tool", "https://github.com/exploits-forsale/prefetch-tool", "exploits.forsale", "2024", 5, "KASLR prefetch side channel assembly timing", "A focused proof of concept for resolving the Windows kernel base through prefetch timing. Read the assembly-level timing loop alongside the 24H2 exploit research to connect the side-channel theory with hardware-specific reliability limits."],
+    ["Vergilius Project", "https://www.vergiliusproject.com/", "Vergilius", "Living", 5, "Windows kernel structures symbols offsets", "A searchable catalog of tens of thousands of undocumented Windows kernel structures across builds and architectures. It is invaluable for quickly comparing layouts, but build-specific offsets should still be validated against symbols and the target binary."],
+    ["System Informer: ntexapi.h", "https://github.com/winsiderss/systeminformer/blob/master/phnt/include/ntexapi.h", "System Informer / phnt", "Living", 5, "NtQuerySystemInformation SYSTEM_INFORMATION_CLASS Native API", "The phnt declarations for Native system-information APIs and the SYSTEM_INFORMATION_CLASS family. Use it for accurate enum values and structure layouts missing from the public SDK, while remembering these interfaces can change between Windows builds."],
+    ["System Informer: ntpsapi.h", "https://github.com/winsiderss/systeminformer/blob/master/phnt/include/ntpsapi.h", "System Informer / phnt", "Living", 5, "Native process thread APIs information classes", "The phnt process-and-thread header covering Native process, thread, job, and related information classes. It is the quickest source for checking structures expected by NtQueryInformationProcess and NtQueryInformationThread before confirming behavior in symbols or disassembly."],
+    ["NtDoc: PROCESSINFOCLASS", "https://ntdoc.m417z.com/processinfoclass", "NtDoc", "Living", 5, "PROCESSINFOCLASS NtQueryInformationProcess documentation", "A browsable, cross-linked reference for process information classes used by NtQueryInformationProcess and NtSetInformationProcess. It summarizes buffer types, access requirements, and version notes, making it a convenient companion to phnt headers."],
+    ["IoRingReadWritePrimitive", "https://github.com/yardenshafir/IoRingReadWritePrimitive", "Yarden Shafir", "2022", 5, "Windows 11 I/O rings kernel read write primitive", "Shows how a limited kernel write or increment can be transformed into a full read/write primitive through Windows I/O rings. The small implementation is an excellent post-exploitation reference for understanding the user/kernel objects and corruption required by the technique."],
+    ["DrvEye", "https://github.com/0xDbgMan/DrvEye", "0xDbgMan", "2026", 4, "driver triage IOCTL symlink certificates BYOVD", "Automates static triage of Windows drivers by surfacing IOCTLs, symbolic links, certificates, imports, and other exploitation-relevant features. Its BYOVD-oriented workflow is useful for prioritization, but findings still require manual reverse engineering and validation."],
+    ["Windows Kernel Exploits archive", "https://github.com/SecWiki/windows-kernel-exploits", "SecWiki", "Living", 4, "Windows kernel CVE privilege escalation exploit archive", "A large historical archive of public Windows kernel privilege-escalation exploits organized by vulnerability and platform. It is useful for comparative study and lab reproduction, though many samples target obsolete builds and should never be assumed safe or production-ready."],
+    ["awesome-fuzzing", "https://github.com/secfigo/awesome-fuzzing", "secfigo", "Living", 4, "fuzzing root cause analysis exploit development resources", "A broad curated index covering fuzzers, papers, courses, root-cause analysis, and exploit development. Use it to choose a domain-specific starting point rather than reading linearly, and check linked projects for current maintenance status."],
+    ["vss-fr2system", "https://github.com/sailay1996/vss-fr2system", "sailay1996", "2026", 3, "VSS file read SYSTEM Windows technique", "A compact research repository exploring a Windows VSS/file-read-to-SYSTEM path. The upstream description is intentionally sparse, so treat the code as a lab artifact to reverse engineer and validate rather than as documented guidance."],
+  ]},
 ];
-
-const references = [
-  {
-    title: "System Informer: ntexapi.h",
-    url: "https://github.com/winsiderss/systeminformer/blob/master/phnt/include/ntexapi.h",
-    source: "System Informer / phnt",
-    category: "Reference",
-    tags: "windows native api NtQuerySystemInformation SYSTEM_INFORMATION_CLASS ntexapi",
-    note: "The phnt header for Native system-information APIs, including NtQuerySystemInformation and the SYSTEM_INFORMATION_CLASS family. Use it when you need accurate declarations, enum values, or structure layouts that are absent or incomplete in the public Windows SDK.",
-  },
-  {
-    title: "System Informer: ntpsapi.h",
-    url: "https://github.com/winsiderss/systeminformer/blob/master/phnt/include/ntpsapi.h",
-    source: "System Informer / phnt",
-    category: "Reference",
-    tags: "windows native api process thread information ntpsapi",
-    note: "The phnt process-and-thread API header, covering Native process, thread, job, and related information classes. It is especially useful while building low-level tooling or checking the exact user-mode structures expected by NtQueryInformationProcess and NtQueryInformationThread.",
-  },
-  {
-    title: "NtDoc: PROCESSINFOCLASS",
-    url: "https://ntdoc.m417z.com/processinfoclass",
-    source: "NtDoc",
-    category: "Reference",
-    tags: "windows native api process information class undocumented ntdll",
-    note: "A browsable, cross-linked reference for PROCESSINFOCLASS values accepted by NtQueryInformationProcess and NtSetInformationProcess. It provides a faster way to understand what each class returns, expected buffer types, access requirements, and known version differences before moving to headers or disassembly.",
-  },
-];
+const total = groups.reduce((sum, group) => sum + group.items.length, 0);
+const stars = (rating: number) => `${"★".repeat(rating)}${"☆".repeat(5 - rating)}`;
 ---
 
 <div class="research-index" data-research-index>
   <div class="research-index__search">
     <label for="research-search">Search the index</label>
-    <input
-      id="research-search"
-      type="search"
-      placeholder="Try: KASLR, service ACL, prefetch, driver, Yarden..."
-      autocomplete="off"
-      data-research-search
-    />
-    <p data-research-status aria-live="polite">
-      {researchers.length} researchers, {resources.length} resources, and {references.length} references
-    </p>
+    <input id="research-search" type="search" placeholder="Try: KASLR, EDR, pool, CVE, I/O rings..." autocomplete="off" data-research-search />
+    <p data-research-status aria-live="polite">{researchers.length} researchers and {total} resources</p>
   </div>
-
-  <section aria-labelledby="researchers-heading">
-    <div class="research-index__heading">
-      <div>
-        <p class="research-index__kicker">People to follow</p>
-        <h2 id="researchers-heading">Researchers &amp; blogs</h2>
-      </div>
-      <span>{researchers.length} entries</span>
-    </div>
-    <div class="research-index__table-wrap">
-      <table>
-        <thead><tr><th>Researcher</th><th>Blog</th><th>Primary focus</th></tr></thead>
-        <tbody data-researcher-body>
-          {researchers.map((item) => (
-            <tr data-index-row data-searchable={`${item.name} ${item.site} ${item.focus}`}>
-              <td><a href={item.profile} target="_blank" rel="noreferrer">{item.name}</a></td>
-              <td><a href={item.url} target="_blank" rel="noreferrer">{item.site}</a></td>
-              <td>{item.focus}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-    <p class="research-index__none" data-researcher-empty hidden>No matching researchers.</p>
+  <aside class="research-index__rubric" aria-label="Reading priority rubric">
+    <strong>Reading priority</strong>
+    <span><b>★★★★★</b> foundational / must-read</span><span><b>★★★★☆</b> strong practical depth</span><span><b>★★★☆☆</b> useful or specialized</span><span><b>★★☆☆☆</b> supplemental / secondary</span>
+  </aside>
+  <section data-index-group aria-labelledby="researchers-heading">
+    <div class="research-index__heading"><div><p class="research-index__kicker">People to follow</p><h2 id="researchers-heading">Researchers &amp; Blogs</h2></div><span>{researchers.length} entries</span></div>
+    <div class="research-index__table-wrap"><table><thead><tr><th>Researcher</th><th>Blog</th><th>Primary focus</th></tr></thead><tbody>
+      {researchers.map(([name, site, url, profile, focus]) => <tr data-index-row data-kind="researcher" data-searchable={`${name} ${site} ${focus}`}><td><a href={profile} target="_blank" rel="noreferrer">{name}</a></td><td><a href={url} target="_blank" rel="noreferrer">{site}</a></td><td>{focus}</td></tr>)}
+    </tbody></table></div><p class="research-index__none" data-group-empty hidden>No matching researchers.</p>
   </section>
-
-  <section aria-labelledby="resources-heading">
-    <div class="research-index__heading">
-      <div>
-        <p class="research-index__kicker">Reading queue</p>
-        <h2 id="resources-heading">Techniques, evasion &amp; references</h2>
-      </div>
-      <span>{resources.length} entries</span>
-    </div>
-    <div class="research-index__table-wrap">
-      <table>
-        <thead><tr><th>Resource</th><th>Type</th><th>Why it matters</th></tr></thead>
-        <tbody data-resource-body>
-          {resources.map((item) => (
-            <tr data-index-row data-searchable={`${item.title} ${item.source} ${item.category} ${item.tags} ${item.note}`}>
-              <td>
-                <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a>
-                <small>{item.source}</small>
-              </td>
-              <td><span class="research-index__badge">{item.category}</span></td>
-              <td>{item.note}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-    <p class="research-index__none" data-resource-empty hidden>No matching resources.</p>
-  </section>
-
-  <section aria-labelledby="references-heading">
-    <div class="research-index__heading">
-      <div>
-        <p class="research-index__kicker">Keep open while researching</p>
-        <h2 id="references-heading">Technical references</h2>
-      </div>
-      <span>{references.length} entries</span>
-    </div>
-    <div class="research-index__table-wrap">
-      <table>
-        <thead><tr><th>Reference</th><th>Area</th><th>How to use it</th></tr></thead>
-        <tbody data-reference-body>
-          {references.map((item) => (
-            <tr data-index-row data-searchable={`${item.title} ${item.source} ${item.category} ${item.tags} ${item.note}`}>
-              <td>
-                <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a>
-                <small>{item.source}</small>
-              </td>
-              <td><span class="research-index__badge">{item.category}</span></td>
-              <td>{item.note}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-    <p class="research-index__none" data-reference-empty hidden>No matching references.</p>
-  </section>
+  {groups.map((group) => <section data-index-group aria-labelledby={`${group.id}-heading`}>
+    <div class="research-index__heading"><div><p class="research-index__kicker">{group.kicker}</p><h2 id={`${group.id}-heading`}>{group.title}</h2></div><span>{group.items.length} entries</span></div>
+    <div class="research-index__table-wrap"><table class="resource-table"><thead><tr><th>Resource</th><th>Year</th><th>Priority</th><th>Why it matters</th></tr></thead><tbody>
+      {group.items.map(([title, url, source, year, rating, tags, note]) => <tr data-index-row data-kind="resource" data-searchable={`${title} ${source} ${year} ${tags} ${note}`}><td><a href={url} target="_blank" rel="noreferrer">{title}</a><small>{source}</small></td><td><span class="research-index__year">{year}</span></td><td><span class="research-index__stars" title={`${rating} out of 5 reading priority`} aria-label={`${rating} out of 5 reading priority`}>{stars(rating)}</span></td><td>{note}</td></tr>)}
+    </tbody></table></div><p class="research-index__none" data-group-empty hidden>No matching resources in this section.</p>
+  </section>)}
 </div>
 
 <script>
   document.querySelectorAll<HTMLElement>("[data-research-index]").forEach((root) => {
     const input = root.querySelector<HTMLInputElement>("[data-research-search]");
     const status = root.querySelector<HTMLElement>("[data-research-status]");
-    const researcherRows = [...root.querySelectorAll<HTMLElement>("[data-researcher-body] [data-index-row]")];
-    const resourceRows = [...root.querySelectorAll<HTMLElement>("[data-resource-body] [data-index-row]")];
-    const referenceRows = [...root.querySelectorAll<HTMLElement>("[data-reference-body] [data-index-row]")];
-    const researcherEmpty = root.querySelector<HTMLElement>("[data-researcher-empty]");
-    const resourceEmpty = root.querySelector<HTMLElement>("[data-resource-empty]");
-    const referenceEmpty = root.querySelector<HTMLElement>("[data-reference-empty]");
-
-    const filterRows = (rows: HTMLElement[], query: string) => {
-      let visible = 0;
-      rows.forEach((row) => {
-        const matches = (row.dataset.searchable ?? "").toLowerCase().includes(query);
-        row.hidden = !matches;
-        if (matches) visible += 1;
-      });
-      return visible;
-    };
-
+    const sections = [...root.querySelectorAll<HTMLElement>("[data-index-group]")];
     input?.addEventListener("input", () => {
-      const query = input.value.trim().toLowerCase();
-      const researcherCount = filterRows(researcherRows, query);
-      const resourceCount = filterRows(resourceRows, query);
-      const referenceCount = filterRows(referenceRows, query);
-      if (researcherEmpty) researcherEmpty.hidden = researcherCount !== 0;
-      if (resourceEmpty) resourceEmpty.hidden = resourceCount !== 0;
-      if (referenceEmpty) referenceEmpty.hidden = referenceCount !== 0;
-      if (status) status.textContent = `${researcherCount} researchers, ${resourceCount} resources, and ${referenceCount} references`;
+      const query = input.value.trim().toLowerCase(); let researchers = 0; let resources = 0;
+      sections.forEach((section) => { let visible = 0; section.querySelectorAll<HTMLElement>("[data-index-row]").forEach((row) => { const match = (row.dataset.searchable ?? "").toLowerCase().includes(query); row.hidden = !match; if (match) { visible++; row.dataset.kind === "researcher" ? researchers++ : resources++; } }); const empty = section.querySelector<HTMLElement>("[data-group-empty]"); if (empty) empty.hidden = visible !== 0; });
+      if (status) status.textContent = `${researchers} researchers and ${resources} resources`;
     });
   });
 </script>
 
 <style>
-  .research-index { display: grid; gap: var(--space-2xl); margin-top: var(--space-xl); }
-  .research-index__search { position: sticky; top: 4.75rem; z-index: 5; display: grid; grid-template-columns: auto minmax(16rem, 1fr) auto; align-items: center; gap: var(--space-md); padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-xl); background: color-mix(in srgb, var(--color-bg-primary) 94%, transparent); box-shadow: var(--shadow-md); backdrop-filter: blur(12px); }
-  .research-index__search label { font-weight: 700; }
-  .research-index__search input { width: 100%; min-height: 2.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-primary); color: var(--color-text-primary); padding: 0.65rem 0.85rem; font: inherit; }
-  .research-index__search p { margin: 0; color: var(--color-text-secondary); font-size: 0.8125rem; white-space: nowrap; }
-  .research-index section { display: grid; gap: var(--space-md); }
-  .research-index__heading { display: flex; align-items: end; justify-content: space-between; gap: var(--space-md); }
-  .research-index__heading h2, .research-index__kicker { margin: 0; }
-  .research-index__kicker { color: var(--color-text-secondary); font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
-  .research-index__heading > span { color: var(--color-text-secondary); font-size: 0.8125rem; }
-  .research-index__table-wrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-xl); }
-  .research-index table { width: 100%; min-width: 52rem; border-collapse: collapse; font-size: 0.9rem; }
-  .research-index th, .research-index td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
-  .research-index th { background: var(--color-bg-secondary); color: var(--color-text-secondary); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; }
-  .research-index tbody tr:last-child td { border-bottom: 0; }
-  .research-index tbody tr:hover { background: var(--color-bg-secondary); }
-  .research-index td:first-child { width: 28%; font-weight: 650; }
-  .research-index td:nth-child(2) { width: 16%; }
-  .research-index a { color: var(--color-text-primary); text-underline-offset: 0.2rem; }
-  .research-index small { display: block; margin-top: 0.25rem; color: var(--color-text-secondary); font-weight: 400; }
-  .research-index__badge { display: inline-flex; border: 1px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-secondary); padding: 0.2rem 0.55rem; font-size: 0.72rem; font-weight: 650; white-space: nowrap; }
-  .research-index__none { margin: 0; padding: var(--space-lg); border: 1px dashed var(--color-border); border-radius: var(--radius-lg); color: var(--color-text-secondary); text-align: center; }
-  [data-index-row][hidden] { display: none; }
-  @media (max-width: 48rem) { .research-index__search { position: static; grid-template-columns: 1fr; } .research-index__search p { white-space: normal; } }
+  .research-index{display:grid;gap:var(--space-2xl);margin-top:var(--space-xl)}.research-index__search{position:sticky;top:4.75rem;z-index:5;display:grid;grid-template-columns:auto minmax(16rem,1fr) auto;align-items:center;gap:var(--space-md);padding:var(--space-md);border:1px solid var(--color-border);border-radius:var(--radius-xl);background:color-mix(in srgb,var(--color-bg-primary) 94%,transparent);box-shadow:var(--shadow-md);backdrop-filter:blur(12px)}.research-index__search label{font-weight:700}.research-index__search input{width:100%;min-height:2.75rem;border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--color-bg-primary);color:var(--color-text-primary);padding:.65rem .85rem;font:inherit}.research-index__search p{margin:0;color:var(--color-text-secondary);font-size:.8125rem;white-space:nowrap}.research-index__rubric{display:flex;flex-wrap:wrap;gap:.65rem 1.25rem;padding:var(--space-md);border:1px solid var(--color-border);border-radius:var(--radius-xl);background:var(--color-bg-secondary);font-size:.82rem}.research-index__rubric strong{width:100%}.research-index__rubric b,.research-index__stars{color:#d69e2e;letter-spacing:.04em}.research-index section{display:grid;gap:var(--space-md)}.research-index__heading{display:flex;align-items:end;justify-content:space-between;gap:var(--space-md)}.research-index__heading h2,.research-index__kicker{margin:0}.research-index__kicker{color:var(--color-text-secondary);font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase}.research-index__heading>span{color:var(--color-text-secondary);font-size:.8125rem}.research-index__table-wrap{overflow-x:auto;border:1px solid var(--color-border);border-radius:var(--radius-xl)}.research-index table{width:100%;min-width:54rem;border-collapse:collapse;font-size:.9rem}.research-index .resource-table{min-width:68rem}.research-index th,.research-index td{padding:.9rem 1rem;border-bottom:1px solid var(--color-border);text-align:left;vertical-align:top}.research-index th{background:var(--color-bg-secondary);color:var(--color-text-secondary);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}.research-index tbody tr:last-child td{border-bottom:0}.research-index tbody tr:hover{background:var(--color-bg-secondary)}.research-index td:first-child{width:25%;font-weight:650}.resource-table td:nth-child(2){width:7%}.resource-table td:nth-child(3){width:12%;white-space:nowrap}.research-index a{color:var(--color-text-primary);text-underline-offset:.2rem}.research-index small{display:block;margin-top:.25rem;color:var(--color-text-secondary);font-weight:400}.research-index__year{font-family:var(--font-mono);font-size:.78rem}.research-index__none{margin:0;padding:var(--space-lg);border:1px dashed var(--color-border);border-radius:var(--radius-lg);color:var(--color-text-secondary);text-align:center}[data-index-row][hidden]{display:none}@media(max-width:48rem){.research-index__search{position:static;grid-template-columns:1fr}.research-index__search p{white-space:normal}}
 </style>

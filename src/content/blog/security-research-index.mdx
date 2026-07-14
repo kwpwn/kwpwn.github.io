@@ -1,6 +1,6 @@
 ---
 title: "Security Research & Exploit Development Link Index"
-description: "A searchable cheatsheet of security researchers, technical writeups, mitigation bypasses, exploitation techniques, and reference material."
+description: "A curated and searchable Windows security research index, organized by exploit development, mitigations, evasion, CVE case studies, tools, and technical references."
 locale: "en"
 publishDate: 2026-07-15
 draft: false
@@ -16,29 +16,27 @@ wide: true
 
 import ResearchCheatsheet from "../../components/blog/ResearchCheatsheet.astro";
 
-This is my working index for security research and exploit-development material.
-It is intentionally practical: use the search box to jump from a researcher to
-a technique, mitigation, tool, or low-level API reference without digging
-through bookmarks.
+This is my working index for Windows security research and exploit development.
+It separates people from individual resources, then divides the reading queue
+into exploit development, mitigations and internals, evasion and EDR, CVE case
+studies, and tools and technical references. The search box filters every table
+at once.
 
-The first pass is anchored on [afflicted.sh](https://afflicted.sh/blog/) and
-three posts worth keeping close:
+The **Year** column records the publication or initial project year where it can
+be established from the original source. **Living** means the page or repository
+is an actively maintained index rather than a single dated article.
 
-- [The KASLR graveyard](https://afflicted.sh/blog/posts/kaslr-graveyard.html)
-- [amwrtdrv: AOMEI Backupper hands every local user the disk](https://afflicted.sh/blog/posts/amwrtdrv-aomei-lpe.html)
-- [SignalRGB: standard user to SYSTEM](https://afflicted.sh/blog/posts/signalrgb-service-lpe.html)
-
-The researcher table separates people and blogs from individual resources. The
-second table collects techniques, mitigation and evasion material, exploit case
-studies, and tooling. Stable API and structure documentation lives in a third
-technical-reference table so it does not get mixed into the reading queue. This
-index will grow as I work through more research.
+The stars are an editorial **reading priority**, not GitHub popularity. Five
+stars marks foundational or unusually complete material; four marks strong
+practical depth; three marks useful but specialized material; and two marks a
+supplemental or secondary source that should be verified against primary
+research. Ratings measure usefulness for this study path, not author quality.
 
 <ResearchCheatsheet />
 
 ## Scope and attribution
 
-Descriptions are short navigation notes, not substitutes for the original
-research. Follow the source links for technical details and credit. Inclusion
-does not imply that every linked researcher authored every technique listed;
-the source column identifies the relevant publication.
+Descriptions are navigation notes, not substitutes for the original research.
+Follow the source links for technical details and credit. Publication years and
+build-specific claims should be rechecked when a project or article is updated;
+Windows internals and exploitation techniques age quickly.
