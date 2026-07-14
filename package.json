@@ -1,8 +1,8 @@
 {
-  "name": "ctf-writeups",
+  "name": "blogs",
   "version": "1.0.0",
   "private": true,
-  "description": "Static CTF writeup blog deployed to GitHub Pages",
+  "description": "A minimal personal blog deployed to GitHub Pages",
   "license": "MIT",
   "packageManager": "pnpm@8.15.0",
   "type": "module",

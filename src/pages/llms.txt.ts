@@ -13,7 +13,7 @@ export const GET: APIRoute = async () => {
     .map((post) => `- [${post.data.title}](${base}/blog/${post.id}): ${post.data.description}`)
     .join("\n");
 
-  return new Response(`# ${siteConfig.name}\n\n> ${siteConfig.description}\n\n## Writeups\n\n${links}\n`, {
+  return new Response(`# ${siteConfig.name}\n\n> ${siteConfig.description}\n\n## Posts\n\n${links}\n`, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
   });
 };

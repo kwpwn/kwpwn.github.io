@@ -1,7 +1,6 @@
-# CTF Writeups
+# Blogs
 
-A minimal, static CTF writeup blog built with Astro. It contains a single
-writeup index and individual Markdown post pages.
+A minimal personal blog built with Astro and deployed to GitHub Pages.
 
 ## Local development
 
@@ -14,34 +13,31 @@ pnpm install
 pnpm dev
 ```
 
-## Add a writeup
+## Add a post
 
-Create a Markdown or MDX file in `src/content/blog/`. Use this frontmatter:
+Create a Markdown or MDX file in `src/content/blog/`:
 
 ```yaml
 ---
-title: "Challenge name"
-description: "What the challenge covered and how it was solved."
+title: "Post title"
+description: "A short description of the post."
 locale: "en"
 publishDate: 2026-07-15
 draft: false
 tags:
-  - web
-  - picoctf
+  - notes
 author: "kwpwn"
 ---
 ```
 
-Set `draft: true` to keep an unfinished writeup out of production.
+Set `draft: true` to keep an unfinished post out of production.
 
 ## Deploy to GitHub Pages
 
-1. Create a public GitHub repository named `kwpwn.github.io`.
-2. Push this project to the repository's `main` branch.
-3. In **Settings → Pages → Build and deployment**, select **GitHub Actions**.
-4. The `Deploy to GitHub Pages` workflow publishes the site automatically.
+The repository is published automatically from `main` by
+`.github/workflows/deploy.yml`.
 
-The production URL is `https://kwpwn.github.io`.
+Production URL: `https://kwpwn.github.io`.
 
 ## Verification
 

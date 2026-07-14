@@ -1,29 +1,10 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("blog listing + detail", () => {
-  test("blog listing shows at least one post card", async ({ page }) => {
+test.describe("empty blog", () => {
+  test("homepage renders the empty state", async ({ page }) => {
     test.setTimeout(60_000);
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    await expect(page.locator(".blog-card").first()).toBeVisible({
-      timeout: 30_000,
-    });
-  });
-
-  test("clicking a blog card navigates to the post", async ({ page }) => {
-    test.setTimeout(60_000);
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    const firstCardLink = page.locator(".blog-card__title a").first();
-    await expect(firstCardLink).toBeVisible({ timeout: 30_000 });
-    await firstCardLink.click();
-    await expect(page.locator("h1").first()).toBeVisible({ timeout: 30_000 });
-  });
-
-  test("blog detail page exposes share buttons", async ({ page }) => {
-    test.setTimeout(60_000);
-    await page.goto("/blog/welcome", { waitUntil: "domcontentloaded" });
-    await expect(page.locator("h1").first()).toBeVisible({ timeout: 30_000 });
-    await expect(page.locator(".share-buttons button").first()).toBeVisible({
-      timeout: 30_000,
-    });
+    await expect(page.locator("h1")).toHaveText("Blogs");
+    await expect(page.locator(".posts__empty")).toHaveText("No posts yet.");
   });
 });

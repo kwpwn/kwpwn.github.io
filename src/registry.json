@@ -1,5 +1,5 @@
 {
-  "name": "ctf-writeups",
+  "name": "blogs",
   "description": "Machine-readable catalog of the three-tier architecture: Components -> Sections -> Pages.",
   "tiers": ["component", "section", "page"],
   "importAliases": {
@@ -313,8 +313,8 @@
     }
   ],
   "pages": [
-    { "name": "Writeup index", "path": "src/pages/index.astro", "locales": ["en"] },
-    { "name": "Writeup detail", "path": "src/pages/blog/[slug].astro", "locales": ["en"] }
+    { "name": "Post index", "path": "src/pages/index.astro", "locales": ["en"] },
+    { "name": "Post detail", "path": "src/pages/blog/[slug].astro", "locales": ["en"] }
   ]
 }
 

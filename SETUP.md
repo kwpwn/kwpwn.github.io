@@ -9,7 +9,7 @@ repository subpath.
 ```bash
 git remote set-url origin https://github.com/kwpwn/kwpwn.github.io.git
 git add .
-git commit -m "Set up CTF writeup blog"
+git commit -m "Set up blog"
 git push -u origin main
 ```
 

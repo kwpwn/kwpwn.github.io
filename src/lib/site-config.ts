@@ -18,7 +18,7 @@ export const SITE_CONFIG = {
     en: "en",
   } as const,
   /** Site name for metadata and JSON-LD. */
-  name: "CTF Writeups",
+  name: "Blogs",
   /** Short description for metadata. */
-  description: "Capture the flag writeups, techniques, and notes from past challenges.",
+  description: "Personal notes, articles, and things worth sharing.",
 } as const;

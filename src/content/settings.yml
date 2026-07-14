@@ -1,6 +1,6 @@
 # Site Settings
-name: "CTF Writeups"
-description: "Capture the flag writeups, techniques, and notes from past challenges."
+name: "Blogs"
+description: "Personal notes, articles, and things worth sharing."
 url: "https://kwpwn.github.io"
 defaultLocale: en
 analyticsProvider: none
