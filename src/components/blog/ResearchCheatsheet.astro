@@ -1,9 +1,5 @@
 ---
-type Researcher = [string, string, string, string, string];
-type Resource = [string, string, string, string, number, string, string];
-interface ResourceGroup { id: string; kicker: string; title: string; items: Resource[] }
-
-const researchers: Researcher[] = [
+const researchers = [
   ["._SiCk", "afflicted.sh", "https://afflicted.sh/blog/", "https://github.com/0xdeadbeefnetwork", "Kernel exploitation, vulnerable drivers, firmware, and exploit-development tooling."],
   ["Yarden Shafir", "Windows Internals", "https://windows-internals.com/author/yarden/", "https://github.com/yardenshafir", "Windows internals, kernel mitigations, VBS, KDP, CET, I/O rings, and exploitation primitives."],
   ["carrot_c4k3", "exploits.forsale", "https://exploits.forsale/", "https://github.com/exploits-forsale", "Windows kernel vulnerability research, Pwn2Own work, KASLR side channels, and exploit tooling."],
@@ -15,9 +11,9 @@ const researchers: Researcher[] = [
   ["Tandasat", "tandasat.github.io", "https://tandasat.github.io/blog/", "https://github.com/tandasat", "Windows virtualization, hypervisors, Intel VT, kernel protections, and security research tooling."],
   ["ewilded", "HACKINGISCOOL", "https://hackingiscool.pl/", "https://hackingiscool.pl/", "Reverse engineering, offensive security, Windows internals, and practical research notes."],
   ["5pider", "GitHub", "https://github.com/Cracked5pider", "https://github.com/Cracked5pider", "Offensive Windows tooling, injection techniques, evasion research, and malware development."],
-];
+ ] as const;
 
-const groups: ResourceGroup[] = [
+const groups = [
   { id: "pwn", kicker: "Build the primitive", title: "Exploit Development & Pwn", items: [
     ["Swimming in the (Kernel) Pool, Part 1", "https://connormcgarr.github.io/swimming-in-the-kernel-pool-part-1/", "Connor McGarr", "2021", 5, "HEVD pool exploitation, kLFH behavior, and low-integrity pool attacks", "Builds a Windows kernel pool exploit from allocator behavior upward, including an out-of-bounds read used for KASLR defeat. The careful treatment of kLFH makes it a strong foundation for understanding why heap shaping works rather than merely copying a spray."],
     ["ROP Gadget Hunting on Windows", "https://core-jmp.org/2026/06/rop-scanner-windows-rop-gadget-hunting-exploit-chain/", "core-jmp", "2026", 5, "ROP JOP gadgets CFG DEP VirtualProtect stack pivot", "Walks from instruction-pointer control to a bad-byte-clean VirtualProtect chain using ROP, JOP, syscall, and stack-pivot gadgets. It also considers CFG-aware gadget selection, making the article useful for designing a repeatable modern gadget-hunting workflow."],
@@ -67,7 +63,7 @@ const groups: ResourceGroup[] = [
     ["awesome-fuzzing", "https://github.com/secfigo/awesome-fuzzing", "secfigo", "Living", 4, "fuzzing root cause analysis exploit development resources", "A broad curated index covering fuzzers, papers, courses, root-cause analysis, and exploit development. Use it to choose a domain-specific starting point rather than reading linearly, and check linked projects for current maintenance status."],
     ["vss-fr2system", "https://github.com/sailay1996/vss-fr2system", "sailay1996", "2026", 3, "VSS file read SYSTEM Windows technique", "A compact research repository exploring a Windows VSS/file-read-to-SYSTEM path. The upstream description is intentionally sparse, so treat the code as a lab artifact to reverse engineer and validate rather than as documented guidance."],
   ]},
-];
+] as const;
 const total = groups.reduce((sum, group) => sum + group.items.length, 0);
 const stars = (rating: number) => `${"★".repeat(rating)}${"☆".repeat(5 - rating)}`;
 ---
