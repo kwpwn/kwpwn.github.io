@@ -16,11 +16,17 @@ wide: true
 
 import ResearchCheatsheet from "../../components/blog/ResearchCheatsheet.astro";
 
-This is my working index for Windows security research and exploit development.
-It separates people from individual resources, then divides the reading queue
-into exploit development, mitigations and internals, evasion and EDR, CVE case
-studies, and tools and technical references. The search box filters every table
-at once.
+This is a deliberately opinionated index for Windows security research and
+exploit development. It prioritizes original research, reproducible technical
+work, source code, debugger-level explanations, and material that remains useful
+after a specific campaign or Windows build ages out. The focus spans BYOVD,
+kernel exploitation, COM/RPC/ALPC, APC, loaders, injection, malware internals,
+mitigations, EDR, and low-level references.
+
+The researcher list is not a popularity ranking. It favors people and teams with
+a sustained body of original Windows work; the profile link points to X or
+GitHub where useful, while the blog link points to the material worth reading.
+Search filters every table at once, including hidden topic keywords.
 
 The **Year** column records the publication or initial project year where it can
 be established from the original source. **Living** means the page or repository
@@ -31,6 +37,10 @@ stars marks foundational or unusually complete material; four marks strong
 practical depth; three marks useful but specialized material; and two marks a
 supplemental or secondary source that should be verified against primary
 research. Ratings measure usefulness for this study path, not author quality.
+New entries must normally earn at least four stars: primary-source research,
+meaningful technical depth, and enough evidence or implementation detail to
+verify the claims. Lower-rated legacy entries are retained only when they
+provide context for a previously tracked lead and are not core reading.
 
 <ResearchCheatsheet />
 
