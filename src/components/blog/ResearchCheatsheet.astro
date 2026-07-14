@@ -57,7 +57,7 @@ const resources = [
     source: "afflicted.sh",
     category: "Technique / Evasion",
     tags: "windows kernel kaslr ntoskrnl infoleak ExIsRestrictedCaller WIL GDT IDT desktop heap prefetch",
-    note: "A practical catalog of failed and working kernel-base leak paths on a specific Windows 11 25H2 target.",
+    note: "A practical catalog of kernel-base leak paths tested on a specific Windows 11 25H2 target, including the exact reason each approach worked or failed. It is useful as a decision tree for modern KASLR work because it covers restricted NtQuery* outputs, descriptor tables, desktop heap ideas, physical-memory approaches, CPU differences, and the eventual working path.",
   },
   {
     title: "amwrtdrv: AOMEI Backupper hands every local user the disk",
@@ -65,7 +65,7 @@ const resources = [
     source: "afflicted.sh",
     category: "Windows LPE",
     tags: "vulnerable driver raw disk gpt fat12 uefi boot pre-kernel secure boot",
-    note: "Turns unprivileged raw-disk access through amwrtdrv.sys into a GPT-redirection and UEFI execution chain.",
+    note: "Shows how an insecure kernel driver turns ordinary-user access into raw reads and writes against the live system disk. The post then develops that primitive into a pre-kernel execution chain by placing a FAT12 image in the pre-partition gap, redirecting the GPT entry, and letting UEFI load the planted binary before Windows protections start.",
   },
   {
     title: "SignalRGB: standard user to SYSTEM",
@@ -73,7 +73,7 @@ const resources = [
     source: "afflicted.sh",
     category: "Windows LPE",
     tags: "service acl writable binary appdata local system cwe-732 cwe-276",
-    note: "A clean service-permission case study: a user-writable executable is launched by an auto-start LocalSystem service.",
+    note: "A clear Windows service-permission case study where an auto-start LocalSystem service executes a binary stored in a user-writable profile directory. It also documents the operational detail many writeups omit: replacing a running image, understanding SERVICE_START versus stop rights, and choosing between reboot and a chained restart trigger.",
   },
   {
     title: "KASLR Leaks Restriction",
@@ -81,7 +81,7 @@ const resources = [
     source: "Windows Internals",
     category: "Mitigation",
     tags: "windows kernel kaslr ExIsRestrictedCaller NtQuerySystemInformation SeDebugPrivilege",
-    note: "Yarden Shafir's internal analysis of the Windows restriction that removes kernel-address leaks from unprivileged callers.",
+    note: "Yarden Shafir's internal analysis of the Windows mitigation that removes many kernel-address disclosures from unprivileged callers. Read this first to understand ExIsRestrictedCaller, the affected system-information paths, the role of caller privileges, and why exploit developers can no longer treat NtQuerySystemInformation as a universal KASLR bypass.",
   },
   {
     title: "An End to KASLR Bypasses?",
@@ -89,7 +89,7 @@ const resources = [
     source: "Windows Internals",
     category: "Mitigation",
     tags: "windows kernel kaslr pointers restricted caller mitigation",
-    note: "Background on Microsoft's effort to restrict kernel pointer disclosure and its effect on established exploit techniques.",
+    note: "Background on Microsoft's broader effort to restrict kernel pointer disclosure and its effect on established exploit-development workflows. The article is valuable for understanding the mitigation's original scope, how integrity levels and sandbox boundaries influenced the design, and which assumptions older Windows kernel exploits made about address disclosure.",
   },
   {
     title: "Bypassing Windows Kernel Mitigations: Part 0",
@@ -97,7 +97,7 @@ const resources = [
     source: "Hackyboiz / L0ch",
     category: "Technique / Evasion",
     tags: "windows 24h2 kernel kaslr prefetch side channel EntryBleed KVA shadow Intel AMD",
-    note: "Explains the 24H2 KASLR restriction and applies a prefetch timing side channel to recover the Windows kernel base.",
+    note: "Explains the Windows 11 24H2 KASLR restriction from an exploit developer's perspective, then adapts an EntryBleed-style prefetch timing side channel to Windows. It connects page-table behavior, KVA shadowing, TLB state, CPU-specific timing differences, and the practical process of recovering the ntoskrnl base without the legacy query APIs.",
   },
   {
     title: "Breaking KASLR on Windows 11 24H2 with physical memory access",
@@ -105,7 +105,7 @@ const resources = [
     source: "xacone / Yazid",
     category: "Technique / Evasion",
     tags: "windows 24h2 kernel kaslr hvci physical memory driver cr3 page table",
-    note: "A driver-assisted physical-memory technique for locating kernel structures under newer KASLR restrictions.",
+    note: "A driver-assisted physical-memory approach for recovering the Windows kernel base and related structures after traditional pointer disclosures were restricted. Use it to study page-table traversal, CR3 discovery, physical-to-virtual translation, and how a vulnerable but HVCI-compatible driver can support a data-only exploitation path.",
   },
   {
     title: "Exploiting eneio64.sys through physical memory R/W",
@@ -113,7 +113,7 @@ const resources = [
     source: "xacone / Yazid",
     category: "Windows Kernel",
     tags: "vulnerable driver byovd physical memory virtual memory hvci eneio64 cve-2020-12446",
-    note: "Builds virtual kernel read/write capabilities from an HVCI-compatible driver's physical-memory primitive.",
+    note: "Starts from eneio64.sys exposing physical-memory access and develops the missing machinery needed for useful virtual kernel reads and writes. The walkthrough is a practical reference for locating CR3, translating virtual addresses through page tables, dealing with HVCI and the vulnerable-driver blocklist, and turning a limited driver primitive into an exploitation foundation.",
   },
   {
     title: "Exploiting a vulnerable Lenovo driver (CVE-2025-8061)",
@@ -121,7 +121,7 @@ const resources = [
     source: "Quarkslab / Luis Casvella",
     category: "Windows Kernel",
     tags: "windows driver exploitation lenovo cve-2025-8061 lpe reverse engineering",
-    note: "A full vulnerable-driver analysis and exploitation reference cited by the KASLR graveyard.",
+    note: "A full vulnerable-driver analysis and exploitation reference cited by the KASLR graveyard. It demonstrates the workflow from reverse engineering Lenovo's driver interface and identifying the exposed primitives through building a working local privilege-escalation chain, making it useful both as a case study and as a methodology template.",
   },
   {
     title: "Exploiting the NT Kernel in 24H2",
@@ -129,7 +129,7 @@ const resources = [
     source: "exploits.forsale",
     category: "Windows Kernel",
     tags: "windows 24h2 nt kernel double fetch exploit kaslr prefetch side channel",
-    note: "Kernel bug discovery and exploitation on 24H2, including a prefetch-based KASLR bypass.",
+    note: "Covers NT kernel bug discovery and exploit development on the Windows 11 24H2 preview, including double-fetch vulnerabilities introduced by changes to user-memory handling. Its KASLR section explains how prefetch timing was adapted to Windows and documents the important reliability differences observed across Intel, AMD, native, and virtualized systems.",
   },
   {
     title: "prefetch-tool",
@@ -137,15 +137,18 @@ const resources = [
     source: "exploits.forsale",
     category: "Tool",
     tags: "windows kaslr bypass prefetch side channel assembly timing Intel AMD",
-    note: "Proof-of-concept tooling for resolving the Windows kernel base through prefetch timing behavior.",
+    note: "A focused proof-of-concept for resolving the Windows kernel base through prefetch timing behavior. Read it alongside the 24H2 exploit posts to connect the side-channel theory with the assembly-level timing loop and its hardware-specific reliability limits.",
   },
+];
+
+const references = [
   {
     title: "System Informer: ntexapi.h",
     url: "https://github.com/winsiderss/systeminformer/blob/master/phnt/include/ntexapi.h",
     source: "System Informer / phnt",
     category: "Reference",
     tags: "windows native api NtQuerySystemInformation SYSTEM_INFORMATION_CLASS ntexapi",
-    note: "Native API declarations and system-information classes useful during Windows internals and exploit research.",
+    note: "The phnt header for Native system-information APIs, including NtQuerySystemInformation and the SYSTEM_INFORMATION_CLASS family. Use it when you need accurate declarations, enum values, or structure layouts that are absent or incomplete in the public Windows SDK.",
   },
   {
     title: "System Informer: ntpsapi.h",
@@ -153,7 +156,7 @@ const resources = [
     source: "System Informer / phnt",
     category: "Reference",
     tags: "windows native api process thread information ntpsapi",
-    note: "Process and thread native API structures, enums, and declarations from the phnt headers.",
+    note: "The phnt process-and-thread API header, covering Native process, thread, job, and related information classes. It is especially useful while building low-level tooling or checking the exact user-mode structures expected by NtQueryInformationProcess and NtQueryInformationThread.",
   },
   {
     title: "NtDoc: PROCESSINFOCLASS",
@@ -161,7 +164,7 @@ const resources = [
     source: "NtDoc",
     category: "Reference",
     tags: "windows native api process information class undocumented ntdll",
-    note: "A browsable reference for process information classes used by NtQueryInformationProcess.",
+    note: "A browsable, cross-linked reference for PROCESSINFOCLASS values accepted by NtQueryInformationProcess and NtSetInformationProcess. It provides a faster way to understand what each class returns, expected buffer types, access requirements, and known version differences before moving to headers or disassembly.",
   },
 ];
 ---
@@ -177,7 +180,7 @@ const resources = [
       data-research-search
     />
     <p data-research-status aria-live="polite">
-      {researchers.length} researchers and {resources.length} resources
+      {researchers.length} researchers, {resources.length} resources, and {references.length} references
     </p>
   </div>
 
@@ -233,6 +236,34 @@ const resources = [
     </div>
     <p class="research-index__none" data-resource-empty hidden>No matching resources.</p>
   </section>
+
+  <section aria-labelledby="references-heading">
+    <div class="research-index__heading">
+      <div>
+        <p class="research-index__kicker">Keep open while researching</p>
+        <h2 id="references-heading">Technical references</h2>
+      </div>
+      <span>{references.length} entries</span>
+    </div>
+    <div class="research-index__table-wrap">
+      <table>
+        <thead><tr><th>Reference</th><th>Area</th><th>How to use it</th></tr></thead>
+        <tbody data-reference-body>
+          {references.map((item) => (
+            <tr data-index-row data-searchable={`${item.title} ${item.source} ${item.category} ${item.tags} ${item.note}`}>
+              <td>
+                <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a>
+                <small>{item.source}</small>
+              </td>
+              <td><span class="research-index__badge">{item.category}</span></td>
+              <td>{item.note}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="research-index__none" data-reference-empty hidden>No matching references.</p>
+  </section>
 </div>
 
 <script>
@@ -241,8 +272,10 @@ const resources = [
     const status = root.querySelector<HTMLElement>("[data-research-status]");
     const researcherRows = [...root.querySelectorAll<HTMLElement>("[data-researcher-body] [data-index-row]")];
     const resourceRows = [...root.querySelectorAll<HTMLElement>("[data-resource-body] [data-index-row]")];
+    const referenceRows = [...root.querySelectorAll<HTMLElement>("[data-reference-body] [data-index-row]")];
     const researcherEmpty = root.querySelector<HTMLElement>("[data-researcher-empty]");
     const resourceEmpty = root.querySelector<HTMLElement>("[data-resource-empty]");
+    const referenceEmpty = root.querySelector<HTMLElement>("[data-reference-empty]");
 
     const filterRows = (rows: HTMLElement[], query: string) => {
       let visible = 0;
@@ -258,9 +291,11 @@ const resources = [
       const query = input.value.trim().toLowerCase();
       const researcherCount = filterRows(researcherRows, query);
       const resourceCount = filterRows(resourceRows, query);
+      const referenceCount = filterRows(referenceRows, query);
       if (researcherEmpty) researcherEmpty.hidden = researcherCount !== 0;
       if (resourceEmpty) resourceEmpty.hidden = resourceCount !== 0;
-      if (status) status.textContent = `${researcherCount} researchers and ${resourceCount} resources`;
+      if (referenceEmpty) referenceEmpty.hidden = referenceCount !== 0;
+      if (status) status.textContent = `${researcherCount} researchers, ${resourceCount} resources, and ${referenceCount} references`;
     });
   });
 </script>
