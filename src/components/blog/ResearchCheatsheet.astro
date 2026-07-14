@@ -1,7 +1,7 @@
 ---
 type Researcher = [string, string, string, string, string];
 type Resource = [string, string, string, string, number, string, string];
-type ResourceGroup = { id: string; kicker: string; title: string; items: Resource[] };
+interface ResourceGroup { id: string; kicker: string; title: string; items: Resource[] }
 
 const researchers: Researcher[] = [
   ["._SiCk", "afflicted.sh", "https://afflicted.sh/blog/", "https://github.com/0xdeadbeefnetwork", "Kernel exploitation, vulnerable drivers, firmware, and exploit-development tooling."],
