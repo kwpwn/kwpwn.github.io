@@ -88,6 +88,11 @@ Collection-bound blocks. Compose primitives + the patterns in `patterns.md`.
 | TagList | `blog/TagList.astro` | `tags`, `basePath`, `locale` | Tag pills. |
 | TableOfContents | `blog/TableOfContents.astro` | `headings`, `layout` (inline\|sidebar), `maxDepth`, `minHeadings` | — |
 | ServiceCard | `services/ServiceCard.astro` | `service`, `locale`, `headingLevel` | Icon badge + price pill + checklist. |
+| HandbookLanding | `handbook/HandbookLanding.astro` | — | Searchable handbook overview with learning paths, topic shelves, and featured concepts. |
+| ConceptDocument | `handbook/ConceptDocument.astro` | `concept` | Long-form concept reference with mechanics, audit questions, APIs, lab, sources, and related reading. |
+| TopicShelf | `handbook/TopicShelf.astro` | `group`, `concepts` | Searchable index for one handbook topic group. |
+| ApiFlagsCheatsheet | `handbook/ApiFlagsCheatsheet.astro` | — | Searchable Windows API and flag-family reference. |
+| CaseStudyLibrary | `handbook/CaseStudyLibrary.astro` | — | Curated exploit-chain studies plus the KernelSight case-study ledger. |
 
 ## Rules
 

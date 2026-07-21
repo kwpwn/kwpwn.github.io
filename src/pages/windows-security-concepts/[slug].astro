@@ -1,0 +1,30 @@
+---
+import ConceptDocument from "../../components/handbook/ConceptDocument.astro";
+import Container from "../../components/ui/layout/Container/Container.astro";
+import Section from "../../components/ui/layout/Section/Section.astro";
+import { handbookConcepts } from "../../data/windows-security-handbook";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export function getStaticPaths() {
+  return handbookConcepts.map((concept) => ({
+    params: { slug: concept.slug },
+    props: { concept },
+  }));
+}
+
+const { concept } = Astro.props;
+const locale = "en" as const;
+---
+
+<BaseLayout
+  title={`${concept.title} — Windows Security Handbook`}
+  description={concept.summary}
+  locale={locale}
+  path={`/windows-security-concepts/${concept.slug}/`}
+>
+  <Section spacing="xl">
+    <Container size="xl">
+      <ConceptDocument concept={concept} />
+    </Container>
+  </Section>
+</BaseLayout>

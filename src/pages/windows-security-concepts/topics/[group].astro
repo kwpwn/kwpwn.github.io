@@ -1,0 +1,33 @@
+---
+import TopicShelf from "../../../components/handbook/TopicShelf.astro";
+import Container from "../../../components/ui/layout/Container/Container.astro";
+import Section from "../../../components/ui/layout/Section/Section.astro";
+import {
+  getConceptsForGroup,
+  handbookGroups,
+} from "../../../data/windows-security-handbook";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+export function getStaticPaths() {
+  return handbookGroups.map((group) => ({
+    params: { group: group.id },
+    props: { group, concepts: getConceptsForGroup(group.id) },
+  }));
+}
+
+const { group, concepts } = Astro.props;
+const locale = "en" as const;
+---
+
+<BaseLayout
+  title={`${group.title} — Windows Security Handbook`}
+  description={group.description}
+  locale={locale}
+  path={`/windows-security-concepts/topics/${group.id}/`}
+>
+  <Section spacing="xl">
+    <Container size="xl">
+      <TopicShelf group={group} concepts={concepts} />
+    </Container>
+  </Section>
+</BaseLayout>

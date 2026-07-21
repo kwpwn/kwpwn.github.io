@@ -1,0 +1,32 @@
+---
+import CaseStudyLibrary from "../../components/handbook/CaseStudyLibrary.astro";
+import Container from "../../components/ui/layout/Container/Container.astro";
+import Section from "../../components/ui/layout/Section/Section.astro";
+import { i18nConfig } from "../../config/i18n.config";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import type { Locale } from "../../lib/site-config";
+
+export function getStaticPaths() {
+  return i18nConfig.locales
+    .filter((locale) => locale !== i18nConfig.defaultLocale)
+    .map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const title = "Windows Security Case Studies";
+const description =
+  "Curated Windows security research chains plus a searchable coverage ledger for every KernelSight case study.";
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  locale={locale}
+  path={`/${locale}/windows-security-case-studies/`}
+>
+  <Section spacing="xl">
+    <Container size="xl">
+      <CaseStudyLibrary />
+    </Container>
+  </Section>
+</BaseLayout>

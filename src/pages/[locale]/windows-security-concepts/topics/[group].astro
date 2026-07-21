@@ -1,0 +1,39 @@
+---
+import TopicShelf from "../../../../components/handbook/TopicShelf.astro";
+import Container from "../../../../components/ui/layout/Container/Container.astro";
+import Section from "../../../../components/ui/layout/Section/Section.astro";
+import { i18nConfig } from "../../../../config/i18n.config";
+import {
+  getConceptsForGroup,
+  handbookGroups,
+} from "../../../../data/windows-security-handbook";
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import type { Locale } from "../../../../lib/site-config";
+
+export function getStaticPaths() {
+  return i18nConfig.locales
+    .filter((locale) => locale !== i18nConfig.defaultLocale)
+    .flatMap((locale) =>
+      handbookGroups.map((group) => ({
+        params: { locale, group: group.id },
+        props: { group, concepts: getConceptsForGroup(group.id) },
+      })),
+    );
+}
+
+const { group, concepts } = Astro.props;
+const locale = Astro.params.locale as Locale;
+---
+
+<BaseLayout
+  title={`${group.title} — Windows Security Handbook`}
+  description={group.description}
+  locale={locale}
+  path={`/${locale}/windows-security-concepts/topics/${group.id}/`}
+>
+  <Section spacing="xl">
+    <Container size="xl">
+      <TopicShelf group={group} concepts={concepts} />
+    </Container>
+  </Section>
+</BaseLayout>

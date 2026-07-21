@@ -1,0 +1,858 @@
+---
+import {
+  apiGroups,
+  flagFamilies,
+  windowsApis,
+} from "../../data/windows-api-cheatsheet";
+import Badge from "../ui/data-display/Badge/Badge.astro";
+import Card from "../ui/data-display/Card/Card.astro";
+import Icon from "../ui/primitives/Icon/Icon.astro";
+---
+
+<div class="api-field-guide" data-api-guide>
+  <nav class="api-field-guide__breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Blogs</a>
+    <span aria-hidden="true">/</span>
+    <a href="/windows-security-concepts/">Windows Security Handbook</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">API &amp; flags</span>
+  </nav>
+
+  <header class="api-field-guide__hero">
+    <div>
+      <Badge variant="outline" size="sm">Windows research field guide</Badge>
+      <p class="api-field-guide__eyebrow">API &amp; flags cheatsheet</p>
+      <h1>Know the handle, mask, mode, and object.</h1>
+      <p>
+        A searchable reference for the APIs and flags that repeatedly appear in
+        Windows driver, service, filesystem, token, IPC, process, and mitigation
+        research. Every entry includes the security decision hidden behind the
+        signature.
+      </p>
+    </div>
+    <aside aria-label="How to use this guide">
+      <p>Read an API in this order</p>
+      <ol>
+        <li>Which object or subsystem owns the operation?</li>
+        <li>Which handle rights and caller identity are used?</li>
+        <li>Which flags change lookup, lifetime, or access semantics?</li>
+        <li>Which buffer, path, or state remains mutable?</li>
+      </ol>
+    </aside>
+  </header>
+
+  <section
+    id="api-directory"
+    class="api-directory"
+    aria-labelledby="api-directory-heading"
+  >
+    <header class="api-field-guide__section-head">
+      <div>
+        <p class="api-field-guide__eyebrow">Function directory</p>
+        <h2 id="api-directory-heading">
+          {windowsApis.length} high-signal interfaces
+        </h2>
+      </div>
+      <p>
+        This is scoped to security research, not a substitute for the Windows
+        SDK. Follow the official documentation link before implementing
+        production code.
+      </p>
+    </header>
+
+    <div class="api-toolbar">
+      <label for="api-query"
+        >Search function, flag, header, object, or purpose</label
+      >
+      <div class="api-toolbar__search">
+        <Icon name="lucide:search" size={19} />
+        <input
+          id="api-query"
+          type="search"
+          placeholder="Try SERVICE_CHANGE_CONFIG, METHOD_NEITHER, token, ALPC…"
+          autocomplete="off"
+          data-api-query
+        />
+      </div>
+      <div class="api-toolbar__filters" aria-label="Filter API groups">
+        <button type="button" aria-pressed="true" data-api-group="all"
+          >All</button
+        >
+        {
+          apiGroups.map((group) => (
+            <button
+              type="button"
+              aria-pressed="false"
+              data-api-group={group.id}
+            >
+              {group.title}
+            </button>
+          ))
+        }
+      </div>
+      <p aria-live="polite" data-api-count>{windowsApis.length} APIs</p>
+    </div>
+
+    <ul class="api-directory__grid">
+      {
+        windowsApis.map((entry) => {
+          const group = apiGroups.find((item) => item.id === entry.group);
+          const searchText = [
+            entry.name,
+            entry.mode,
+            entry.header,
+            entry.library,
+            entry.purpose,
+            entry.securityNote,
+            group?.title,
+            ...(entry.aliases ?? []),
+            ...entry.flags.flatMap((flag) => [
+              flag.name,
+              flag.value ?? "",
+              flag.meaning,
+            ]),
+          ]
+            .join(" ")
+            .toLocaleLowerCase();
+          return (
+            <li
+              data-api-entry
+              data-group={entry.group}
+              data-search-text={searchText}
+            >
+              <Card class="api-card">
+                <div class="api-card__meta">
+                  <span>{group?.title}</span>
+                  <span>{entry.mode}</span>
+                </div>
+                <div class="api-card__heading">
+                  <h3>
+                    <code>{entry.name}</code>
+                  </h3>
+                  <a
+                    href={entry.docs}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Open official documentation for ${entry.name}`}
+                  >
+                    <Icon name="lucide:external-link" size={17} />
+                  </a>
+                </div>
+                <p class="api-card__purpose">{entry.purpose}</p>
+                <dl>
+                  <div>
+                    <>
+                      <dt>Header</dt>
+                      <dd>
+                        <code>{entry.header}</code>
+                      </dd>
+                    </>
+                  </div>
+                  <div>
+                    <>
+                      <dt>Library</dt>
+                      <dd>{entry.library}</dd>
+                    </>
+                  </div>
+                </dl>
+                <div class="api-card__security">
+                  <Icon name="lucide:shield-check" size={18} />
+                  <p>{entry.securityNote}</p>
+                </div>
+                <div class="api-card__flags">
+                  <p>Flags and classes</p>
+                  <ul>
+                    {entry.flags.map((flag) => (
+                      <li>
+                        <div>
+                          <code>{flag.name}</code>
+                          {flag.value ? <span>{flag.value}</span> : null}
+                        </div>
+                        <p>{flag.meaning}</p>
+                        {flag.warning ? <small>{flag.warning}</small> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Card>
+            </li>
+          );
+        })
+      }
+    </ul>
+
+    <div class="api-directory__empty" data-api-empty hidden>
+      <Icon name="lucide:search-x" size={24} />
+      <p>No API matches the current query and group.</p>
+      <button type="button" data-api-reset>Clear filters</button>
+    </div>
+  </section>
+
+  <section
+    id="flag-reference"
+    class="flag-reference"
+    aria-labelledby="flag-reference-heading"
+  >
+    <header class="api-field-guide__section-head">
+      <div>
+        <p class="api-field-guide__eyebrow">Mask decoder</p>
+        <h2 id="flag-reference-heading">Flag families to memorize</h2>
+      </div>
+      <p>
+        Keep object-specific rights separate. The same numeric bit can mean a
+        different operation for a service, token, file, process, directory, or
+        device.
+      </p>
+    </header>
+    <div class="flag-reference__grid">
+      {
+        flagFamilies.map((family) => (
+          <article id={family.id} class="flag-family">
+            <div class="flag-family__heading">
+              <h3>{family.title}</h3>
+              <a
+                href={family.docs}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Open documentation for ${family.title}`}
+              >
+                <Icon name="lucide:external-link" size={17} />
+              </a>
+            </div>
+            <p>{family.context}</p>
+            <dl>
+              {family.values.map((value) => (
+                <div>
+                  <dt>
+                    <code>{value.name}</code>
+                    {value.value ? <span>{value.value}</span> : null}
+                  </dt>
+                  <dd>
+                    {value.meaning}
+                    {value.warning ? <small>{value.warning}</small> : null}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section
+    class="api-field-guide__method"
+    aria-labelledby="reading-method-heading"
+  >
+    <div>
+      <p class="api-field-guide__eyebrow">Portable method</p>
+      <h2 id="reading-method-heading">
+        Turn any signature into a security model
+      </h2>
+    </div>
+    <ol>
+      <li>
+        <span>01</span><div>
+          <h3>Object</h3><p>
+            Name the process, token, service, file, device, section, port, or
+            other object being opened or changed.
+          </p>
+        </div>
+      </li>
+      <li>
+        <span>02</span><div>
+          <h3>Identity</h3><p>
+            Find the effective token, impersonation level, requestor mode,
+            session, service SID, and integrity level.
+          </p>
+        </div>
+      </li>
+      <li>
+        <span>03</span><div>
+          <h3>Access</h3><p>
+            Decode desired access, the DACL decision, generic mapping, granted
+            mask, IOCTL bits, and method-level checks.
+          </p>
+        </div>
+      </li>
+      <li>
+        <span>04</span><div>
+          <h3>Lifetime</h3><p>
+            Track handles, references, asynchronous buffers, shared state,
+            cancellation, cleanup, and concurrent mutation.
+          </p>
+        </div>
+      </li>
+      <li>
+        <span>05</span><div>
+          <h3>Effect</h3><p>
+            State the final privileged operation and every remaining constraint
+            instead of equating API reachability with impact.
+          </p>
+        </div>
+      </li>
+    </ol>
+  </section>
+</div>
+
+<script>
+  const guide = document.querySelector<HTMLElement>("[data-api-guide]");
+  const input = guide?.querySelector<HTMLInputElement>("[data-api-query]");
+  const groupButtons = Array.from(
+    guide?.querySelectorAll<HTMLButtonElement>("[data-api-group]") ?? [],
+  );
+  const entries = Array.from(
+    guide?.querySelectorAll<HTMLElement>("[data-api-entry]") ?? [],
+  );
+  const count = guide?.querySelector<HTMLElement>("[data-api-count]");
+  const empty = guide?.querySelector<HTMLElement>("[data-api-empty]");
+  const reset = guide?.querySelector<HTMLButtonElement>("[data-api-reset]");
+  let activeGroup = "all";
+
+  const applyFilters = () => {
+    const query = input?.value.trim().toLocaleLowerCase() ?? "";
+    let visible = 0;
+    entries.forEach((entry) => {
+      const groupMatch =
+        activeGroup === "all" || entry.dataset.group === activeGroup;
+      const queryMatch =
+        !query || (entry.dataset.searchText?.includes(query) ?? false);
+      const matches = groupMatch && queryMatch;
+      entry.hidden = !matches;
+      if (matches) visible += 1;
+    });
+    if (count) count.textContent = visible === 1 ? "1 API" : `${visible} APIs`;
+    if (empty) empty.hidden = visible !== 0;
+  };
+
+  groupButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      activeGroup = button.dataset.apiGroup ?? "all";
+      groupButtons.forEach((item) =>
+        item.setAttribute("aria-pressed", String(item === button)),
+      );
+      applyFilters();
+    });
+  });
+  input?.addEventListener("input", applyFilters);
+  reset?.addEventListener("click", () => {
+    if (input) input.value = "";
+    activeGroup = "all";
+    groupButtons.forEach((button) =>
+      button.setAttribute(
+        "aria-pressed",
+        String(button.dataset.apiGroup === "all"),
+      ),
+    );
+    applyFilters();
+    input?.focus();
+  });
+
+  const initialQuery = new URLSearchParams(window.location.search).get("q");
+  if (input && initialQuery) {
+    input.value = initialQuery;
+    applyFilters();
+  }
+</script>
+
+<style>
+  .api-field-guide {
+    display: grid;
+    gap: var(--space-3xl);
+  }
+
+  .api-field-guide a,
+  .api-field-guide button {
+    text-underline-offset: var(--spacing-1);
+  }
+
+  .api-field-guide a:focus-visible,
+  .api-field-guide button:focus-visible,
+  .api-field-guide input:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .api-field-guide__breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .api-field-guide__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
+    gap: var(--space-2xl);
+    align-items: end;
+    padding-bottom: var(--space-3xl);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .api-field-guide__hero > div {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-md);
+  }
+
+  .api-field-guide__eyebrow,
+  .api-field-guide__hero aside > p,
+  .api-card__meta,
+  .api-card__flags > p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .api-field-guide__hero h1,
+  .api-field-guide__hero > div > p:last-child {
+    margin: 0;
+  }
+
+  .api-field-guide__hero h1 {
+    max-width: var(--container-wide);
+    font-size: var(--text-5xl);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .api-field-guide__hero > div > p:last-child {
+    max-width: var(--container-wide);
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+
+  .api-field-guide__hero aside {
+    padding: var(--space-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
+    background: var(--color-bg-secondary);
+  }
+
+  .api-field-guide__hero aside ol {
+    display: grid;
+    gap: var(--space-sm);
+    margin: var(--space-md) 0 0;
+    padding-left: var(--space-lg);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .api-directory,
+  .flag-reference {
+    display: grid;
+    gap: var(--space-xl);
+    scroll-margin-top: var(--space-xl);
+  }
+
+  .api-field-guide__section-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-xl);
+    align-items: end;
+  }
+
+  .api-field-guide__section-head h2,
+  .api-field-guide__section-head > p {
+    margin: 0;
+  }
+
+  .api-field-guide__section-head h2 {
+    margin-top: var(--space-xs);
+  }
+
+  .api-field-guide__section-head > p {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .api-toolbar {
+    position: sticky;
+    z-index: 5;
+    top: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-sm) var(--space-md);
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-primary);
+    box-shadow: var(--shadow-md);
+  }
+
+  .api-toolbar > label {
+    grid-column: 1 / -1;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .api-toolbar__search {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
+    padding-inline: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-secondary);
+  }
+
+  .api-toolbar__search input {
+    width: 100%;
+    min-height: var(--space-2xl);
+    border: 0;
+    background: transparent;
+    color: var(--color-text-primary);
+    font: inherit;
+  }
+
+  .api-toolbar__search input:focus {
+    outline: 0;
+  }
+
+  .api-toolbar__filters {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: var(--space-xs);
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: var(--spacing-1);
+  }
+
+  .api-toolbar__filters button,
+  .api-directory__empty button {
+    flex-shrink: 0;
+    min-height: var(--space-xl);
+    padding-inline: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font: inherit;
+    font-size: var(--text-sm);
+    cursor: pointer;
+  }
+
+  .api-toolbar__filters button[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .api-toolbar > p {
+    align-self: center;
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .api-directory__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .api-directory__grid > li,
+  .api-card {
+    min-width: 0;
+    height: 100%;
+  }
+
+  .api-directory__grid > li[hidden] {
+    display: none;
+  }
+
+  .api-card :global(.ui-card__body) {
+    display: grid;
+    gap: var(--space-md);
+    height: 100%;
+  }
+
+  .api-card__meta,
+  .api-card__heading,
+  .api-card__flags li > div,
+  .flag-family__heading,
+  .flag-family dt {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .api-card__heading {
+    align-items: center;
+  }
+
+  .api-card__heading h3,
+  .api-card__purpose,
+  .api-card__security p,
+  .api-card__flags p {
+    margin: 0;
+  }
+
+  .api-card__heading h3 {
+    min-width: 0;
+    font-size: var(--text-xl);
+    overflow-wrap: anywhere;
+  }
+
+  .api-card__heading > a,
+  .flag-family__heading > a {
+    flex-shrink: 0;
+  }
+
+  .api-card__purpose {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .api-card dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-xs);
+    margin: 0;
+  }
+
+  .api-card dl > div {
+    min-width: 0;
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
+  }
+
+  .api-card dt {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+
+  .api-card dd {
+    margin: var(--spacing-1) 0 0;
+    overflow-wrap: anywhere;
+    font-size: var(--text-sm);
+  }
+
+  .api-card__security {
+    display: flex;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border-left: var(--spacing-1) solid var(--color-text-primary);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    background: var(--color-bg-secondary);
+  }
+
+  .api-card__security :global(svg) {
+    flex-shrink: 0;
+  }
+
+  .api-card__security p {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .api-card__flags {
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .api-card__flags > ul {
+    display: grid;
+    gap: var(--space-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .api-card__flags li {
+    padding: var(--space-sm) 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .api-card__flags li span,
+  .flag-family dt span {
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .api-card__flags li p {
+    margin-top: var(--spacing-1);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .api-card__flags small,
+  .flag-family small {
+    display: block;
+    margin-top: var(--space-xs);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .api-directory__empty {
+    justify-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-2xl);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-xl);
+    text-align: center;
+  }
+
+  .api-directory__empty:not([hidden]) {
+    display: grid;
+  }
+
+  .api-directory__empty p {
+    margin: 0;
+    color: var(--color-text-secondary);
+  }
+
+  .flag-reference__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+
+  .flag-family {
+    min-width: 0;
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-primary);
+  }
+
+  .flag-family h3,
+  .flag-family > p {
+    margin: 0;
+  }
+
+  .flag-family > p {
+    margin-top: var(--space-sm);
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .flag-family dl {
+    display: grid;
+    gap: var(--space-xs);
+    margin: var(--space-lg) 0 0;
+  }
+
+  .flag-family dl > div {
+    min-width: 0;
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .flag-family dt,
+  .flag-family dd,
+  .flag-family code {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .flag-family dd {
+    margin: var(--space-xs) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .api-field-guide__method {
+    display: grid;
+    grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
+    gap: var(--space-2xl);
+    padding: var(--space-2xl);
+    border-radius: var(--radius-2xl);
+    background: var(--surface-invert);
+    color: var(--surface-invert-foreground);
+  }
+
+  .api-field-guide__method .api-field-guide__eyebrow {
+    color: var(--surface-invert-foreground);
+  }
+
+  .api-field-guide__method h2 {
+    margin: var(--space-xs) 0 0;
+  }
+
+  .api-field-guide__method ol {
+    display: grid;
+    gap: var(--space-md);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .api-field-guide__method li {
+    display: grid;
+    grid-template-columns: var(--space-xl) minmax(0, 1fr);
+    gap: var(--space-md);
+  }
+
+  .api-field-guide__method li > span {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .api-field-guide__method h3,
+  .api-field-guide__method p {
+    margin: 0;
+  }
+
+  .api-field-guide__method p {
+    margin-top: var(--space-xs);
+    line-height: var(--leading-relaxed);
+  }
+
+  @media (max-width: 64rem) {
+    .api-field-guide__hero,
+    .api-field-guide__section-head,
+    .api-field-guide__method {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+
+    .api-toolbar {
+      position: static;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .api-field-guide {
+      gap: var(--space-2xl);
+    }
+
+    .api-directory__grid,
+    .flag-reference__grid {
+      grid-template-columns: 1fr;
+    }
+
+    .api-toolbar {
+      grid-template-columns: 1fr;
+    }
+
+    .api-toolbar > p {
+      grid-column: 1;
+    }
+
+    .api-card dl {
+      grid-template-columns: 1fr;
+    }
+
+    .api-field-guide__method {
+      padding: var(--space-xl);
+    }
+  }
+</style>

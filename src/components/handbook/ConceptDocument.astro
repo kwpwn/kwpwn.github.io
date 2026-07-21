@@ -1,0 +1,739 @@
+---
+import {
+  getHandbookGroup,
+  handbookConceptBySlug,
+  type HandbookConcept,
+} from "../../data/windows-security-handbook";
+import Badge from "../ui/data-display/Badge/Badge.astro";
+import Icon from "../ui/primitives/Icon/Icon.astro";
+
+export interface Props {
+  concept: HandbookConcept;
+}
+
+const { concept } = Astro.props as Props;
+const group = getHandbookGroup(concept.group);
+const related = concept.related
+  .map((slug) => handbookConceptBySlug.get(slug))
+  .filter((item): item is HandbookConcept => Boolean(item));
+const apiCheatsheetHref = concept.apis?.length
+  ? `/windows-api-cheatsheet/?q=${encodeURIComponent(concept.apis[0].name)}#api-directory`
+  : "/windows-api-cheatsheet/";
+---
+
+<article class="concept-document">
+  <nav class="concept-document__breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Blogs</a>
+    <span aria-hidden="true">/</span>
+    <a href="/windows-security-concepts/">Handbook</a>
+    <span aria-hidden="true">/</span>
+    {
+      group && (
+        <>
+          <a href={`/windows-security-concepts/topics/${group.id}/`}>
+            {group.shortTitle}
+          </a>
+          <span aria-hidden="true">/</span>
+        </>
+      )
+    }
+    <span aria-current="page">{concept.title}</span>
+  </nav>
+
+  <header class="concept-document__hero">
+    <div>
+      <div class="concept-document__badges">
+        <Badge variant="outline" size="sm">{group?.shortTitle}</Badge>
+        <Badge variant="outline" size="sm">{concept.level}</Badge>
+      </div>
+      <p class="concept-document__eyebrow">Windows security concept</p>
+      <h1>{concept.title}</h1>
+      <p class="concept-document__lead">{concept.summary}</p>
+    </div>
+    <aside class="concept-document__quick-answer" aria-label="The short answer">
+      <span aria-hidden="true"><Icon name="lucide:lightbulb" size={20} /></span>
+      <div>
+        <p>The short answer</p>
+        <p>{concept.mentalModel}</p>
+      </div>
+    </aside>
+  </header>
+
+  <div class="concept-document__layout">
+    <div class="concept-document__body">
+      <section id="meaning" aria-labelledby="meaning-heading">
+        <p class="concept-document__section-number">01 · Meaning</p>
+        <h2 id="meaning-heading">What this concept means</h2>
+        <p>{concept.summary}</p>
+        <p>{concept.mentalModel}</p>
+        <aside class="concept-document__note">
+          <strong>Why it matters</strong>
+          <p>{concept.whyItMatters}</p>
+        </aside>
+      </section>
+
+      <section id="capability" aria-labelledby="capability-heading">
+        <p class="concept-document__section-number">02 · Capability</p>
+        <h2 id="capability-heading">What it lets you explain or obtain</h2>
+        <ul class="concept-document__capabilities">
+          {
+            concept.enables.map((capability) => (
+              <li>
+                <Icon name="lucide:check" size={17} />
+                <span>{capability}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section id="mechanics" aria-labelledby="mechanics-heading">
+        <p class="concept-document__section-number">03 · Mechanics</p>
+        <h2 id="mechanics-heading">Reason through it step by step</h2>
+        <ol class="concept-document__flow">
+          {
+            concept.mechanics.map((step, index) => (
+              <li>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <p>{step}</p>
+              </li>
+            ))
+          }
+        </ol>
+      </section>
+
+      <section id="audit" aria-labelledby="audit-heading">
+        <p class="concept-document__section-number">04 · Audit</p>
+        <h2 id="audit-heading">Questions that keep the analysis honest</h2>
+        <ul class="concept-document__questions">
+          {
+            concept.questions.map((question) => (
+              <li>
+                <Icon name="lucide:circle-help" size={18} />
+                <span>{question}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      {
+        concept.apis?.length ? (
+          <section id="apis" aria-labelledby="apis-heading">
+            <p class="concept-document__section-number">05 · APIs and flags</p>
+            <div class="concept-document__heading-action">
+              <h2 id="apis-heading">Interfaces to recognize</h2>
+              <a href={apiCheatsheetHref}>Open API cheatsheet</a>
+            </div>
+            <div class="concept-document__table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">API</th>
+                    <th scope="col">Why it appears</th>
+                    <th scope="col">Flags / detail</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {concept.apis.map((api) => (
+                    <tr>
+                      <th scope="row">
+                        {api.href ? (
+                          <a href={api.href}>{api.name}</a>
+                        ) : (
+                          <code>{api.name}</code>
+                        )}
+                      </th>
+                      <td>{api.purpose}</td>
+                      <td>{api.flags ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null
+      }
+
+      <section id="lab" aria-labelledby="lab-heading">
+        <p class="concept-document__section-number">
+          {concept.apis?.length ? "06" : "05"} · Lab
+        </p>
+        <h2 id="lab-heading">
+          {concept.demo ? concept.demo.title : "A safe way to study it"}
+        </h2>
+        {
+          concept.demo ? (
+            <>
+              <p>{concept.demo.description}</p>
+              <div class="concept-document__code">
+                <div>
+                  <span>{concept.demo.language}</span>
+                  <span>Educational lab snippet</span>
+                </div>
+                <pre tabindex="0">
+                  <code>{concept.demo.code}</code>
+                </pre>
+              </div>
+            </>
+          ) : (
+            <div class="concept-document__lab-brief">
+              <ol>
+                <li>
+                  Pin a disposable Windows build, relevant binary version,
+                  symbols, and mitigation state.
+                </li>
+                <li>
+                  Choose the first audit question above and write the
+                  observation that would falsify your current assumption.
+                </li>
+                <li>
+                  Use read-only enumeration, tracing, or debugger inspection
+                  before changing system state.
+                </li>
+                <li>
+                  Record the exact command, object, access mask, call stack, and
+                  negative result alongside the successful path.
+                </li>
+              </ol>
+              <p>
+                This page intentionally avoids a generic exploit recipe. The
+                safe lab objective is to prove the boundary and mechanics on an
+                isolated target before attempting any capability conversion.
+              </p>
+            </div>
+          )
+        }
+      </section>
+
+      <section id="sources" aria-labelledby="sources-heading">
+        <p class="concept-document__section-number">
+          {concept.apis?.length ? "07" : "06"} · Continue
+        </p>
+        <h2 id="sources-heading">Primary sources and related concepts</h2>
+        <div class="concept-document__source-grid">
+          <div>
+            <h3>Read next</h3>
+            {
+              concept.sources.length ? (
+                <ul>
+                  {concept.sources.map((source) => (
+                    <li>
+                      <a href={source.href} target="_blank" rel="noreferrer">
+                        <span>{source.title}</span>
+                        <small>{source.kind}</small>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>
+                  Start with the relevant Microsoft Learn contract, then use the
+                  research library to locate a build-specific case study.
+                </p>
+              )
+            }
+          </div>
+          <div>
+            <h3>Connect the model</h3>
+            {
+              related.length ? (
+                <ul>
+                  {related.map((item) => (
+                    <li>
+                      <a href={`/windows-security-concepts/${item.slug}/`}>
+                        <span>{item.title}</span>
+                        <small>
+                          {getHandbookGroup(item.group)?.shortTitle}
+                        </small>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>
+                  Browse the topic shelf to connect this concept to its
+                  neighboring primitives, bug classes, and mitigations.
+                </p>
+              )
+            }
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="concept-document__rail" aria-label="On this page">
+      <div>
+        <p>On this page</p>
+        <nav>
+          <a href="#meaning">Meaning</a>
+          <a href="#capability">Capability</a>
+          <a href="#mechanics">Mechanics</a>
+          <a href="#audit">Audit questions</a>
+          {concept.apis?.length ? <a href="#apis">APIs and flags</a> : null}
+          <a href="#lab">Lab</a>
+          <a href="#sources">Sources</a>
+        </nav>
+      </div>
+      <div class="concept-document__rail-actions">
+        <a href={`/windows-security-concepts/topics/${concept.group}/`}>
+          All {group?.shortTitle.toLocaleLowerCase()}
+        </a>
+        <a href="/windows-api-cheatsheet/">API &amp; flags cheatsheet</a>
+      </div>
+    </aside>
+  </div>
+</article>
+
+<style>
+  .concept-document {
+    display: grid;
+    gap: var(--space-2xl);
+  }
+
+  .concept-document a {
+    text-underline-offset: var(--spacing-1);
+  }
+
+  .concept-document a:focus-visible,
+  .concept-document pre:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .concept-document__breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .concept-document__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+    gap: var(--space-2xl);
+    align-items: end;
+    padding-bottom: var(--space-2xl);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .concept-document__hero > div:first-child {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-md);
+  }
+
+  .concept-document__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .concept-document__eyebrow,
+  .concept-document__section-number,
+  .concept-document__quick-answer > div > p:first-child,
+  .concept-document__rail > div > p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .concept-document h1 {
+    max-width: var(--container-wide);
+    margin: 0;
+    font-size: var(--text-5xl);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .concept-document__lead {
+    max-width: var(--container-wide);
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__quick-answer {
+    display: flex;
+    gap: var(--space-md);
+    padding: var(--space-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
+    background: var(--color-bg-secondary);
+  }
+
+  .concept-document__quick-answer > span {
+    flex-shrink: 0;
+  }
+
+  .concept-document__quick-answer > div {
+    display: grid;
+    gap: var(--space-xs);
+  }
+
+  .concept-document__quick-answer p:last-child {
+    margin: 0;
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__layout {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr) minmax(var(--container-narrow), 2.25fr)
+      minmax(0, 0.75fr);
+    gap: var(--space-2xl);
+  }
+
+  .concept-document__body {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .concept-document__body > section {
+    padding-block: var(--space-2xl);
+    border-bottom: 1px solid var(--color-border);
+    scroll-margin-top: var(--space-xl);
+  }
+
+  .concept-document__body > section:first-child {
+    padding-top: 0;
+  }
+
+  .concept-document__body h2 {
+    margin: var(--space-xs) 0 var(--space-lg);
+    font-size: var(--text-2xl);
+  }
+
+  .concept-document__body h3 {
+    font-size: var(--text-lg);
+  }
+
+  .concept-document__body section > p:not(.concept-document__section-number) {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__note {
+    margin-top: var(--space-lg);
+    padding: var(--space-lg);
+    border-left: var(--spacing-1) solid var(--color-text-primary);
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    background: var(--color-bg-secondary);
+  }
+
+  .concept-document__note p {
+    margin: var(--space-xs) 0 0;
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__capabilities,
+  .concept-document__questions {
+    display: grid;
+    gap: var(--space-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .concept-document__capabilities li,
+  .concept-document__questions li {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: flex-start;
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-primary);
+  }
+
+  .concept-document__capabilities :global(svg),
+  .concept-document__questions :global(svg) {
+    flex-shrink: 0;
+    margin-top: var(--spacing-1);
+  }
+
+  .concept-document__flow {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .concept-document__flow li {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--space-2xl) minmax(0, 1fr);
+    gap: var(--space-md);
+    min-height: var(--space-2xl);
+  }
+
+  .concept-document__flow li:not(:last-child)::before {
+    position: absolute;
+    top: var(--space-xl);
+    bottom: 0;
+    left: calc(var(--space-lg) - (var(--spacing-1) / 2));
+    width: 1px;
+    background: var(--color-border);
+    content: "";
+  }
+
+  .concept-document__flow li > span {
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--space-2xl);
+    height: var(--space-2xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-primary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .concept-document__flow p {
+    margin: 0;
+    padding: var(--space-sm) 0 var(--space-xl);
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__heading-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .concept-document__table-wrap,
+  .concept-document__code {
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-primary);
+  }
+
+  .concept-document table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+  }
+
+  .concept-document th,
+  .concept-document td {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .concept-document thead th {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+  }
+
+  .concept-document tbody tr:last-child > * {
+    border-bottom: 0;
+  }
+
+  .concept-document code {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .concept-document__code > div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .concept-document pre {
+    margin: 0;
+    padding: var(--space-lg);
+    overflow-x: auto;
+    background: var(--color-bg-secondary);
+    line-height: var(--leading-relaxed);
+    tab-size: 4;
+  }
+
+  .concept-document__lab-brief {
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-secondary);
+  }
+
+  .concept-document__lab-brief ol {
+    display: grid;
+    gap: var(--space-sm);
+    margin: 0;
+    padding-left: var(--space-lg);
+  }
+
+  .concept-document__lab-brief p {
+    margin: var(--space-lg) 0 0;
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__source-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+
+  .concept-document__source-grid > div {
+    min-width: 0;
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+  }
+
+  .concept-document__source-grid h3,
+  .concept-document__source-grid p {
+    margin-top: 0;
+  }
+
+  .concept-document__source-grid p {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__source-grid ul {
+    display: grid;
+    gap: var(--space-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .concept-document__source-grid a {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+  }
+
+  .concept-document__source-grid a:hover {
+    background: var(--color-bg-secondary);
+  }
+
+  .concept-document__source-grid small {
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+  }
+
+  .concept-document__rail {
+    grid-column: 3;
+    align-self: start;
+    position: sticky;
+    top: var(--space-xl);
+    display: grid;
+    gap: var(--space-lg);
+    min-width: 0;
+  }
+
+  .concept-document__rail > div:first-child {
+    padding-left: var(--space-md);
+    border-left: 1px solid var(--color-border);
+  }
+
+  .concept-document__rail nav,
+  .concept-document__rail-actions {
+    display: grid;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+  }
+
+  .concept-document__rail a {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    text-decoration: none;
+  }
+
+  .concept-document__rail a:hover {
+    color: var(--color-text-primary);
+  }
+
+  .concept-document__rail-actions {
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-secondary);
+  }
+
+  @media (max-width: 64rem) {
+    .concept-document__hero,
+    .concept-document__layout {
+      grid-template-columns: 1fr;
+    }
+
+    .concept-document__body,
+    .concept-document__rail {
+      grid-column: 1;
+    }
+
+    .concept-document__rail {
+      position: static;
+      grid-row: 1;
+    }
+
+    .concept-document__rail > div:first-child {
+      padding: var(--space-md);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+    }
+
+    .concept-document__rail nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .concept-document__rail-actions {
+      display: none;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .concept-document {
+      gap: var(--space-xl);
+    }
+
+    .concept-document__hero {
+      gap: var(--space-xl);
+    }
+
+    .concept-document__source-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .concept-document__heading-action {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+</style>

@@ -211,6 +211,41 @@
       "i18nAware": false
     },
     {
+      "name": "HandbookLanding",
+      "tier": "component",
+      "path": "src/components/handbook/HandbookLanding.astro",
+      "props": [],
+      "i18nAware": false
+    },
+    {
+      "name": "ConceptDocument",
+      "tier": "component",
+      "path": "src/components/handbook/ConceptDocument.astro",
+      "props": ["concept"],
+      "i18nAware": false
+    },
+    {
+      "name": "TopicShelf",
+      "tier": "component",
+      "path": "src/components/handbook/TopicShelf.astro",
+      "props": ["group", "concepts"],
+      "i18nAware": false
+    },
+    {
+      "name": "ApiFlagsCheatsheet",
+      "tier": "component",
+      "path": "src/components/handbook/ApiFlagsCheatsheet.astro",
+      "props": [],
+      "i18nAware": false
+    },
+    {
+      "name": "CaseStudyLibrary",
+      "tier": "component",
+      "path": "src/components/handbook/CaseStudyLibrary.astro",
+      "props": [],
+      "i18nAware": false
+    },
+    {
       "name": "TableOfContents",
       "tier": "component",
       "path": "src/components/blog/TableOfContents.astro",
@@ -343,7 +378,15 @@
   "pages": [
     { "name": "Post index", "path": "src/pages/index.astro", "locales": ["en"] },
     { "name": "Post detail", "path": "src/pages/blog/[slug].astro", "locales": ["en"] },
-    { "name": "Windows security concepts", "path": "src/pages/windows-security-concepts.astro", "locales": ["en"] },
-    { "name": "Localized Windows security concepts", "path": "src/pages/[locale]/windows-security-concepts.astro", "locales": [] }
+    { "name": "Windows security handbook", "path": "src/pages/windows-security-concepts.astro", "locales": ["en"] },
+    { "name": "Localized Windows security handbook", "path": "src/pages/[locale]/windows-security-concepts.astro", "locales": [] },
+    { "name": "Windows security concept", "path": "src/pages/windows-security-concepts/[slug].astro", "locales": ["en"] },
+    { "name": "Localized Windows security concept", "path": "src/pages/[locale]/windows-security-concepts/[slug].astro", "locales": [] },
+    { "name": "Windows security topic shelf", "path": "src/pages/windows-security-concepts/topics/[group].astro", "locales": ["en"] },
+    { "name": "Localized Windows security topic shelf", "path": "src/pages/[locale]/windows-security-concepts/topics/[group].astro", "locales": [] },
+    { "name": "Windows API and flags cheatsheet", "path": "src/pages/windows-api-cheatsheet.astro", "locales": ["en"] },
+    { "name": "Localized Windows API and flags cheatsheet", "path": "src/pages/[locale]/windows-api-cheatsheet.astro", "locales": [] },
+    { "name": "Windows security case studies", "path": "src/pages/windows-security-case-studies.astro", "locales": ["en"] },
+    { "name": "Localized Windows security case studies", "path": "src/pages/[locale]/windows-security-case-studies.astro", "locales": [] }
   ]
 }

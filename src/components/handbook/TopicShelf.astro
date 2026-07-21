@@ -1,0 +1,335 @@
+---
+import type {
+  HandbookConcept,
+  HandbookGroup,
+} from "../../data/windows-security-handbook";
+import Badge from "../ui/data-display/Badge/Badge.astro";
+import Card from "../ui/data-display/Card/Card.astro";
+import Icon from "../ui/primitives/Icon/Icon.astro";
+
+export interface Props {
+  group: HandbookGroup;
+  concepts: HandbookConcept[];
+}
+
+const { group, concepts } = Astro.props as Props;
+---
+
+<div class="topic-shelf" data-topic-shelf>
+  <nav class="topic-shelf__breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Blogs</a>
+    <span aria-hidden="true">/</span>
+    <a href="/windows-security-concepts/">Handbook</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{group.shortTitle}</span>
+  </nav>
+
+  <header class="topic-shelf__hero">
+    <div>
+      <Badge variant="outline" size="sm">{concepts.length} concepts</Badge>
+      <p class="topic-shelf__eyebrow">{group.question}</p>
+      <h1>{group.title}</h1>
+      <p>{group.description}</p>
+    </div>
+    <aside>
+      <p>Use this shelf when</p>
+      <p>
+        your current question belongs to this layer. Follow related links inside
+        a concept when the problem changes from exposure to root cause,
+        capability, privileged consumer, or mitigation.
+      </p>
+    </aside>
+  </header>
+
+  <div class="topic-shelf__toolbar">
+    <label for="topic-query"
+      >Filter {group.shortTitle.toLocaleLowerCase()}</label
+    >
+    <div>
+      <Icon name="lucide:search" size={18} />
+      <input
+        id="topic-query"
+        type="search"
+        placeholder={`Search ${group.shortTitle.toLocaleLowerCase()}…`}
+        autocomplete="off"
+        data-topic-query
+      />
+    </div>
+    <p aria-live="polite" data-topic-count>{concepts.length} concepts</p>
+  </div>
+
+  <ul class="topic-shelf__grid">
+    {
+      concepts.map((concept) => {
+        const searchText = [
+          concept.title,
+          concept.summary,
+          concept.mentalModel,
+          ...(concept.aliases ?? []),
+          ...concept.enables,
+          ...(concept.apis?.map((api) => api.name) ?? []),
+        ]
+          .join(" ")
+          .toLocaleLowerCase();
+        return (
+          <li data-topic-item data-search-text={searchText}>
+            <Card hover class="topic-card">
+              <div class="topic-card__meta">
+                <span>{concept.level}</span>
+                {concept.apis?.length ? (
+                  <span>{concept.apis.length} APIs</span>
+                ) : null}
+              </div>
+              <h2>{concept.title}</h2>
+              <p>{concept.summary}</p>
+              <a href={`/windows-security-concepts/${concept.slug}/`}>
+                Open concept <span aria-hidden="true">→</span>
+              </a>
+            </Card>
+          </li>
+        );
+      })
+    }
+  </ul>
+
+  <div class="topic-shelf__empty" data-topic-empty hidden>
+    <Icon name="lucide:search-x" size={24} />
+    <p>No concept on this shelf matches that query.</p>
+    <a href="/windows-security-concepts/">Search the complete handbook</a>
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-topic-shelf]");
+  const input = root?.querySelector<HTMLInputElement>("[data-topic-query]");
+  const count = root?.querySelector<HTMLElement>("[data-topic-count]");
+  const empty = root?.querySelector<HTMLElement>("[data-topic-empty]");
+  const items = Array.from(
+    root?.querySelectorAll<HTMLElement>("[data-topic-item]") ?? [],
+  );
+
+  input?.addEventListener("input", () => {
+    const query = input.value.trim().toLocaleLowerCase();
+    let visible = 0;
+    items.forEach((item) => {
+      const matches =
+        !query || (item.dataset.searchText?.includes(query) ?? false);
+      item.hidden = !matches;
+      if (matches) visible += 1;
+    });
+    if (count)
+      count.textContent = visible === 1 ? "1 concept" : `${visible} concepts`;
+    if (empty) empty.hidden = visible !== 0;
+  });
+</script>
+
+<style>
+  .topic-shelf {
+    display: grid;
+    gap: var(--space-2xl);
+  }
+
+  .topic-shelf a {
+    text-underline-offset: var(--spacing-1);
+  }
+
+  .topic-shelf a:focus-visible,
+  .topic-shelf input:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .topic-shelf__breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .topic-shelf__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
+    gap: var(--space-2xl);
+    align-items: end;
+    padding-bottom: var(--space-2xl);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .topic-shelf__hero > div {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-md);
+  }
+
+  .topic-shelf__eyebrow,
+  .topic-shelf__hero aside p:first-child,
+  .topic-card__meta {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .topic-shelf__hero h1,
+  .topic-shelf__hero > div > p:last-child {
+    margin: 0;
+  }
+
+  .topic-shelf__hero h1 {
+    font-size: var(--text-5xl);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .topic-shelf__hero > div > p:last-child {
+    max-width: var(--container-wide);
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+
+  .topic-shelf__hero aside {
+    padding: var(--space-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
+    background: var(--color-bg-secondary);
+  }
+
+  .topic-shelf__hero aside p:last-child {
+    margin: var(--space-sm) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .topic-shelf__toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: var(--space-md);
+    align-items: center;
+  }
+
+  .topic-shelf__toolbar label {
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .topic-shelf__toolbar > div {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-inline: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-primary);
+  }
+
+  .topic-shelf__toolbar input {
+    width: 100%;
+    min-height: var(--space-2xl);
+    border: 0;
+    background: transparent;
+    color: var(--color-text-primary);
+    font: inherit;
+  }
+
+  .topic-shelf__toolbar input:focus {
+    outline: 0;
+  }
+
+  .topic-shelf__toolbar > p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .topic-shelf__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-md);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .topic-shelf__grid li,
+  .topic-card {
+    min-width: 0;
+    height: 100%;
+  }
+
+  .topic-shelf__grid li[hidden] {
+    display: none;
+  }
+
+  .topic-card :global(.ui-card__body) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    height: 100%;
+  }
+
+  .topic-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-xs);
+  }
+
+  .topic-card h2,
+  .topic-card p {
+    margin: 0;
+  }
+
+  .topic-card h2 {
+    font-size: var(--text-xl);
+  }
+
+  .topic-card p {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .topic-card > a {
+    margin-top: auto;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .topic-shelf__empty {
+    justify-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-2xl);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-xl);
+    color: var(--color-text-secondary);
+    text-align: center;
+  }
+
+  .topic-shelf__empty:not([hidden]) {
+    display: grid;
+  }
+
+  .topic-shelf__empty p {
+    margin: 0;
+  }
+
+  @media (max-width: 64rem) {
+    .topic-shelf__hero,
+    .topic-shelf__toolbar {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+
+    .topic-shelf__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .topic-shelf__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

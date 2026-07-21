@@ -1,0 +1,739 @@
+---
+import {
+  handbookConceptBySlug,
+  handbookConcepts,
+  handbookGroups,
+  getConceptsForGroup,
+} from "../../data/windows-security-handbook";
+import Badge from "../ui/data-display/Badge/Badge.astro";
+import Card from "../ui/data-display/Card/Card.astro";
+import Button from "../ui/form/Button/Button.astro";
+import Icon from "../ui/primitives/Icon/Icon.astro";
+
+const groupIcons = {
+  foundations: "lucide:blocks",
+  primitives: "lucide:combine",
+  "vulnerability-classes": "lucide:scan-search",
+  "attack-surfaces": "lucide:radio-tower",
+  "driver-types": "lucide:cpu",
+  "lpe-services": "lucide:shield-alert",
+  mitigations: "lucide:shield-check",
+  "research-workflow": "lucide:microscope",
+} as const;
+
+const learningPaths = [
+  {
+    title: "Start from first principles",
+    description:
+      "Build the identity, object, access-check, handle, I/O, and requestor-mode model first.",
+    slugs: [
+      "trust-boundaries",
+      "access-tokens",
+      "security-descriptors",
+      "ioctl-encoding-and-buffering",
+    ],
+  },
+  {
+    title: "Audit a kernel driver",
+    description:
+      "Map the device boundary, private protocol, buffer model, backend capability, and lifecycle.",
+    slugs: [
+      "why-kernel-drivers",
+      "ioctl-handlers",
+      "driver-gates-and-handshakes",
+      "secure-driver-anatomy",
+    ],
+  },
+  {
+    title: "Understand Windows LPE",
+    description:
+      "Follow service, filesystem, token, IPC, COM, loader, installer, and DACL chains to the privileged consumer.",
+    slugs: [
+      "service-security",
+      "weak-service-dacl",
+      "privileged-file-operations",
+      "named-pipe-impersonation",
+    ],
+  },
+  {
+    title: "Build an exploit chain",
+    description:
+      "Measure the primitive, fill missing information, select a target, and recalculate under mitigations.",
+    slugs: [
+      "exploit-chain-patterns",
+      "arbitrary-read",
+      "arbitrary-write",
+      "vbs-hvci",
+    ],
+  },
+] as const;
+
+const featuredConcepts = handbookConcepts.filter((concept) => concept.featured);
+---
+
+<div class="handbook-landing">
+  <nav class="handbook-landing__breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Blogs</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">Windows Security Handbook</span>
+  </nav>
+
+  <header class="handbook-landing__hero">
+    <div class="handbook-landing__hero-copy">
+      <Badge variant="outline" size="sm">Concept-first · Build-aware</Badge>
+      <p class="handbook-landing__eyebrow">Windows Security Handbook</p>
+      <h1>Learn the system. Then reason about the bug.</h1>
+      <p class="handbook-landing__lead">
+        A practical handbook for Windows kernel, driver, service, IPC, and local
+        privilege-escalation research. Each topic explains the mental model,
+        capability, mechanics, audit questions, APIs, flags, and trusted
+        sources.
+      </p>
+      <div class="handbook-landing__actions">
+        <Button href="#learning-paths" size="lg">Choose a learning path</Button>
+        <Button href="/windows-api-cheatsheet/" variant="secondary" size="lg">
+          Open API &amp; flags
+        </Button>
+        <Button
+          href="/windows-security-case-studies/"
+          variant="ghost"
+          size="lg"
+        >
+          Browse case studies
+        </Button>
+      </div>
+    </div>
+
+    <aside
+      class="handbook-landing__release"
+      aria-label="Latest handbook addition"
+    >
+      <span class="handbook-landing__release-icon" aria-hidden="true">
+        <Icon name="lucide:key-round" size={22} />
+      </span>
+      <p class="handbook-landing__eyebrow">New concept</p>
+      <h2>Kernel driver gates and handshakes</h2>
+      <p>
+        Packet marker, session authorization, open-time policy, caller identity,
+        registry policy, and capability readiness are not the same security
+        claim.
+      </p>
+      <a href="/windows-security-concepts/driver-gates-and-handshakes/">
+        Read the concept <span aria-hidden="true">→</span>
+      </a>
+    </aside>
+  </header>
+
+  <section
+    class="handbook-landing__search"
+    aria-labelledby="handbook-search-heading"
+  >
+    <div>
+      <p class="handbook-landing__eyebrow">Find one answer</p>
+      <h2 id="handbook-search-heading">
+        Search {handbookConcepts.length} concepts
+      </h2>
+      <p>
+        Try <em>PreviousMode</em>, <em>service DACL</em>, <em
+          >arbitrary delete</em
+        >,
+        <em>COM hijacking</em>, or <em>HVCI</em>.
+      </p>
+    </div>
+    <div class="handbook-search" data-handbook-search>
+      <label for="handbook-query">Concept, primitive, API, or alias</label>
+      <div class="handbook-search__input-wrap">
+        <Icon name="lucide:search" size={19} />
+        <input
+          id="handbook-query"
+          type="search"
+          placeholder="Search the handbook…"
+          autocomplete="off"
+          data-handbook-query
+        />
+      </div>
+      <div class="handbook-search__results" data-handbook-results hidden>
+        <p aria-live="polite" data-handbook-count></p>
+        <ul>
+          {
+            handbookConcepts.map((concept) => {
+              const group = handbookGroups.find(
+                (item) => item.id === concept.group,
+              );
+              const searchText = [
+                concept.title,
+                concept.summary,
+                group?.title,
+                ...(concept.aliases ?? []),
+                ...concept.enables,
+                ...(concept.apis?.map((api) => api.name) ?? []),
+              ]
+                .join(" ")
+                .toLocaleLowerCase();
+
+              return (
+                <li data-handbook-result data-search-text={searchText}>
+                  <a href={`/windows-security-concepts/${concept.slug}/`}>
+                    <span>{concept.title}</span>
+                    <small>{group?.shortTitle}</small>
+                  </a>
+                </li>
+              );
+            })
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section
+    id="learning-paths"
+    class="handbook-landing__paths"
+    aria-labelledby="paths-heading"
+  >
+    <header class="handbook-landing__section-head">
+      <div>
+        <p class="handbook-landing__eyebrow">Guided reading</p>
+        <h2 id="paths-heading">Choose the question you are trying to answer</h2>
+      </div>
+      <p>
+        Four short paths replace the old top-to-bottom wall of accordions. Read
+        one concept, follow its related links, and return when your question
+        changes.
+      </p>
+    </header>
+    <div class="handbook-landing__path-grid">
+      {
+        learningPaths.map((path, index) => (
+          <Card class="handbook-path">
+            <span class="handbook-path__number">0{index + 1}</span>
+            <h3>{path.title}</h3>
+            <p>{path.description}</p>
+            <ol>
+              {path.slugs.map((slug) => {
+                const concept = handbookConceptBySlug.get(slug);
+                return concept ? (
+                  <li>
+                    <a href={`/windows-security-concepts/${concept.slug}/`}>
+                      {concept.title}
+                    </a>
+                  </li>
+                ) : null;
+              })}
+            </ol>
+          </Card>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="handbook-landing__topics" aria-labelledby="topics-heading">
+    <header class="handbook-landing__section-head">
+      <div>
+        <p class="handbook-landing__eyebrow">Browse by domain</p>
+        <h2 id="topics-heading">Eight clear shelves, not one endless page</h2>
+      </div>
+      <p>
+        Root cause, primitive, attack surface, component type, LPE technique,
+        and mitigation remain separate so each page can explain the right
+        question.
+      </p>
+    </header>
+    <div class="handbook-landing__topic-grid">
+      {
+        handbookGroups.map((group) => {
+          const groupConcepts = getConceptsForGroup(group.id);
+          return (
+            <Card hover class="handbook-topic">
+              <Fragment slot="header">
+                <div class="handbook-topic__top">
+                  <span class="handbook-topic__icon" aria-hidden="true">
+                    <Icon name={groupIcons[group.id]} size={21} />
+                  </span>
+                  <Badge variant="outline" size="sm">
+                    {groupConcepts.length} concepts
+                  </Badge>
+                </div>
+              </Fragment>
+              <p class="handbook-topic__question">{group.question}</p>
+              <h3>{group.title}</h3>
+              <p>{group.description}</p>
+              <a href={`/windows-security-concepts/topics/${group.id}/`}>
+                Explore {group.shortTitle.toLocaleLowerCase()}
+                <span aria-hidden="true">→</span>
+              </a>
+            </Card>
+          );
+        })
+      }
+    </div>
+  </section>
+
+  <section
+    class="handbook-landing__featured"
+    aria-labelledby="featured-heading"
+  >
+    <header class="handbook-landing__section-head">
+      <div>
+        <p class="handbook-landing__eyebrow">High-signal starting points</p>
+        <h2 id="featured-heading">Concepts worth opening first</h2>
+      </div>
+      <a href="/blog/security-research-index/#research-library">
+        Browse the full source library <span aria-hidden="true">→</span>
+      </a>
+    </header>
+    <ul class="handbook-landing__featured-list">
+      {
+        featuredConcepts.slice(0, 12).map((concept) => {
+          const group = handbookGroups.find(
+            (item) => item.id === concept.group,
+          );
+          return (
+            <li>
+              <a href={`/windows-security-concepts/${concept.slug}/`}>
+                <span>
+                  <small>{group?.shortTitle}</small>
+                  <strong>{concept.title}</strong>
+                </span>
+                <Icon name="lucide:arrow-up-right" size={18} />
+              </a>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </section>
+</div>
+
+<script>
+  const searchRoot = document.querySelector<HTMLElement>(
+    "[data-handbook-search]",
+  );
+  const queryInput = searchRoot?.querySelector<HTMLInputElement>(
+    "[data-handbook-query]",
+  );
+  const results = searchRoot?.querySelector<HTMLElement>(
+    "[data-handbook-results]",
+  );
+  const count = searchRoot?.querySelector<HTMLElement>("[data-handbook-count]");
+  const items = Array.from(
+    searchRoot?.querySelectorAll<HTMLElement>("[data-handbook-result]") ?? [],
+  );
+
+  queryInput?.addEventListener("input", () => {
+    const query = queryInput.value.trim().toLocaleLowerCase();
+    if (!results || !count) return;
+
+    if (!query) {
+      results.hidden = true;
+      items.forEach((item) => (item.hidden = false));
+      count.textContent = "";
+      return;
+    }
+
+    let visible = 0;
+    items.forEach((item) => {
+      const matches = item.dataset.searchText?.includes(query) ?? false;
+      item.hidden = !matches;
+      if (matches) visible += 1;
+    });
+    results.hidden = false;
+    count.textContent =
+      visible === 1 ? "1 matching concept" : `${visible} matching concepts`;
+  });
+</script>
+
+<style>
+  .handbook-landing {
+    display: grid;
+    gap: var(--space-3xl);
+  }
+
+  .handbook-landing__breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .handbook-landing a {
+    text-underline-offset: var(--spacing-1);
+  }
+
+  .handbook-landing a:focus-visible,
+  .handbook-search input:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .handbook-landing__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.55fr);
+    gap: var(--space-2xl);
+    align-items: end;
+    padding-bottom: var(--space-3xl);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .handbook-landing__hero-copy {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-md);
+  }
+
+  .handbook-landing__eyebrow,
+  .handbook-topic__question {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .handbook-landing__hero h1 {
+    max-width: var(--container-wide);
+    margin: 0;
+    font-size: var(--text-5xl);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .handbook-landing__lead {
+    max-width: var(--container-wide);
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+
+  .handbook-landing__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+  }
+
+  .handbook-landing__release {
+    display: grid;
+    gap: var(--space-md);
+    padding: var(--space-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
+    background: var(--color-bg-secondary);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .handbook-landing__release-icon,
+  .handbook-topic__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--space-2xl);
+    height: var(--space-2xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-primary);
+  }
+
+  .handbook-landing__release h2,
+  .handbook-landing__release p,
+  .handbook-topic h3,
+  .handbook-topic p,
+  .handbook-path h3,
+  .handbook-path p {
+    margin: 0;
+  }
+
+  .handbook-landing__release h2 {
+    font-size: var(--text-xl);
+  }
+
+  .handbook-landing__release > p:not(.handbook-landing__eyebrow) {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .handbook-landing__release > a,
+  .handbook-topic > a,
+  .handbook-landing__section-head > a {
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .handbook-landing__search {
+    display: grid;
+    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+    gap: var(--space-2xl);
+    align-items: start;
+  }
+
+  .handbook-landing__search h2,
+  .handbook-landing__search > div > p:last-child {
+    margin: 0;
+  }
+
+  .handbook-landing__search h2 {
+    margin-block: var(--space-xs) var(--space-sm);
+  }
+
+  .handbook-landing__search > div > p:last-child {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .handbook-search {
+    position: relative;
+    display: grid;
+    gap: var(--space-xs);
+  }
+
+  .handbook-search > label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .handbook-search__input-wrap {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-inline: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-primary);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .handbook-search input {
+    width: 100%;
+    min-height: var(--space-2xl);
+    border: 0;
+    background: transparent;
+    color: var(--color-text-primary);
+    font: inherit;
+  }
+
+  .handbook-search input:focus {
+    outline: 0;
+  }
+
+  .handbook-search__results {
+    position: absolute;
+    z-index: 10;
+    top: 100%;
+    right: 0;
+    left: 0;
+    max-height: var(--container-narrow);
+    margin-top: var(--space-xs);
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-primary);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .handbook-search__results > p {
+    margin: 0;
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+
+  .handbook-search__results ul {
+    margin: 0;
+    padding: var(--space-xs);
+    list-style: none;
+  }
+
+  .handbook-search__results li[hidden] {
+    display: none;
+  }
+
+  .handbook-search__results a {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+  }
+
+  .handbook-search__results a:hover {
+    background: var(--color-bg-secondary);
+  }
+
+  .handbook-search__results small {
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+  }
+
+  .handbook-landing__paths,
+  .handbook-landing__topics,
+  .handbook-landing__featured {
+    display: grid;
+    gap: var(--space-xl);
+    scroll-margin-top: var(--space-xl);
+  }
+
+  .handbook-landing__section-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-xl);
+    align-items: end;
+  }
+
+  .handbook-landing__section-head h2,
+  .handbook-landing__section-head > p {
+    margin: 0;
+  }
+
+  .handbook-landing__section-head h2 {
+    margin-top: var(--space-xs);
+  }
+
+  .handbook-landing__section-head > p {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .handbook-landing__path-grid,
+  .handbook-landing__topic-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+
+  .handbook-path,
+  .handbook-topic {
+    min-width: 0;
+  }
+
+  .handbook-path :global(.ui-card__body) {
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .handbook-path__number {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .handbook-path > p,
+  .handbook-topic > p:not(.handbook-topic__question) {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .handbook-path ol {
+    display: grid;
+    gap: var(--space-xs);
+    margin: 0;
+    padding-left: var(--space-lg);
+  }
+
+  .handbook-path a {
+    font-weight: var(--font-weight-medium);
+  }
+
+  .handbook-topic__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-lg) var(--space-lg) 0;
+  }
+
+  .handbook-topic :global(.ui-card__body) {
+    display: grid;
+    gap: var(--space-md);
+    height: 100%;
+  }
+
+  .handbook-topic > a {
+    align-self: end;
+    margin-top: auto;
+  }
+
+  .handbook-landing__featured-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .handbook-landing__featured-list a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    min-height: 100%;
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-primary);
+    text-decoration: none;
+  }
+
+  .handbook-landing__featured-list a:hover {
+    background: var(--color-bg-secondary);
+  }
+
+  .handbook-landing__featured-list span {
+    display: grid;
+    gap: var(--space-xs);
+  }
+
+  .handbook-landing__featured-list small {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 64rem) {
+    .handbook-landing__hero,
+    .handbook-landing__search,
+    .handbook-landing__section-head {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+
+    .handbook-landing__featured-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .handbook-landing {
+      gap: var(--space-2xl);
+    }
+
+    .handbook-landing__hero {
+      gap: var(--space-xl);
+      padding-bottom: var(--space-2xl);
+    }
+
+    .handbook-landing__actions,
+    .handbook-landing__path-grid,
+    .handbook-landing__topic-grid,
+    .handbook-landing__featured-list {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .handbook-search__results {
+      position: static;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .handbook-landing :global(*) {
+      scroll-behavior: auto;
+    }
+  }
+</style>
