@@ -1126,11 +1126,18 @@ const stars = (rating: number) => `${"★".repeat(rating)}${"☆".repeat(5 - rat
     const input = root.querySelector<HTMLInputElement>("[data-research-search]");
     const status = root.querySelector<HTMLElement>("[data-research-status]");
     const sections = [...root.querySelectorAll<HTMLElement>("[data-index-group]")];
-    input?.addEventListener("input", () => {
+    if (!input) return;
+    const applyFilter = () => {
       const query = input.value.trim().toLowerCase(); const terms = query.split(/\s+/).filter(Boolean); let researchers = 0; let resources = 0; let ctf = 0;
       sections.forEach((section) => { let visible = 0; section.querySelectorAll<HTMLElement>("[data-index-row]").forEach((row) => { const searchable = (row.dataset.searchable ?? "").toLowerCase(); const match = terms.every((term) => searchable.includes(term)); row.hidden = !match; if (match) { visible++; if (row.dataset.kind === "researcher") researchers++; else if (row.dataset.kind === "ctf") ctf++; else resources++; } }); const empty = section.querySelector<HTMLElement>("[data-group-empty]"); if (empty) empty.hidden = visible !== 0; });
       if (status) status.textContent = `${researchers} researchers · ${resources} atlas resources · ${ctf} CTF resources`;
-    });
+    };
+    input.addEventListener("input", applyFilter);
+    const initialQuery = new URLSearchParams(window.location.search).get("q");
+    if (initialQuery) {
+      input.value = initialQuery;
+      applyFilter();
+    }
   });
 </script>
 

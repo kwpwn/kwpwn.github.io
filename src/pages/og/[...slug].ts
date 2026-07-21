@@ -3,12 +3,7 @@ import { getCollection } from "astro:content";
 import { siteConfig } from "../../config/site.config";
 
 type OgKind =
-  | "home"
-  | "page"
-  | "blog"
-  | "service"
-  | "blog-list"
-  | "services-list";
+  "home" | "page" | "blog" | "service" | "blog-list" | "services-list";
 
 function escapeXml(value: string) {
   return value
@@ -71,8 +66,7 @@ function resolveMeta(kind: OgKind, locale: string, slug: string[]) {
   if (kind === "blog-list") {
     return {
       title: "Blog",
-      description:
-        "Articles about web development and the modern stack.",
+      description: "Articles about web development and the modern stack.",
       accent: siteConfig.branding.colors.primary,
     };
   }
@@ -129,6 +123,16 @@ const [BLOG, SERVICES, PAGES] = (await Promise.all([
   CollectionEntry<"pages">[],
 ];
 
+const STATIC_PAGES = [
+  {
+    locale: "en",
+    slug: "windows-security-concepts",
+    title: "Windows Security Concepts",
+    description:
+      "A capability-first Windows security handbook covering primitives, vulnerability classes, attack surfaces, driver families, mitigations, case studies, and research tooling.",
+  },
+] as const;
+
 const BLOG_BY_ID: Record<string, { title: string; description: string }> =
   Object.fromEntries(
     BLOG.filter((entry: CollectionEntry<"blog">) => !entry.data.draft).map(
@@ -150,12 +154,16 @@ const SERVICE_BY_SLUG: Record<string, { title: string; description: string }> =
 const PAGE_BY_LOCALE_AND_SLUG: Record<
   string,
   { title: string; description: string }
-> = Object.fromEntries(
-  PAGES.map((entry: CollectionEntry<"pages">) => [
+> = Object.fromEntries([
+  ...PAGES.map((entry: CollectionEntry<"pages">) => [
     `${entry.data.locale}/${entry.data.slug}`,
     { title: entry.data.title, description: entry.data.description },
   ]),
-);
+  ...STATIC_PAGES.map((entry) => [
+    `${entry.locale}/${entry.slug}`,
+    { title: entry.title, description: entry.description },
+  ]),
+]);
 
 export async function getStaticPaths() {
   const paths: Array<{
@@ -204,6 +212,17 @@ export async function getStaticPaths() {
         kind: "page",
         locale: entry.data.locale,
         slug: [entry.data.locale, entry.data.slug],
+      },
+    });
+  }
+
+  for (const entry of STATIC_PAGES) {
+    paths.push({
+      params: { slug: `page/${entry.locale}/${entry.slug}` },
+      props: {
+        kind: "page",
+        locale: entry.locale,
+        slug: [entry.locale, entry.slug],
       },
     });
   }

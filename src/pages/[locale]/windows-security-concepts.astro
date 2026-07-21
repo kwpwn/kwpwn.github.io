@@ -1,0 +1,26 @@
+---
+import { WindowsSecurityConcepts } from "../../components/sections";
+import { i18nConfig } from "../../config/i18n.config";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import type { Locale } from "../../lib/site-config";
+
+export function getStaticPaths() {
+  return i18nConfig.locales
+    .filter((locale) => locale !== i18nConfig.defaultLocale)
+    .map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const title = "Windows Security Concepts";
+const description =
+  "A capability-first Windows security handbook covering primitives, vulnerability classes, attack surfaces, driver families, mitigations, case studies, and research tooling.";
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  locale={locale}
+  path={`/${locale}/windows-security-concepts/`}
+>
+  <WindowsSecurityConcepts />
+</BaseLayout>

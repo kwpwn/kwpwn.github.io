@@ -1,4 +1,6 @@
 ---
+import ConceptLens from "./ConceptLens.astro";
+
 interface AtlasEntry {
   name: string;
   description: string;
@@ -9,6 +11,13 @@ interface AtlasFamily {
   title: string;
   description: string;
   entries: AtlasEntry[];
+}
+
+interface TheoryLens {
+  establishes: string;
+  boundary: string;
+  composition: string;
+  evidence: string;
 }
 
 interface Tool {
@@ -35,6 +44,24 @@ interface TechniqueFamily {
   description: string;
   techniques: Technique[];
 }
+
+export interface Props {
+  standalone?: boolean;
+  libraryHref?: string;
+  ctfHref?: string;
+}
+
+const {
+  standalone = false,
+  libraryHref = "/blog/security-research-index/#research-library",
+  ctfHref = "/blog/security-research-index/#ctf-archive",
+} = Astro.props as Props;
+
+const resolvedLibraryHref = standalone ? libraryHref : "#research-library";
+const resolvedCtfHref = standalone ? ctfHref : "#ctf-archive";
+const libraryPage = libraryHref.split("#")[0];
+const researchHref = (query: string) =>
+  `${libraryPage}?q=${encodeURIComponent(query)}#research-library`;
 
 const pipeline = [
   {
@@ -1011,6 +1038,433 @@ const driverTypeFamilies: AtlasFamily[] = [
   },
 ];
 
+const mitigationFamilies: AtlasFamily[] = [
+  {
+    title: "Memory layout, execution & control flow",
+    description:
+      "These mitigations remove predictable addresses or valid execution paths. They change exploit composition and reliability; they do not repair the underlying memory-safety defect.",
+    entries: [
+      {
+        name: "DEP / NX",
+        description:
+          "Marks data pages non-executable. Code reuse, data-only attacks, and writes into an existing executable mapping remain possible, so record the final execution strategy rather than saying only that DEP was bypassed.",
+      },
+      {
+        name: "KASLR",
+        description:
+          "Randomizes kernel and driver locations. An address disclosure, a stable side channel, or an address-independent target may restore reliability; the leaked module, offset, and build dependency are part of the chain.",
+      },
+      {
+        name: "SMEP",
+        description:
+          "Prevents supervisor-mode execution from user pages. It blocks direct user-shellcode jumps but not kernel code reuse, data-only privilege edits, or corruption that first changes page-table permissions.",
+      },
+      {
+        name: "CFG, kCFG & XFG",
+        description:
+          "Restrict indirect-call destinations using compiler and runtime metadata. Their value depends on the protected call site and valid target set; they do not protect direct data corruption or every return edge.",
+      },
+      {
+        name: "CET shadow stacks / kernel-mode hardware stack protection",
+        description:
+          "Protect return addresses with a hardware-backed shadow copy. Data-only chains, valid-call-target abuse, and non-return control data must be evaluated separately from classic return-oriented programming.",
+      },
+      {
+        name: "Stack cookies & exception hardening",
+        description:
+          "Detect selected stack-frame corruption before a vulnerable function returns. Coverage, disclosure of the cookie, non-stack targets, and pre-check side effects decide whether the bug remains useful.",
+      },
+    ],
+  },
+  {
+    title: "Code integrity, isolation & protected trust",
+    description:
+      "These controls decide which code and data can enter higher-trust execution domains. Treat the policy, enforcement component, boot state, and update level as distinct facts.",
+    entries: [
+      {
+        name: "Driver Signature Enforcement & Code Integrity",
+        description:
+          "Require kernel code to satisfy signing and integrity policy. A signed-but-vulnerable driver, an approved legacy path, or corruption of already trusted code is a different chain from disabling enforcement.",
+      },
+      {
+        name: "VBS & HVCI / Memory Integrity",
+        description:
+          "Move important code-integrity decisions into a higher virtual trust level and restrict executable kernel mappings. Compatibility, policy state, secure-boot state, and vulnerable-driver exposure must be measured on the target.",
+      },
+      {
+        name: "Kernel Data Protection & protected pools",
+        description:
+          "Make selected policy data read-only outside an authorized update path. Protection is registration- and object-specific, so arbitrary write does not imply that every security field remains writable.",
+      },
+      {
+        name: "Protected Process Light",
+        description:
+          "Restricts handle rights and code loading according to signer level. Kernel primitives, trusted signed components, and policy weaknesses can cross this boundary, but ordinary administrator access alone should not be treated as a bypass.",
+      },
+      {
+        name: "Secure Boot, measured boot & VTL boundaries",
+        description:
+          "Protect early boot and secrets or policy isolated from the normal kernel. A VTL0 kernel compromise does not automatically grant reads or writes into VTL1, firmware, or a hardware-backed trust domain.",
+      },
+    ],
+  },
+  {
+    title: "Allocator, object & lifetime hardening",
+    description:
+      "These mitigations reduce useful replacement objects, predictable layouts, and silent metadata corruption. They usually raise the engineering cost rather than making a root cause disappear.",
+    entries: [
+      {
+        name: "Pool cookies, headers & allocator randomization",
+        description:
+          "Protect allocator metadata and make placement less deterministic. A case study should show the target allocation class, grooming signal, reuse probability, and crash rate instead of assuming a generic pool spray.",
+      },
+      {
+        name: "Delayed free, quarantine & zeroing",
+        description:
+          "Change when memory is reused and what stale contents remain observable. They can weaken use-after-free replacement or information disclosure while leaving logical lifetime confusion intact.",
+      },
+      {
+        name: "Pointer encoding, cookies & guarded metadata",
+        description:
+          "Bind sensitive pointers or state to per-boot or per-process secrets. Record whether the secret can be leaked, inferred, preserved with read-modify-write, or avoided through a different target.",
+      },
+      {
+        name: "Reference discipline, rundown & cancel-safe design",
+        description:
+          "Use explicit references, rundown protection, cancel-safe queues, and teardown ordering to prevent stale callbacks and work items. Validation must cover error, cancellation, surprise-removal, and process-exit paths.",
+      },
+      {
+        name: "Verifier, sanitizers & checked instrumentation",
+        description:
+          "Turn latent misuse into an earlier diagnostic failure during testing. These are discovery and assurance controls, not a substitute for production authorization and memory-safety boundaries.",
+      },
+    ],
+  },
+  {
+    title: "Exposure, authorization & platform policy",
+    description:
+      "The strongest chain is often prevented before vulnerable code receives the request. These controls reduce who can reach an operation and what a privileged deputy may do for them.",
+    entries: [
+      {
+        name: "Device, service, file, registry & endpoint ACLs",
+        description:
+          "Grant only the rights required by the intended principal. ACLs reduce reachability, but security-sensitive methods still need per-request checks because handle transfer, impersonation, and confused-deputy flows can change the caller context.",
+      },
+      {
+        name: "Safe IOCTL contracts & requestor-mode validation",
+        description:
+          "Use appropriate transfer methods, validate lengths and object types, probe only when required, and force access checks when acting on caller-supplied handles or paths. Validation must be tied to the operation's effect.",
+      },
+      {
+        name: "WDAC & the vulnerable-driver blocklist",
+        description:
+          "Constrain which drivers may load and block known dangerous versions. Evaluate policy enforcement, update freshness, certificate and hash coverage, alternate versions, and whether the driver was already present.",
+      },
+      {
+        name: "IOMMU & Kernel DMA Protection",
+        description:
+          "Restrict device DMA to approved mappings and protect pre-boot or lock-screen states. Coverage depends on hardware, firmware, bus topology, remapping configuration, and the device's trust state.",
+      },
+      {
+        name: "Service isolation, least privilege & sandboxing",
+        description:
+          "Reduce the authority of brokers and services, split privileged operations, and constrain filesystem, token, network, and child-process access. A sandbox boundary is only as strong as its reachable brokers and inherited handles.",
+      },
+      {
+        name: "Telemetry, block rules & exploit detection",
+        description:
+          "Detect suspicious driver loads, object-link chains, service changes, memory access, callback tampering, or vulnerable-driver behavior. Detection provides response opportunity; it should not be presented as prevention unless the action is reliably blocked.",
+      },
+    ],
+  },
+];
+
+const familyTheory: Record<string, TheoryLens> = {
+  "Memory access capabilities": {
+    establishes:
+      "The exact bytes or bits an attacker can observe or modify and the address space in which that operation occurs.",
+    boundary:
+      "Read/write alone does not prove address knowledge, repeatability, safe fault handling, a useful target, or code execution.",
+    composition:
+      "Leaks commonly defeat layout randomization; constrained writes alter flags or pointers; stronger read/write supports data-only edits, fake objects, or page-table work.",
+    evidence:
+      "Record width, alignment, address range, value control, repetition, atomicity, process context, IRQL, and failure behavior.",
+  },
+  "File, directory & namespace capabilities": {
+    establishes:
+      "A privileged operation over content, path identity, directory topology, or an Object Manager name.",
+    boundary:
+      "Create, write, move, and delete are different powers; none automatically identifies a privileged consumer or execution trigger.",
+    composition:
+      "Combine path redirection or a race with a privileged writer, installer, loader, rollback action, service, or scheduled task that consumes the affected object.",
+    evidence:
+      "Capture the resolving principal, path form, link type, timing window, content control, overwrite flags, owner, inherited DACL, volume, and final consumer.",
+  },
+  "Identity, object & control capabilities": {
+    establishes:
+      "Control over a token, handle, service, task, registry value, endpoint, process, thread, or activation decision.",
+    boundary:
+      "A handle or impersonation token is useful only with sufficient rights, level, session, integrity, and a reachable action that accepts it.",
+    composition:
+      "Coerce a privileged client, duplicate or impersonate its token, redirect an activation, reconfigure a service, or invoke an operation through a stronger security context.",
+    evidence:
+      "Record object type, granted access, owner, token type and level, caller and server identities, session, integrity level, and the privileged transition.",
+  },
+  "Mapping, hardware & exploit composition": {
+    establishes:
+      "A low-level bridge to physical memory, page tables, device registers, allocator state, fake objects, or a final exploit construction.",
+    boundary:
+      "Hardware reach does not imply useful RAM access; mappings, IOMMU policy, cache attributes, HVCI, kCFG, CET, and target lifetime constrain the result.",
+    composition:
+      "Translate hardware or mapping access into virtual-memory control, stabilize object placement, then choose a data-only or control-flow target compatible with active mitigations.",
+    evidence:
+      "Document the translation path, mapped range, cache and permission bits, platform policy, allocation recipe, target invariant, cleanup, and post-exploitation stability.",
+  },
+  "Memory safety & numeric correctness": {
+    establishes:
+      "The implementation accessed memory outside its valid bounds, lifetime, type, initialization state, or correctly calculated size.",
+    boundary:
+      "A crash or corrupt object does not establish attacker control, useful adjacency, repeatable placement, or a security boundary crossing.",
+    composition:
+      "Map the corrupted field or disclosed bytes to a constrained primitive, then add grooming, leaking, or target selection as separate steps.",
+    evidence:
+      "Preserve the allocation and free stacks, arithmetic widths, object types, input bytes, crash context, neighboring state, and fixed-code comparison.",
+  },
+  "Lifetime, concurrency & execution context": {
+    establishes:
+      "An invariant fails because object state, ownership, thread context, IRQL, or ordering changes between individually plausible operations.",
+    boundary:
+      "A theoretical race window is not a reliable primitive until participants, synchronization, replacement state, and a winning signal are demonstrated.",
+    composition:
+      "Use oplocks, callbacks, barriers, load, handle churn, or controlled teardown to make the transition reproducible before deriving the resulting capability.",
+    evidence:
+      "Capture both timelines, locks and references, context switches, cancellation paths, teardown order, winning predicate, attempt count, and failure modes.",
+  },
+  "Authorization, ACL & trust-boundary failures": {
+    establishes:
+      "A weaker principal can reach an operation or object right that crosses the intended security boundary.",
+    boundary:
+      "A permissive ACL is exposure, not automatically a vulnerability; the granted right must reach a sensitive effect without a correct authorization decision.",
+    composition:
+      "Turn a reachable method, service right, transferred handle, or deputy action into file, token, process, driver, or configuration control.",
+    evidence:
+      "Record the security descriptor and inherited ACEs, requested and granted masks, effective token, impersonation state, per-method check, sensitive effect, and intended policy.",
+  },
+  "Path, parser, protocol & state validation": {
+    establishes:
+      "The producer and privileged consumer disagree about identity, structure, type, trust, or the legal order of operations.",
+    boundary:
+      "Malformed input or a surprising resolution is not enough; show the trusted decision made with one representation and the unsafe use made with another.",
+    composition:
+      "Substitute a path or object after validation, load from a weaker namespace, smuggle inconsistent fields, or drive a state machine into an unauthorized transition.",
+    evidence:
+      "Keep raw and canonical forms, parser layer, encoding, schema, state trace, authentication context, resolution timeline, and final object identity.",
+  },
+  "Driver entry points & kernel callbacks": {
+    establishes:
+      "The concrete dispatch path or asynchronous callback through which attacker-influenced state enters kernel execution.",
+    boundary:
+      "A named IOCTL or callback is not fully described without reachability, transfer method, lifecycle path, IRQL, and the device or endpoint security descriptor.",
+    composition:
+      "Open the object, reach the correct major function or callback, satisfy state prerequisites, then map each input field to the vulnerable operation.",
+    evidence:
+      "Collect symbolic links and SDDL, open rights, IOCTL schema, buffer method, call stack, requestor mode, process context, IRQL, and cleanup behavior.",
+  },
+  "IPC, brokers & privileged services": {
+    establishes:
+      "A user/kernel or client/service boundary with a privileged peer, transport contract, authentication context, and set of callable operations.",
+    boundary:
+      "Endpoint visibility does not mean anonymous access, impersonation, remote reachability, or permission to invoke every method.",
+    composition:
+      "Bind or activate the endpoint, establish caller identity, exercise a sensitive method, then follow handles, paths, callbacks, or tokens crossing the boundary.",
+    evidence:
+      "Record endpoint ACL, transport, authn and impersonation levels, interface and opnum, marshaled types, client token, server token, handle transfer, and downstream effects.",
+  },
+  "Subsystems, parsers & externally supplied data": {
+    establishes:
+      "A complex input language reaches a privileged parser, subsystem state machine, or hardware-facing translation layer.",
+    boundary:
+      "File possession or API access does not prove the vulnerable parser path, kernel transition, codec, feature state, or trusted consumer is reachable.",
+    composition:
+      "Minimize the input, identify the parsing stage and object produced, then connect corruption or policy confusion to a primitive under realistic delivery conditions.",
+    evidence:
+      "Preserve the sample, grammar or schema, delivery route, feature flags, parser stack, intermediate objects, sandbox boundary, and affected versions.",
+  },
+  "Virtualization, hardware & platform trust": {
+    establishes:
+      "An interface crosses guest/host, device/OS, firmware/OS, VTL, enclave, DMA, or bus trust boundaries.",
+    boundary:
+      "Privilege in one domain does not imply visibility or control in another; translation, remapping, firmware policy, and physical topology are part of the security model.",
+    composition:
+      "Reach the emulated or physical interface, control descriptors or mappings, defeat domain-specific isolation, and then prove the new domain and authority obtained.",
+    evidence:
+      "Record source and destination domains, device and firmware versions, IOMMU/VBS state, descriptor ownership, mapping tables, reset behavior, and required physical conditions.",
+  },
+  "Windows kernel & subsystem components": {
+    establishes:
+      "Which operating-system subsystem owns the semantics, data structures, update cadence, symbols, and trust boundary under study.",
+    boundary:
+      "Subsystem name alone does not describe exposure; the reachable entry point, session, feature, stack role, and input language remain separate axes.",
+    composition:
+      "Use the component family to find symbols, source analogues, related dispatch paths, historical fixes, and neighboring variant candidates.",
+    evidence:
+      "Record binary and PDB identity, Windows build, module version, loaded role, feature state, public contract, and exact caller-to-entry path.",
+  },
+  "Device, media & platform drivers": {
+    establishes:
+      "The hardware or media pipeline, driver stack, bus relationship, and vendor-specific protocol that shape reachable input and recovery behavior.",
+    boundary:
+      "Two drivers for the same device class may have different frameworks, filters, services, DACLs, firmware dependencies, and attack preconditions.",
+    composition:
+      "Map the whole stack and companion service, then separate public class operations from vendor escapes, firmware commands, shared buffers, and asynchronous completion.",
+    evidence:
+      "Capture hardware IDs, INF and service configuration, stack order, framework, device interfaces, companion processes, firmware version, power/PnP state, and signing chain.",
+  },
+  "Security, policy & high-risk third-party drivers": {
+    establishes:
+      "A component with unusually powerful process, memory, policy, device, or remediation operations and a supply or deployment path worth modeling.",
+    boundary:
+      "A signed driver, security product, or known BYOVD provider is not universally loadable or exploitable; version, policy, existing installation, and caller rights matter.",
+    composition:
+      "Reach a privileged operation directly or through its service, derive the exposed capability, then evaluate blocklists, HVCI, self-protection, and cleanup.",
+    evidence:
+      "Record hashes, signer and certificate state, vulnerable and fixed versions, device ACL, IOCTL contract, service mediation, load path, blocklist result, and active-exploitation evidence.",
+  },
+  "Required classification axes": {
+    establishes:
+      "A repeatable multi-dimensional component record instead of a misleading single driver-type label.",
+    boundary:
+      "No individual axis predicts risk; functional role, origin, exposure, load model, stack position, and security posture interact.",
+    composition:
+      "Use the axes to compare variants, choose lab prerequisites, prioritize reachable code, and explain why results differ across systems.",
+    evidence:
+      "Populate every axis from the INF, SCM, object namespace, loaded stack, signatures, policies, versions, and a tested low-privilege reachability trace.",
+  },
+  "Memory layout, execution & control flow": {
+    establishes:
+      "Which address assumptions and execution transitions the platform prevents or validates before control reaches attacker-selected code.",
+    boundary:
+      "Mitigation presence is not full coverage, and bypassing one control does not bypass adjacent integrity, isolation, or control-flow checks.",
+    composition:
+      "Choose a leak, data-only target, valid call target, page-table change, or code-reuse strategy only after enumerating the controls active on the exact build.",
+    evidence:
+      "Record hardware support, OS policy, process and driver opt-ins, protected call sites, fault telemetry, build, and the precise transition that succeeds or fails.",
+  },
+  "Code integrity, isolation & protected trust": {
+    establishes:
+      "Which code, mappings, signer levels, data, and boot decisions are enforced outside or above the ordinary execution context.",
+    boundary:
+      "Administrator or kernel execution in one trust level does not automatically grant control over a higher VTL, secure component, protected process, or firmware state.",
+    composition:
+      "Find an allowed signed component, policy weakness, trusted update path, or domain-crossing primitive rather than assuming the isolation boundary disappears.",
+    evidence:
+      "Capture Secure Boot, VBS/HVCI, CI and WDAC state, signer policy, VTL, protected ranges, enforcement logs, and any reboot or configuration prerequisite.",
+  },
+  "Allocator, object & lifetime hardening": {
+    establishes:
+      "How the platform detects corruption, obscures metadata, delays reuse, or enforces safer object ownership and teardown.",
+    boundary:
+      "Hardening changes probability and target choice; it rarely proves that the original invariant violation is unreachable or harmless.",
+    composition:
+      "Measure allocation behavior, replacement candidates, secret dependencies, and alternative data-only targets before claiming a stable exploit path.",
+    evidence:
+      "Record allocator class, cookies and encodings, zeroing and quarantine state, reuse statistics, verifier settings, crash distribution, and successful object replacement traces.",
+  },
+  "Exposure, authorization & platform policy": {
+    establishes:
+      "Who may reach privileged code, which operation they may request, and which binaries, devices, or behaviors platform policy permits or blocks.",
+    boundary:
+      "Reduced exposure is defense in depth; transferred handles, brokered calls, stale policy, alternate versions, and per-method authorization gaps may preserve a path.",
+    composition:
+      "Layer endpoint ACLs, per-request checks, least privilege, code-loading policy, hardware isolation, and telemetry so one policy error does not complete the chain.",
+    evidence:
+      "Test effective access as the real principal and record descriptors, policy versions, enforcement state, exceptions, block events, update state, and detection-to-response behavior.",
+  },
+};
+
+const capabilityMatrix = [
+  {
+    primitive: "Information leak",
+    immediate:
+      "Recover a pointer, cookie, handle value, object field, or secret.",
+    missing:
+      "No state changes; usefulness depends on freshness, precision, and the mitigation or decision the value unlocks.",
+    chain:
+      "Leak → derive layout or secret → aim a constrained corruption or pass an integrity check.",
+  },
+  {
+    primitive: "Constrained memory write",
+    immediate:
+      "Set, clear, increment, partially replace, or preserve selected state.",
+    missing:
+      "Needs a compatible target with the right width, alignment, original value, timing, and lifetime.",
+    chain:
+      "Leak or infer target → modify flag/pointer/access state → trigger privileged consumer → restore stability.",
+  },
+  {
+    primitive: "Arbitrary memory read/write",
+    immediate:
+      "Inspect and modify attacker-selected virtual memory under defined context and fault constraints.",
+    missing:
+      "Still needs addresses, a mitigation-compatible target, safe repetition, and a plan that does not destroy required invariants.",
+    chain:
+      "Resolve symbols/objects → data-only edit, fake object, mapping change, or controlled target → verify and clean up.",
+  },
+  {
+    primitive: "Arbitrary file create/write",
+    immediate:
+      "Place attacker-controlled content at a privileged path or alter an existing object.",
+    missing:
+      "Needs a trusted consumer, executable or policy-sensitive format, correct ownership/DACL, and a reliable trigger.",
+    chain:
+      "Redirect privileged writer if needed → place content → invoke service/loader/task/installer → cross identity boundary.",
+  },
+  {
+    primitive: "Arbitrary file/directory delete",
+    immediate: "Remove a protected object or privileged namespace subtree.",
+    missing:
+      "Deletion usually causes denial of service unless replacement, rollback, fail-open behavior, or privileged recreation is proven.",
+    chain:
+      "Delete → win recreation or rollback path → substitute controlled object → trigger privileged consumer.",
+  },
+  {
+    primitive: "Directory or namespace creation",
+    immediate:
+      "Claim a name, shadow an object, or prepare a path-redirection structure.",
+    missing:
+      "Needs the privileged resolver to enter that namespace and create, open, or activate a useful child object.",
+    chain:
+      "Create directory → place link/endpoint/registration → privileged resolution → stronger file, handle, or activation primitive.",
+  },
+  {
+    primitive: "Token impersonation / handle control",
+    immediate:
+      "Act with another security context or invoke operations through a privileged object reference.",
+    missing:
+      "Token type, impersonation level, granted rights, session, integrity, and process-creation privileges may restrict use.",
+    chain:
+      "Coerce or acquire object → validate rights and identity → duplicate/impersonate/invoke → perform narrow privileged action.",
+  },
+  {
+    primitive: "Process or thread control",
+    immediate:
+      "Read, write, suspend, resume, create work in, or otherwise influence a target execution context.",
+    missing:
+      "Protected-process policy, handle rights, architecture, mitigations, and executable-memory or call-target rules remain relevant.",
+    chain:
+      "Acquire rights → select injection or data-only technique → satisfy mitigation constraints → execute and verify.",
+  },
+  {
+    primitive: "Physical memory / PTE / device access",
+    immediate:
+      "Reach physical pages, translations, or hardware registers outside ordinary virtual-memory APIs.",
+    missing:
+      "Needs correct translation, RAM or register range, cache semantics, IOMMU and VBS state, and a safe high-value target.",
+    chain:
+      "Map or translate → locate target page/device state → change permission or protected data → return through normal virtual context.",
+  },
+] as const;
+
 const toolFamilies: ToolFamily[] = [
   {
     title: "Corpus acquisition & version archaeology",
@@ -1542,7 +1996,8 @@ const totalEntries =
     (sum, family) => sum + family.entries.length,
     0,
   ) +
-  driverTypeFamilies.reduce((sum, family) => sum + family.entries.length, 0);
+  driverTypeFamilies.reduce((sum, family) => sum + family.entries.length, 0) +
+  mitigationFamilies.reduce((sum, family) => sum + family.entries.length, 0);
 const totalTools = toolFamilies.reduce(
   (sum, family) => sum + family.tools.length,
   0,
@@ -1570,13 +2025,15 @@ const totalTools = toolFamilies.reduce(
     <a href="#atlas-overview">Overview</a>
     <a href="#technique-families">Technique families</a>
     <a href="#primitives">Primitives</a>
+    <a href="#primitive-capability-matrix">Capability matrix</a>
     <a href="#vulnerability-classes">Vulnerability classes</a>
     <a href="#attack-surfaces">Attack surfaces</a>
     <a href="#driver-types">Driver types</a>
+    <a href="#mitigations">Mitigations</a>
     <a href="#case-studies">Case studies</a>
     <a href="#tooling">Tooling</a>
-    <a href="#research-library">Research library</a>
-    <a class="atlas__nav-ctf" href="#ctf-archive">CTF archive</a>
+    <a href={resolvedLibraryHref}>Research library</a>
+    <a class="atlas__nav-ctf" href={resolvedCtfHref}>CTF archive</a>
   </nav>
 
   <div class="atlas__pipeline" aria-label="Research pipeline">
@@ -1627,15 +2084,24 @@ const totalTools = toolFamilies.reduce(
             <h3>{family.title}</h3>
             <p>{family.description}</p>
             <div>
-              {family.techniques.map((technique) => (
-                <button
-                  type="button"
-                  data-atlas-query={technique.query}
-                  aria-label={`Search the research library for ${technique.name}`}
-                >
-                  {technique.name}
-                </button>
-              ))}
+              {family.techniques.map((technique) =>
+                standalone ? (
+                  <a
+                    href={researchHref(technique.query)}
+                    aria-label={`Open research library results for ${technique.name}`}
+                  >
+                    {technique.name}
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    data-atlas-query={technique.query}
+                    aria-label={`Search the research library for ${technique.name}`}
+                  >
+                    {technique.name}
+                  </button>
+                ),
+              )}
             </div>
           </article>
         ))
@@ -1672,6 +2138,7 @@ const totalTools = toolFamilies.reduce(
               </>
             </summary>
             <p class="atlas__family-intro">{family.description}</p>
+            <ConceptLens lens={familyTheory[family.title]} />
             <dl>
               {family.entries.map((entry) => (
                 <div>
@@ -1686,6 +2153,45 @@ const totalTools = toolFamilies.reduce(
           </details>
         ))
       }
+    </div>
+    <div
+      class="atlas__matrix-wrap"
+      id="primitive-capability-matrix"
+      tabindex="-1"
+    >
+      <header>
+        <p class="atlas__eyebrow">From capability to chain</p>
+        <h3>Primitive capability matrix</h3>
+        <p>
+          A primitive describes what becomes possible now—not the final impact.
+          Use the missing-link column to decide what the next experiment must
+          prove.
+        </p>
+      </header>
+      <div class="atlas__table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Primitive</th>
+              <th scope="col">Immediate capability</th>
+              <th scope="col">What is still missing</th>
+              <th scope="col">Common composition</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              capabilityMatrix.map((item) => (
+                <tr>
+                  <th scope="row">{item.primitive}</th>
+                  <td>{item.immediate}</td>
+                  <td>{item.missing}</td>
+                  <td>{item.chain}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -1747,6 +2253,7 @@ const totalTools = toolFamilies.reduce(
               </>
             </summary>
             <p class="atlas__family-intro">{family.description}</p>
+            <ConceptLens lens={familyTheory[family.title]} />
             <dl>
               {family.entries.map((entry) => (
                 <div>
@@ -1794,6 +2301,7 @@ const totalTools = toolFamilies.reduce(
               </>
             </summary>
             <p class="atlas__family-intro">{family.description}</p>
+            <ConceptLens lens={familyTheory[family.title]} />
             <dl>
               {family.entries.map((entry) => (
                 <div>
@@ -1841,6 +2349,52 @@ const totalTools = toolFamilies.reduce(
               </>
             </summary>
             <p class="atlas__family-intro">{family.description}</p>
+            <ConceptLens lens={familyTheory[family.title]} />
+            <dl>
+              {family.entries.map((entry) => (
+                <div>
+                  <dt>{entry.name}</dt>
+                  <dd>{entry.description}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section
+    class="atlas__section"
+    id="mitigations"
+    aria-labelledby="mitigations-heading"
+  >
+    <header class="atlas__section-head">
+      <div>
+        <p class="atlas__eyebrow">What changes the exploit model</p><h2
+          id="mitigations-heading"
+        >
+          Mitigations &amp; security boundaries
+        </h2>
+      </div>
+      <p>
+        Mitigations are recorded by the assumption they remove, the scope they
+        cover, and the evidence that they are active. A bypass of one control is
+        not a universal bypass of the platform.
+      </p>
+    </header>
+    <div class="atlas__families">
+      {
+        mitigationFamilies.map((family, index) => (
+          <details class="atlas__family" open={index === 0}>
+            <summary>
+              <>
+                <span>{family.title}</span>
+                <small>{family.entries.length} controls</small>
+              </>
+            </summary>
+            <p class="atlas__family-intro">{family.description}</p>
+            <ConceptLens lens={familyTheory[family.title]} />
             <dl>
               {family.entries.map((entry) => (
                 <div>
@@ -2019,13 +2573,18 @@ const totalTools = toolFamilies.reduce(
     text-transform: uppercase;
   }
   .atlas__nav {
+    position: sticky;
+    top: 4.75rem;
+    z-index: 4;
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-xs);
     padding: var(--space-sm);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
-    background: var(--color-bg-secondary);
+    background: color-mix(in srgb, var(--color-bg-secondary) 94%, transparent);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(12px);
   }
   .atlas__nav a {
     border: 1px solid var(--color-border);
@@ -2043,8 +2602,10 @@ const totalTools = toolFamilies.reduce(
   .atlas__nav a:focus-visible,
   .atlas__family summary:focus-visible,
   .atlas__techniques button:focus-visible,
+  .atlas__techniques a:focus-visible,
   .atlas__tools a:focus-visible,
-  .atlas__cases a:focus-visible {
+  .atlas__cases a:focus-visible,
+  .atlas__matrix-wrap:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
@@ -2102,7 +2663,7 @@ const totalTools = toolFamilies.reduce(
   .atlas__section {
     display: grid;
     gap: var(--space-xl);
-    scroll-margin-top: 6rem;
+    scroll-margin-top: 13rem;
   }
   .atlas__section-head {
     display: grid;
@@ -2147,7 +2708,8 @@ const totalTools = toolFamilies.reduce(
     gap: var(--space-xs);
     margin-top: var(--space-xs);
   }
-  .atlas__techniques button {
+  .atlas__techniques button,
+  .atlas__techniques a {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-full);
     background: var(--color-bg-secondary);
@@ -2156,8 +2718,10 @@ const totalTools = toolFamilies.reduce(
     font: inherit;
     font-size: var(--text-xs);
     cursor: pointer;
+    text-decoration: none;
   }
-  .atlas__techniques button:hover {
+  .atlas__techniques button:hover,
+  .atlas__techniques a:hover {
     border-color: var(--color-text-secondary);
     background: var(--secondary-hover);
   }
@@ -2230,6 +2794,65 @@ const totalTools = toolFamilies.reduce(
     display: block;
     margin-top: var(--space-xs);
     color: var(--color-text-primary);
+  }
+  .atlas__matrix-wrap {
+    display: grid;
+    gap: var(--space-md);
+    scroll-margin-top: 13rem;
+  }
+  .atlas__matrix-wrap > header {
+    display: grid;
+    gap: var(--space-xs);
+    max-width: var(--container-wide);
+  }
+  .atlas__matrix-wrap h3,
+  .atlas__matrix-wrap header > p {
+    margin: 0;
+  }
+  .atlas__matrix-wrap header > p:last-child {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+  .atlas__table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+  }
+  .atlas__table-scroll table {
+    width: 100%;
+    min-width: 64rem;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+  }
+  .atlas__table-scroll th,
+  .atlas__table-scroll td {
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    text-align: left;
+    vertical-align: top;
+    line-height: var(--leading-relaxed);
+  }
+  .atlas__table-scroll thead th {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+  .atlas__table-scroll tbody th {
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+  .atlas__table-scroll td {
+    color: var(--color-text-secondary);
+  }
+  .atlas__table-scroll tbody tr:last-child th,
+  .atlas__table-scroll tbody tr:last-child td {
+    border-bottom: 0;
   }
   .atlas__cases {
     display: grid;
@@ -2324,6 +2947,15 @@ const totalTools = toolFamilies.reduce(
     .atlas__techniques,
     .atlas__cases {
       grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 80rem) {
+    .atlas__nav {
+      position: static;
+    }
+    .atlas__section,
+    .atlas__matrix-wrap {
+      scroll-margin-top: 6rem;
     }
   }
   @media (max-width: 40rem) {

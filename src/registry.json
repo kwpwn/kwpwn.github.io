@@ -190,10 +190,17 @@
       "i18nAware": true
     },
     {
+      "name": "ConceptLens",
+      "tier": "component",
+      "path": "src/components/blog/ConceptLens.astro",
+      "props": ["lens"],
+      "i18nAware": false
+    },
+    {
       "name": "ResearchAtlasGuide",
       "tier": "component",
       "path": "src/components/blog/ResearchAtlasGuide.astro",
-      "props": [],
+      "props": ["standalone", "libraryHref", "ctfHref"],
       "i18nAware": false
     },
     {
@@ -324,10 +331,19 @@
       "path": "src/components/sections/LogoCloud.astro",
       "props": ["title", "logos"],
       "i18nAware": true
+    },
+    {
+      "name": "WindowsSecurityConcepts",
+      "tier": "section",
+      "path": "src/components/sections/WindowsSecurityConcepts.astro",
+      "props": [],
+      "i18nAware": false
     }
   ],
   "pages": [
     { "name": "Post index", "path": "src/pages/index.astro", "locales": ["en"] },
-    { "name": "Post detail", "path": "src/pages/blog/[slug].astro", "locales": ["en"] }
+    { "name": "Post detail", "path": "src/pages/blog/[slug].astro", "locales": ["en"] },
+    { "name": "Windows security concepts", "path": "src/pages/windows-security-concepts.astro", "locales": ["en"] },
+    { "name": "Localized Windows security concepts", "path": "src/pages/[locale]/windows-security-concepts.astro", "locales": [] }
   ]
 }

@@ -8,6 +8,10 @@ export interface NavItem {
 
 export const mainNav: NavItem[] = [
   { href: "/", labelKey: "nav.home" },
+  {
+    href: "/windows-security-concepts/",
+    labelKey: "nav.windowsSecurityConcepts",
+  },
 ] as const;
 
 export const footerNav = {
