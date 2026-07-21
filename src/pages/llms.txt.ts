@@ -1,12 +1,12 @@
 import type { APIRoute } from "astro";
-import { getCollection } from "astro:content";
+import { getCollection, type CollectionEntry } from "astro:content";
 import { siteConfig } from "../config/site.config";
 
 export const prerender = true;
 
 export const GET: APIRoute = async () => {
   const base = siteConfig.url.replace(/\/$/, "");
-  const posts = (await getCollection("blog"))
+  const posts = ((await getCollection("blog")) as CollectionEntry<"blog">[])
     .filter((post) => post.data.locale === "en" && !post.data.draft)
     .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime());
   const links = posts

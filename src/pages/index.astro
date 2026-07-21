@@ -12,7 +12,9 @@ const posts = allPosts
   .filter((post) => post.data.locale === locale && !post.data.draft)
   .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime());
 const filteredPosts = currentTag
-  ? posts.filter((post) => post.data.tags.some((tag) => slugify(tag) === currentTag))
+  ? posts.filter((post) =>
+      post.data.tags.some((tag: string) => slugify(tag) === currentTag),
+    )
   : posts;
 const tags = [...new Set(posts.flatMap((post) => post.data.tags))].sort();
 ---

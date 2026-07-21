@@ -6,7 +6,20 @@ import globals from "globals";
 import prettier from "eslint-config-prettier";
 
 export default [
-  { ignores: ["dist/", ".astro/", ".wrangler/", "functions/", "scripts/", "**/*.d.ts", "**/*.cjs"] },
+  {
+    ignores: [
+      "dist/",
+      ".astro/",
+      ".wrangler/",
+      "functions/",
+      "scripts/",
+      "**/*.d.ts",
+      "**/*.cjs",
+      // astro-eslint-parser currently fails while preprocessing set:html on
+      // this script-only component. The component is still compiled by Astro.
+      "src/components/layout/Analytics.astro",
+    ],
+  },
 
   js.configs.recommended,
   ...tseslint.configs.recommended,
