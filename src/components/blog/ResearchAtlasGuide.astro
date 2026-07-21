@@ -1,0 +1,2353 @@
+---
+interface AtlasEntry {
+  name: string;
+  description: string;
+  note?: string;
+}
+
+interface AtlasFamily {
+  title: string;
+  description: string;
+  entries: AtlasEntry[];
+}
+
+interface Tool {
+  name: string;
+  url: string;
+  use: string;
+  status?: string;
+}
+
+interface ToolFamily {
+  title: string;
+  stage: string;
+  description: string;
+  tools: Tool[];
+}
+
+interface Technique {
+  name: string;
+  query: string;
+}
+
+interface TechniqueFamily {
+  title: string;
+  description: string;
+  techniques: Technique[];
+}
+
+const pipeline = [
+  {
+    step: "01",
+    title: "Component & exposure",
+    description:
+      "Identify what runs with privilege, who can reach it, through which transport, and under which token, session, integrity level, or device state.",
+  },
+  {
+    step: "02",
+    title: "Attack surface",
+    description:
+      "Map the concrete entry point: IOCTL, IRP, RPC method, COM activation, parser, callback, shared section, service control, or hardware-facing channel.",
+  },
+  {
+    step: "03",
+    title: "Root-cause class",
+    description:
+      "Describe the defect that violates an invariant: memory safety, lifetime, authorization, path identity, input validation, or protocol state.",
+  },
+  {
+    step: "04",
+    title: "Obtained primitive",
+    description:
+      "Record the capability the defect actually grants, including its limits: read, write, create, delete, redirect, impersonate, map, allocate, or invoke.",
+  },
+  {
+    step: "05",
+    title: "Composition & impact",
+    description:
+      "Show how building blocks, mitigations, and environmental assumptions turn that capability into SYSTEM, PPL bypass, persistence, disclosure, or code execution.",
+  },
+] as const;
+
+const techniqueFamilies: TechniqueFamily[] = [
+  {
+    title: "Kernel exploitation",
+    description:
+      "Root-cause analysis and exploit construction from first reachability through a mitigation-aware, reliable kernel primitive.",
+    techniques: [
+      { name: "Pool exploitation", query: "pool exploitation" },
+      { name: "Use-after-free", query: "use after free" },
+      { name: "Type confusion", query: "type confusion" },
+      { name: "Stack overflow", query: "stack buffer overflow" },
+      { name: "Arbitrary R/W", query: "arbitrary read write" },
+      { name: "Constrained writes", query: "increment bit primitive" },
+      { name: "Token manipulation", query: "token privilege kernel" },
+      { name: "PreviousMode", query: "PreviousMode" },
+      { name: "PTE manipulation", query: "PTE manipulation" },
+      { name: "I/O rings", query: "I/O ring" },
+      { name: "WNF", query: "WNF" },
+      { name: "KASLR bypass", query: "KASLR bypass" },
+      { name: "Kernel ROP", query: "kernel ROP" },
+      { name: "Pool grooming", query: "pool spray grooming" },
+    ],
+  },
+  {
+    title: "Files, paths & namespaces",
+    description:
+      "Non-memory-corruption chains that convert privileged filesystem or Object Manager behavior into a stronger capability.",
+    techniques: [
+      { name: "Arbitrary file read", query: "arbitrary file read" },
+      { name: "Arbitrary file write", query: "arbitrary file write" },
+      { name: "Arbitrary file delete", query: "arbitrary file delete" },
+      { name: "File move / rename", query: "privileged file move" },
+      { name: "Directory creation", query: "directory creation" },
+      { name: "Directory deletion", query: "directory deletion" },
+      { name: "Junction abuse", query: "junction mount point" },
+      { name: "Object symlinks", query: "object manager symbolic link" },
+      { name: "Hard-link abuse", query: "hard link privilege" },
+      { name: "Reparse points", query: "reparse point" },
+      { name: "Oplock races", query: "oplock race" },
+      { name: "Installer rollback", query: "installer rollback file delete" },
+    ],
+  },
+  {
+    title: "Identity, ACLs & service escalation",
+    description:
+      "Authorization failures and control-plane operations that let a weaker principal act through a stronger token, object, or service.",
+    techniques: [
+      { name: "Weak service DACL", query: "service DACL permissions" },
+      { name: "Weak device DACL", query: "device object security" },
+      { name: "Registry permissions", query: "registry permissions privilege" },
+      { name: "Service reconfiguration", query: "service configuration" },
+      { name: "Scheduled task abuse", query: "scheduled task privilege" },
+      { name: "Named-pipe impersonation", query: "named pipe impersonation" },
+      { name: "Token impersonation", query: "token impersonation" },
+      { name: "SeImpersonate", query: "SeImpersonate" },
+      { name: "Confused deputy", query: "confused deputy Windows" },
+      { name: "Access-mode confusion", query: "access mode mismatch" },
+      { name: "Handle rights abuse", query: "handle access rights" },
+    ],
+  },
+  {
+    title: "COM, RPC & IPC boundaries",
+    description:
+      "Activation, marshaling, endpoint identity, impersonation, shared state, and protocol bugs across Windows communication systems.",
+    techniques: [
+      { name: "COM hijacking", query: "COM hijacking" },
+      { name: "COM activation", query: "COM activation AppID CLSID" },
+      { name: "COM marshaling", query: "COM marshaling proxy" },
+      { name: "DCOM", query: "DCOM Windows" },
+      { name: "RPC reversing", query: "RPC NDR reverse engineering" },
+      { name: "RPC coercion", query: "RPC authentication coercion" },
+      { name: "ALPC", query: "ALPC exploitation" },
+      { name: "Named pipes", query: "named pipe security" },
+      { name: "Shared sections", query: "shared memory section Windows" },
+      { name: "WMI", query: "WMI Windows security" },
+      { name: "ETW", query: "ETW internals" },
+      { name: "Cross-session IPC", query: "cross session IPC" },
+    ],
+  },
+  {
+    title: "Load, execution & process injection",
+    description:
+      "User-mode execution paths classified by loader behavior, memory type, thread trigger, call stack, and observable artifacts.",
+    techniques: [
+      { name: "DLL hijacking", query: "DLL hijacking" },
+      { name: "DLL proxying", query: "DLL proxying" },
+      { name: "Phantom DLL", query: "phantom DLL" },
+      { name: "Reflective loading", query: "reflective loader" },
+      { name: "Manual mapping", query: "manual map PE" },
+      { name: "Process hollowing", query: "process hollowing" },
+      { name: "Process doppelgänging", query: "process doppelganging" },
+      { name: "Process ghosting", query: "process ghosting" },
+      { name: "APC injection", query: "APC injection" },
+      { name: "Thread-pool injection", query: "thread pool injection" },
+      { name: "Section mapping", query: "section mapping injection" },
+      { name: "Instrumentation callback", query: "instrumentation callback" },
+      { name: "Module stomping", query: "module stomping" },
+      { name: "Stack spoofing", query: "call stack spoofing" },
+    ],
+  },
+  {
+    title: "Defense evasion & kernel tampering",
+    description:
+      "Mechanism-first research into what a security product observes, which privileged control point is modified, and what artifact remains.",
+    techniques: [
+      { name: "BYOVD", query: "BYOVD vulnerable driver" },
+      { name: "PPL bypass", query: "PPL bypass" },
+      { name: "EDR driver analysis", query: "EDR driver analysis" },
+      { name: "Callback removal", query: "kernel callback removal" },
+      { name: "Process termination", query: "EDR process termination driver" },
+      { name: "ETW tampering", query: "ETW tampering" },
+      { name: "AMSI bypass", query: "AMSI" },
+      { name: "Unhooking", query: "unhooking ntdll" },
+      { name: "Direct / indirect syscalls", query: "indirect syscall" },
+      { name: "Sleep obfuscation", query: "sleep obfuscation" },
+      { name: "Memory scanner evasion", query: "memory scanner evasion" },
+      { name: "Rootkit hiding", query: "Windows rootkit hiding" },
+    ],
+  },
+  {
+    title: "Mitigations & platform boundaries",
+    description:
+      "Exploit constraints and lower-layer attack surfaces spanning code integrity, virtualization, firmware, and hardware isolation.",
+    techniques: [
+      { name: "SMEP / SMAP", query: "SMEP SMAP bypass" },
+      { name: "kCFG", query: "kernel CFG kCFG" },
+      { name: "Kernel CET", query: "kernel CET shadow stack" },
+      { name: "VBS / HVCI", query: "VBS HVCI" },
+      { name: "KDP", query: "Kernel Data Protection KDP" },
+      { name: "DSE / Code Integrity", query: "DSE code integrity" },
+      { name: "Hyper-V", query: "Hyper-V" },
+      { name: "Secure Kernel / VTL", query: "secure kernel VTL" },
+      { name: "Intel VT", query: "Intel VT hypervisor" },
+      { name: "UEFI / firmware", query: "UEFI firmware Windows" },
+      { name: "DMA / IOMMU", query: "DMA IOMMU Windows" },
+      { name: "Physical memory", query: "physical memory driver" },
+    ],
+  },
+  {
+    title: "Malware reversing & detection",
+    description:
+      "Implementation-focused analysis from PE loading and unpacking through configuration recovery, persistence, memory artifacts, and forensic validation.",
+    techniques: [
+      { name: "PE internals", query: "PE internals loader" },
+      { name: "Unpacking", query: "Windows malware unpacking" },
+      {
+        name: "Configuration extraction",
+        query: "configuration extractor malware",
+      },
+      { name: "API hashing", query: "API hashing Windows" },
+      { name: "Shellcode", query: "Windows shellcode" },
+      { name: "Reflective loaders", query: "reflective loader malware" },
+      { name: "Kernel rootkits", query: "kernel rootkit analysis" },
+      { name: "Bootkits / UEFI", query: "UEFI bootkit" },
+      { name: "Memory forensics", query: "Windows memory forensics" },
+      { name: "YARA / capability rules", query: "YARA" },
+      { name: "Anti-debugging", query: "Windows anti debugging" },
+      { name: "Emulation", query: "Windows malware emulation" },
+    ],
+  },
+];
+
+const primitiveFamilies: AtlasFamily[] = [
+  {
+    title: "Memory access capabilities",
+    description:
+      "Describe exactly what memory can be observed or changed. Width, alignment, address range, repetition, process context, and whether the operation is atomic are part of the primitive—not implementation trivia.",
+    entries: [
+      {
+        name: "Arbitrary read",
+        description:
+          "Read attacker-selected virtual memory. Track kernel/user range, readable length, alignment, fault behavior, and whether repeated reads are stable.",
+      },
+      {
+        name: "Relative or out-of-bounds read",
+        description:
+          "Read only near a legitimate object or buffer. It is often enough for a pointer, cookie, pool metadata, or secret disclosure, but it is not equivalent to unrestricted read.",
+      },
+      {
+        name: "Information leak",
+        description:
+          "Disclose an address, handle, token field, uninitialized bytes, or object metadata. Model the exact leaked value and the mitigation it defeats, such as KASLR.",
+      },
+      {
+        name: "Arbitrary write",
+        description:
+          "Write attacker-controlled data to an attacker-selected address. Record size, alignment, repeatability, address restrictions, and whether the old value is known.",
+      },
+      {
+        name: "Write-what-where",
+        description:
+          "A strong arbitrary-write form with independent control of destination and value. Pointer provenance and copy length still determine whether it is reliable.",
+      },
+      {
+        name: "Constrained write",
+        description:
+          "A zero write, NULL write, constant write, partial-pointer overwrite, increment/decrement, or bit flip. These deserve separate tags because their viable targets differ sharply.",
+      },
+      {
+        name: "Read-modify-write",
+        description:
+          "Change selected bits while preserving surrounding state. This is especially useful for token flags, access masks, reference state, and mitigation fields.",
+      },
+      {
+        name: "Controlled dereference",
+        description:
+          "Cause privileged code to read from or write through a chosen pointer without fully controlling the transferred value. Probe mode and exception handling often decide exploitability.",
+      },
+      {
+        name: "Controlled call target",
+        description:
+          "Redirect an indirect call, callback, dispatch pointer, vtable entry, or return address. Modern control-flow and shadow-stack mitigations must be recorded beside it.",
+      },
+    ],
+  },
+  {
+    title: "File, directory & namespace capabilities",
+    description:
+      "Filesystem and Object Manager bugs frequently grant narrow but powerful operations. The atlas keeps creation, deletion, replacement, redirection, and permission changes distinct so a case study can show the real conversion step.",
+    entries: [
+      {
+        name: "Arbitrary file read",
+        description:
+          "Read a privileged, locked, or cross-user file. Capture whether the primitive bypasses the file DACL, sharing mode, EFS, backup semantics, or only a path restriction.",
+      },
+      {
+        name: "Arbitrary file creation",
+        description:
+          "Create a new file at an attacker-selected privileged path. Content control, owner, inherited DACL, overwrite behavior, and chosen extension determine the usable sink.",
+      },
+      {
+        name: "Arbitrary file write / overwrite",
+        description:
+          "Write controlled bytes into an existing privileged file. Append-only, offset-limited, truncating, and whole-file replacement variants are modeled separately.",
+      },
+      {
+        name: "Arbitrary file delete",
+        description:
+          "Delete a chosen file as a privileged principal. Deletion alone rarely executes code; a strong case study must explain the fail-open target or the delete-to-create/rollback conversion.",
+      },
+      {
+        name: "Arbitrary file move / rename",
+        description:
+          "Move a controlled or privileged file across directories or names. Replace-if-exists behavior, volume boundaries, and final ownership can make this stronger than write.",
+      },
+      {
+        name: "Arbitrary directory creation",
+        description:
+          "Create a filesystem directory or Object Manager directory at a chosen path. This can enable namespace shadowing, later symbolic-link placement, or privileged child creation.",
+      },
+      {
+        name: "Arbitrary directory delete",
+        description:
+          "Remove a directory tree or redirect a privileged cleanup operation. Whether traversal follows reparse points and whether non-empty targets are accepted are core constraints.",
+      },
+      {
+        name: "Junction / mount-point creation",
+        description:
+          "Redirect a filesystem directory lookup through an NTFS reparse point. The chain must document who resolves each path component and when the attacker can swap it.",
+      },
+      {
+        name: "Object Manager symbolic link",
+        description:
+          "Redirect an NT namespace lookup, commonly through an object directory such as RPC Control. This differs from an NTFS symbolic link and does not require the same privilege.",
+      },
+      {
+        name: "Hard-link creation",
+        description:
+          "Give another name to an existing file and induce a privileged writer to modify it. Modern link restrictions, ownership, volume, and open-handle rules must be checked.",
+      },
+      {
+        name: "Reparse-point substitution",
+        description:
+          "Swap, retarget, or race a reparse point between validation and use. Record the exact identity check that is absent or invalidated.",
+      },
+      {
+        name: "ACL / owner manipulation",
+        description:
+          "Change a file, directory, registry key, service, device, pipe, or kernel object's DACL, owner, integrity label, or mandatory policy to unlock a later operation.",
+      },
+      {
+        name: "Privileged file copy / restore",
+        description:
+          "Make a privileged component copy, quarantine, extract, repair, or restore attacker-influenced bytes. Destination validation and inherited security are the primary invariants.",
+      },
+      {
+        name: "Oplock-assisted path race",
+        description:
+          "Hold a privileged file operation at a deterministic point, mutate the namespace, then release it. The oplock is a race-winning building block, not the vulnerability itself.",
+      },
+    ],
+  },
+  {
+    title: "Identity, object & control capabilities",
+    description:
+      "These capabilities act on securable objects or privileged control planes. The requested access mask and the server-side authorization performed after opening the object both belong in the record.",
+    entries: [
+      {
+        name: "Handle acquisition / duplication",
+        description:
+          "Obtain or duplicate a process, thread, token, section, device, service, job, or ALPC handle with rights the caller should not possess.",
+      },
+      {
+        name: "Token impersonation",
+        description:
+          "Acquire and impersonate a more privileged token. Record impersonation level, token type, session, integrity level, privileges, and whether primary-token conversion is possible.",
+      },
+      {
+        name: "Named-pipe creation / squatting",
+        description:
+          "Pre-create or control a pipe endpoint that a privileged client trusts by name. The security boundary is crossed only when peer identity is not authenticated correctly.",
+      },
+      {
+        name: "Registry create / write / delete",
+        description:
+          "Modify privileged configuration, service parameters, COM registration, security policy, or a loader-controlled value. Value type, WOW64 view, and trigger are material.",
+      },
+      {
+        name: "Service create / reconfigure / control",
+        description:
+          "Create a service, change its binary path or account, alter failure actions, start/stop it, or send a privileged custom control. Each right is tracked independently.",
+      },
+      {
+        name: "Scheduled-task create / modify / trigger",
+        description:
+          "Influence task actions, principals, working directories, COM handlers, or triggers. A writable payload location and the task's effective token complete the chain.",
+      },
+      {
+        name: "COM registration / activation redirection",
+        description:
+          "Control a CLSID, AppID, TreatAs, proxy/stub, in-process server, or activation path used by a more privileged client.",
+      },
+      {
+        name: "Driver load / unload",
+        description:
+          "Register, load, map, replace, or unload kernel code. Signature enforcement, vulnerable-driver policy, HVCI, service rights, and cleanup method define the real capability.",
+      },
+      {
+        name: "Object allocation / free",
+        description:
+          "Cause privileged allocation, release, or reference-count transitions for selected object types. This is a heap-shaping or lifetime primitive until paired with reuse or corruption.",
+      },
+      {
+        name: "Process / thread control",
+        description:
+          "Open, suspend, terminate, create, inject into, or change the context of a target process or thread. The exact access rights prevent vague 'process control' claims.",
+      },
+    ],
+  },
+  {
+    title: "Mapping, hardware & exploit composition",
+    description:
+      "This family separates low-level access mechanisms and exploitation building blocks from final security impact. Pool spray, I/O rings, WNF, token swap, and ROP should never be presented as though they were the original bug class.",
+    entries: [
+      {
+        name: "Physical-memory mapping",
+        description:
+          "Map or translate physical pages into an accessible virtual range. Firmware reservations, RAM ranges, page attributes, VBS, and IOMMU state constrain the result.",
+      },
+      {
+        name: "MDL mapping",
+        description:
+          "Build, reuse, or corrupt an MDL to lock and map pages. Track ownership, process context, access mode, cache type, and lifetime of the mapped view.",
+      },
+      {
+        name: "PTE manipulation",
+        description:
+          "Change page-table entries to alter write, execute, user/supervisor, or mapping properties. HVCI, KDP, secure-kernel ownership, and TLB coherence matter.",
+      },
+      {
+        name: "MMIO / port I/O / MSR access",
+        description:
+          "Reach device registers, I/O ports, or model-specific registers through an exposed driver. Classify each operation separately because their security consequences differ.",
+      },
+      {
+        name: "DMA capability",
+        description:
+          "Program a device or exposed adapter path to access system memory. IOMMU policy, device isolation, address width, and physical presence determine scope.",
+      },
+      {
+        name: "Pool spray / grooming",
+        description:
+          "Shape allocator state so a freed or overflowing object meets a useful neighbor or replacement. It stabilizes a primitive; it is not a vulnerability class.",
+      },
+      {
+        name: "Fake-object construction",
+        description:
+          "Place a controlled object, vtable, pipe attribute, WNF state, I/O-ring buffer, palette, or bitmap where privileged code will interpret it as trusted state.",
+      },
+      {
+        name: "Kernel ROP / data-only chain",
+        description:
+          "Compose gadgets or protected data changes when direct code execution is blocked. The atlas records which mitigations force the chosen strategy.",
+      },
+      {
+        name: "PreviousMode manipulation",
+        description:
+          "Change the kernel's trust decision for a thread so system calls treat user pointers or handles as kernel-originated. This is an exploitation technique and end-state enabler.",
+      },
+      {
+        name: "Token swap / privilege edit",
+        description:
+          "Replace a process token or modify token privilege/group state. The primitive used to perform the change and the restoration strategy remain separate fields.",
+      },
+      {
+        name: "Security-control impact",
+        description:
+          "PPL bypass, DSE/CI disablement, callback removal, EDR termination, credential access, persistence, sandbox escape, and SYSTEM execution are outcomes—not primitives.",
+      },
+    ],
+  },
+];
+
+const vulnerabilityFamilies: AtlasFamily[] = [
+  {
+    title: "Memory safety & numeric correctness",
+    description:
+      "Defects that violate object bounds, type, initialization, or size arithmetic before any exploitation capability is derived.",
+    entries: [
+      {
+        name: "Out-of-bounds read / write",
+        description:
+          "Index, offset, count, or length permits access outside the intended object. Record direction, distance, controllability, and the adjacent allocation or mapping.",
+      },
+      {
+        name: "Stack / heap / pool overflow",
+        description:
+          "A copy or write exceeds its destination. Keep stack, user heap, paged pool, nonpaged pool, session pool, and secure pool distinct because exploitation differs.",
+      },
+      {
+        name: "Use-after-free",
+        description:
+          "Code retains or reacquires a pointer after object lifetime ended. Capture the freeing path, stale reference, replacement type, and synchronization assumptions.",
+      },
+      {
+        name: "Double free / reference-count error",
+        description:
+          "An object is released twice or its reference count crosses the valid lifetime boundary. Underflow, premature zero, and mismatched ownership are separate patterns.",
+      },
+      {
+        name: "Type confusion",
+        description:
+          "Code interprets an object, handle, message, or union as the wrong type without validating the discriminator or runtime type.",
+      },
+      {
+        name: "Uninitialized memory",
+        description:
+          "Uninitialized stack, pool, structure padding, or output data influences control flow or crosses a trust boundary as disclosure.",
+      },
+      {
+        name: "Integer overflow / truncation / signedness",
+        description:
+          "Arithmetic changes a size, offset, allocation, index, or comparison. Specify bit width and the later memory or policy decision it corrupts.",
+      },
+      {
+        name: "Invalid / NULL pointer handling",
+        description:
+          "A pointer is trusted, probed incorrectly, or dereferenced after an incomplete check. A crash is not automatically exploitable; control and mapping constraints matter.",
+      },
+    ],
+  },
+  {
+    title: "Lifetime, concurrency & execution context",
+    description:
+      "Defects where separately valid operations become unsafe because state changes between them or code runs in the wrong context.",
+    entries: [
+      {
+        name: "Race condition",
+        description:
+          "Concurrent operations violate an invariant. A useful record identifies participants, shared state, winning condition, race window, and deterministic synchronization method.",
+      },
+      {
+        name: "TOCTOU / double fetch",
+        description:
+          "Privileged code validates data or a path, then consumes a mutable version later. User memory, shared sections, files, registry, and object namespaces need separate tags.",
+      },
+      {
+        name: "Reference / lifetime mismatch",
+        description:
+          "A pointer, handle, callback registration, work item, timer, IRP, or object outlives the owner that guaranteed its validity.",
+      },
+      {
+        name: "Reentrancy / callback race",
+        description:
+          "A callback, APC, completion, message pump, or external component re-enters code while invariants are temporarily broken.",
+      },
+      {
+        name: "Cancellation / teardown bug",
+        description:
+          "IRP cancellation, process exit, device removal, service stop, or error cleanup races active work and leaves stale state or repeated cleanup.",
+      },
+      {
+        name: "IRQL / locking violation",
+        description:
+          "Code touches pageable memory, waits, frees, or calls an unsafe API at the wrong IRQL or under an incompatible lock, creating corruption or deadlock conditions.",
+      },
+      {
+        name: "Process / session context confusion",
+        description:
+          "A driver or service assumes the current process, thread, desktop, session, silo, or impersonation state still represents the original requester.",
+      },
+    ],
+  },
+  {
+    title: "Authorization, ACL & trust-boundary failures",
+    description:
+      "Low-privilege reachability is evidence of exposure, not automatically a vulnerability. The defect exists when the granted object rights or a missing per-operation check let that caller perform an action outside the intended security boundary.",
+    entries: [
+      {
+        name: "Weak device-object DACL",
+        description:
+          "A named device grants World, Authenticated Users, or another low-trust SID enough access to open a dangerous path. The review must pair the SDDL/ACE with reachable IOCTLs and their per-request checks.",
+        note: "World-readable telemetry can be intentional; World-write plus a privileged IOCTL with no authorization is the exploitable chain.",
+      },
+      {
+        name: "Weak service DACL",
+        description:
+          "A service grants rights such as SERVICE_CHANGE_CONFIG, WRITE_DAC, WRITE_OWNER, START, STOP, or a dangerous user-defined control to an untrusted principal.",
+        note: "SERVICE_CHANGE_CONFIG can replace the executable path; START/STOP alone is usually availability impact unless another writable configuration or load path exists.",
+      },
+      {
+        name: "Weak file / directory / registry DACL",
+        description:
+          "A low-privilege user can modify a binary, DLL search directory, COM registration, service parameter, task action, policy value, or other object later trusted by privileged code.",
+      },
+      {
+        name: "NULL / absent / inherited security descriptor",
+        description:
+          "An object is created with unintended defaults, a NULL DACL, unsafe inheritance, or inconsistent ACLs across a device stack or namespace.",
+      },
+      {
+        name: "Missing access or privilege check",
+        description:
+          "The entry point is intentionally reachable, but a sensitive operation never verifies the caller's token, access mask, privilege, integrity level, capability, or trust label.",
+      },
+      {
+        name: "Access-mode confusion",
+        description:
+          "KernelMode versus UserMode, RequestorMode, SL_FORCE_ACCESS_CHECK, previous mode, or a trusted-handle flag is used incorrectly and suppresses a required access check.",
+      },
+      {
+        name: "Confused deputy",
+        description:
+          "A privileged service, broker, driver, or installer performs a valid operation on attacker-selected data or destinations without binding it to an authorized request.",
+      },
+      {
+        name: "Impersonation failure",
+        description:
+          "A server forgets to impersonate, reverts too early, accepts Identification-level identity as authorization, or uses its own token for a client-controlled action.",
+      },
+      {
+        name: "Endpoint ACL / peer-authentication failure",
+        description:
+          "RPC, ALPC, named pipe, COM, shared-memory, or object-namespace endpoints are open too broadly or trust a name/session instead of authenticating the peer.",
+      },
+      {
+        name: "Token / handle context confusion",
+        description:
+          "A token, duplicated handle, client context, or cached authorization decision is reused for the wrong process, user, session, silo, or request.",
+      },
+    ],
+  },
+  {
+    title: "Path, parser, protocol & state validation",
+    description:
+      "Defects where the program validates one identity or representation but later acts on another, or accepts an impossible state transition.",
+    entries: [
+      {
+        name: "Path traversal / canonicalization",
+        description:
+          "Relative components, NT versus Win32 syntax, device paths, ADS, short names, case folding, trailing characters, or normalization cause validation and use to resolve different objects.",
+      },
+      {
+        name: "Link / reparse following",
+        description:
+          "Privileged code follows a junction, mount point, symbolic link, hard link, or reparse tag without opening safely and verifying the final object identity.",
+      },
+      {
+        name: "DLL search / COM registration trust",
+        description:
+          "A privileged activation loads from a user-writable location or accepts attacker-controlled class/proxy registration. Search order alone is exposure; the privilege transition establishes impact.",
+      },
+      {
+        name: "Signature / trust validation",
+        description:
+          "Code trusts a catalog, signer, path, extension, hash, certificate field, or already-open handle without validating the artifact that will actually execute.",
+      },
+      {
+        name: "Handle / object-type validation",
+        description:
+          "A caller supplies a handle with unexpected type or rights, or code references it without the correct access mode and expected object type.",
+      },
+      {
+        name: "METHOD_NEITHER / user-pointer misuse",
+        description:
+          "A driver directly consumes user virtual addresses without correct probing, capture, exception handling, locking, and lifetime guarantees.",
+      },
+      {
+        name: "Length / offset / cross-field inconsistency",
+        description:
+          "Individual fields pass checks but their relationship is impossible: count times stride, nested offsets, total size, alignment, or terminator placement escapes validation.",
+      },
+      {
+        name: "Parser / deserialization bug",
+        description:
+          "A filesystem, font, image, media, network, archive, registry, NDR, or custom binary parser accepts malformed structure and reaches unsafe code.",
+      },
+      {
+        name: "Protocol / state-machine flaw",
+        description:
+          "Messages arrive out of order, repeat, skip authentication, reuse stale identifiers, or trigger a transition the implementation assumed could not occur.",
+      },
+      {
+        name: "Logic / business-rule flaw",
+        description:
+          "The implementation faithfully performs an unsafe policy decision that is not better described by authorization, identity, lifetime, or parser classes. Use this only as a final precise bucket.",
+      },
+    ],
+  },
+];
+
+const attackSurfaceFamilies: AtlasFamily[] = [
+  {
+    title: "Driver entry points & kernel callbacks",
+    description:
+      "Map concrete reachable operations; WDM, KMDF, and UMDF are implementation frameworks recorded as metadata, not attack surfaces by themselves.",
+    entries: [
+      {
+        name: "Device open & IOCTL",
+        description:
+          "IRP_MJ_CREATE plus IRP_MJ_DEVICE_CONTROL / INTERNAL_DEVICE_CONTROL, split by BUFFERED, DIRECT, and NEITHER transfer methods and by device DACL.",
+      },
+      {
+        name: "Read, write, cleanup & close IRPs",
+        description:
+          "Stream-style input and handle lifecycle paths often bypass the validation concentrated in IOCTL dispatch.",
+      },
+      {
+        name: "FSCTL & minifilter communication ports",
+        description:
+          "Filesystem control codes, Filter Manager messages, callbacks, contexts, and user-mode service ports form distinct reachable interfaces.",
+      },
+      {
+        name: "PnP, power & device properties",
+        description:
+          "Arrival, removal, surprise removal, power transitions, property queries, and device-stack changes expose rare state combinations.",
+      },
+      {
+        name: "Process, thread, image, object & registry callbacks",
+        description:
+          "Registration callbacks consume untrusted lifecycle and policy data while running inside privileged global state.",
+      },
+      {
+        name: "Fast I/O, completion, APC, DPC & work items",
+        description:
+          "Alternative dispatch and deferred-execution paths carry different IRQL, thread-context, cancellation, and lifetime assumptions.",
+      },
+    ],
+  },
+  {
+    title: "IPC, brokers & privileged services",
+    description:
+      "Windows privilege boundaries are frequently crossed through user-mode services and brokers, so the atlas treats them as peers of kernel interfaces.",
+    entries: [
+      {
+        name: "RPC / NDR",
+        description:
+          "Endpoint discovery, binding transport, authentication level, interface ACL, opnum, NDR types, context handles, and impersonation behavior define the surface.",
+      },
+      {
+        name: "ALPC / LPC",
+        description:
+          "Ports, connection messages, transferred handles, sections, views, attributes, and server-side client validation expose native broker boundaries.",
+      },
+      {
+        name: "Named pipes & mailslots",
+        description:
+          "Pipe ACLs, instance ownership, remote acceptance, impersonation level, message framing, and server/client squatting all matter.",
+      },
+      {
+        name: "COM / DCOM / WinRT",
+        description:
+          "CLSID/AppID activation, elevation monikers, brokers, marshaling, proxy/stub code, class registration, and caller identity create several separate surfaces.",
+      },
+      {
+        name: "Shared memory, sections & ring buffers",
+        description:
+          "Mapped sections and producer/consumer queues need ownership, bounds, synchronization, and double-fetch analysis.",
+      },
+      {
+        name: "WMI, ETW & WNF",
+        description:
+          "Providers, consumers, control methods, payload schemas, state names, subscriptions, permissions, and cross-session delivery expose stateful channels.",
+      },
+      {
+        name: "SCM, tasks, installers & updaters",
+        description:
+          "Service control, scheduled tasks, repair, rollback, extraction, quarantine, update, and privileged agent workflows are rich path and authorization surfaces.",
+      },
+    ],
+  },
+  {
+    title: "Subsystems, parsers & externally supplied data",
+    description:
+      "These surfaces are grouped by the attacker-controlled language they parse, not merely by the binary that currently implements it.",
+    entries: [
+      {
+        name: "Filesystems & on-disk formats",
+        description:
+          "NTFS, ReFS, CLFS, FAT/exFAT, UDFS, VHD/VHDX, EAs, reparse data, oplocks, transactions, metadata logs, and crafted media.",
+      },
+      {
+        name: "Network stack",
+        description:
+          "AFD, Winsock, TCP/IP, SMB, RDP, HTTP.sys, NDIS OIDs, WFP callouts, protocol parsers, redirectors, and remotely supplied state.",
+      },
+      {
+        name: "Win32k, GDI, DComp & DWM",
+        description:
+          "System calls, shared user/kernel structures, callbacks, window objects, graphics commands, composition channels, and session state.",
+      },
+      {
+        name: "Kernel Streaming, audio & media",
+        description:
+          "Property/method/event sets, topology, pin creation, format negotiation, codecs, camera, audio, and user-controlled graph structures.",
+      },
+      {
+        name: "GPU & display",
+        description:
+          "D3DKMT/DDI calls, command buffers, allocations, residency, synchronization objects, escape handlers, shader inputs, and vendor miniports.",
+      },
+      {
+        name: "Fonts, images, documents & archives",
+        description:
+          "Complex file formats may be parsed in the kernel, a privileged service, a sandbox broker, or an application; the executing boundary must be captured.",
+      },
+      {
+        name: "Printing & spooler ecosystem",
+        description:
+          "RPC, drivers, port and print processors, monitors, package installation, point-and-print, files, and service-side impersonation form a compound surface.",
+      },
+    ],
+  },
+  {
+    title: "Virtualization, hardware & platform trust",
+    description:
+      "Hardware-facing research must state whether the attacker needs local code, administrator rights, a guest, a physical device, or firmware control.",
+    entries: [
+      {
+        name: "Hyper-V, VMBus & virtualization services",
+        description:
+          "Hypercalls, synthetic devices, VMBus channels, vSockets, worker processes, saved state, enlightened I/O, and guest-host brokers.",
+      },
+      {
+        name: "Secure Kernel, VTL & enclaves",
+        description:
+          "VBS, VTL transitions, secure services, trustlets, HVCI, isolated user mode, and protected memory ownership.",
+      },
+      {
+        name: "Firmware, ACPI, UEFI & SMM",
+        description:
+          "Tables, methods, variables, capsules, SPI flash, system-management interfaces, and vendor firmware services.",
+      },
+      {
+        name: "PCI, USB, Bluetooth, HID & device input",
+        description:
+          "Descriptors, transfer rings, class requests, hotplug state, vendor protocols, and bus/device stack interactions.",
+      },
+      {
+        name: "DMA, MMIO, ports & MSRs",
+        description:
+          "Direct hardware operations exposed by legitimate drivers or devices, evaluated with IOMMU, Kernel DMA Protection, and platform policy.",
+      },
+      {
+        name: "Storage controllers & removable media",
+        description:
+          "SCSI/NVMe commands, class/port/miniport boundaries, firmware passthrough, caches, virtual disks, and crafted removable filesystems.",
+      },
+    ],
+  },
+];
+
+const driverTypeFamilies: AtlasFamily[] = [
+  {
+    title: "Windows kernel & subsystem components",
+    description:
+      "Microsoft components that implement operating-system semantics or large kernel-facing subsystems.",
+    entries: [
+      {
+        name: "Core executive / kernel / HAL",
+        description:
+          "Object, memory, process, I/O, security, scheduler, interrupt, timer, and hardware-abstraction components.",
+      },
+      {
+        name: "Win32k / DWM / DirectComposition",
+        description:
+          "GUI system calls, session-space objects, drawing, window management, composition, and display-service components.",
+      },
+      {
+        name: "Filesystem & filesystem recognizer",
+        description:
+          "Full filesystem implementations, recognizers, redirectors, and on-disk metadata engines.",
+      },
+      {
+        name: "Filesystem minifilter / legacy filter",
+        description:
+          "Security, backup, encryption, virtualization, indexing, and policy filters attached around filesystem operations.",
+      },
+      {
+        name: "Storage class / port / miniport",
+        description:
+          "Disk, volume, partition, cache, NVMe, SCSI, Storport, virtual-disk, and controller-specific drivers.",
+      },
+      {
+        name: "Network / AFD / NDIS / WFP",
+        description:
+          "Socket, transport, redirector, protocol, filter, callout, lightweight filter, and adapter miniport components.",
+      },
+    ],
+  },
+  {
+    title: "Device, media & platform drivers",
+    description:
+      "Drivers organized by the hardware or media pipeline they control, with bus and filter role recorded separately.",
+    entries: [
+      {
+        name: "Display / GPU / compute",
+        description:
+          "Graphics kernel, user/kernel display model, miniport, escape-handler, compute, and vendor display components.",
+      },
+      {
+        name: "Kernel Streaming / camera / capture",
+        description:
+          "KS filters, pins, topology, capture, camera, broadcast, and multimedia transport drivers.",
+      },
+      {
+        name: "Audio",
+        description:
+          "PortCls, WaveRT, APO-adjacent services, codecs, mixers, and vendor audio-bus or DSP components.",
+      },
+      {
+        name: "USB / Bluetooth / wireless peripheral",
+        description:
+          "Host controller, hub, class, function, filter, radio, and vendor-protocol drivers.",
+      },
+      {
+        name: "HID / input / sensor",
+        description:
+          "Keyboard, mouse, touch, pen, biometric, sensor, controller, and low-level input filters.",
+      },
+      {
+        name: "Firmware / ACPI / platform",
+        description:
+          "ACPI, UEFI, TPM, chipset, GPIO, SMBus, SPI, thermal, power, and board-management drivers.",
+      },
+      {
+        name: "Printer / virtual device",
+        description:
+          "Print, port, virtual bus, virtual disk, emulator, and software-defined device drivers.",
+      },
+    ],
+  },
+  {
+    title: "Security, policy & high-risk third-party drivers",
+    description:
+      "Privilege and security purpose do not imply safety. These families often expose unusually powerful control operations and therefore need explicit origin and reachability metadata.",
+    entries: [
+      {
+        name: "Code integrity / ELAM / platform security",
+        description:
+          "Boot-start policy, code-integrity, secure-boot, credential, and protected-process enforcement components.",
+      },
+      {
+        name: "AV / EDR / endpoint security",
+        description:
+          "Process, file, registry, network, telemetry, self-protection, remediation, and isolation drivers plus their privileged services.",
+      },
+      {
+        name: "Anti-cheat / DRM",
+        description:
+          "Integrity monitoring, anti-tamper, process and handle control, hardware identification, and content-protection drivers.",
+      },
+      {
+        name: "Encryption / backup / recovery",
+        description:
+          "Disk and file encryption, snapshots, restore, imaging, backup, anti-ransomware, and disaster-recovery filters.",
+      },
+      {
+        name: "Vendor hardware utility",
+        description:
+          "Fan, RGB, firmware update, diagnostics, motherboard, laptop-control, and device-management drivers.",
+      },
+      {
+        name: "Performance / overclock / monitoring",
+        description:
+          "MSR, physical memory, PCI, port I/O, sensor, benchmark, tuning, and debugging helpers frequently reused in BYOVD chains.",
+      },
+      {
+        name: "Vulnerable-driver provider",
+        description:
+          "A signed driver cataloged by its exposed capability—memory R/W, process kill, driver mapping, security disablement—not treated as a functional driver family.",
+      },
+    ],
+  },
+  {
+    title: "Required classification axes",
+    description:
+      "Every driver record is classified across these axes in addition to its functional family; a single flat 'driver type' cannot express the attack model.",
+    entries: [
+      {
+        name: "Framework",
+        description:
+          "WDM, KMDF, UMDF, Minifilter, NDIS, WFP, Storport, PortCls, Kernel Streaming, display miniport, or hybrid.",
+      },
+      {
+        name: "Origin",
+        description:
+          "Windows inbox, Microsoft optional component, OEM, silicon vendor, security vendor, anti-cheat/DRM vendor, enterprise agent, or open source.",
+      },
+      {
+        name: "Exposure",
+        description:
+          "Local standard user, AppContainer, low integrity, administrator, service account, remote network, guest VM, device-present, or physical access.",
+      },
+      {
+        name: "Load model",
+        description:
+          "Boot, system, automatic, demand, PnP, service-controlled, filter attachment, vulnerable-driver mapping, or manual test signing.",
+      },
+      {
+        name: "Role in stack",
+        description:
+          "Bus, function, upper/lower filter, class, port, miniport, virtual device, callback-only, or software-only control driver.",
+      },
+      {
+        name: "Security posture",
+        description:
+          "Device DACL, signing chain, blocklist status, HVCI compatibility, known vulnerable versions, fix availability, and active exploitation evidence.",
+      },
+    ],
+  },
+];
+
+const toolFamilies: ToolFamily[] = [
+  {
+    title: "Corpus acquisition & version archaeology",
+    stage: "Acquire",
+    description:
+      "Recover exact, hashable binaries and the context needed to reproduce a result instead of analyzing an unknown current build.",
+    tools: [
+      {
+        name: "Winbindex",
+        url: "https://winbindex.m417z.com/",
+        use: "Historical Windows EXE/DLL/SYS versions and authenticated symbol-server downloads.",
+      },
+      {
+        name: "Microsoft Update Catalog",
+        url: "https://www.catalog.update.microsoft.com/",
+        use: "Canonical update packages, KB mapping, architectures, and product versions.",
+      },
+      {
+        name: "LOLDrivers",
+        url: "https://www.loldrivers.io/",
+        use: "Hashes, signatures, behavior, detections, and references for malicious and vulnerable drivers.",
+      },
+      {
+        name: "Windows Driver Samples",
+        url: "https://github.com/microsoft/Windows-driver-samples",
+        use: "Official WDM, KMDF, UMDF, NDIS, storage, filesystem, and device examples.",
+      },
+      {
+        name: "Symbol Server",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/microsoft-public-symbols",
+        use: "Microsoft public PDBs and debugger symbol configuration.",
+      },
+    ],
+  },
+  {
+    title: "Object, permission & surface enumeration",
+    stage: "Map",
+    description:
+      "Measure what a real token can open and which objects, devices, services, callbacks, and endpoints exist on the target build.",
+    tools: [
+      {
+        name: "Sandbox Attack Surface Analysis Tools",
+        url: "https://github.com/googleprojectzero/sandbox-attacksurface-analysis-tools",
+        use: "Token-aware access checks across files, registry, objects, processes, RPC, COM, handles, and network resources.",
+      },
+      {
+        name: "NtObjectManager",
+        url: "https://www.powershellgallery.com/packages/NtObjectManager",
+        use: "Scriptable NT objects, tokens, security descriptors, ALPC, RPC, services, and access checks.",
+      },
+      {
+        name: "WinObjEx64",
+        url: "https://github.com/hfiref0x/WinObjEx64",
+        use: "Object Manager namespace, drivers, devices, symbolic links, handles, callbacks, and security.",
+      },
+      {
+        name: "System Informer",
+        url: "https://github.com/winsiderss/systeminformer",
+        use: "Processes, tokens, handles, services, drivers, memory, threads, and system state.",
+      },
+      {
+        name: "AccessChk",
+        url: "https://learn.microsoft.com/en-us/sysinternals/downloads/accesschk",
+        use: "Effective permissions on files, registry keys, services, processes, shares, and named objects.",
+      },
+      {
+        name: "WinObj",
+        url: "https://learn.microsoft.com/en-us/sysinternals/downloads/winobj",
+        use: "Microsoft Sysinternals view of the NT Object Manager namespace.",
+      },
+    ],
+  },
+  {
+    title: "Static reversing & driver recovery",
+    stage: "Understand",
+    description:
+      "Recover dispatch, types, data flow, protocol structure, and validation logic before executing privileged code.",
+    tools: [
+      {
+        name: "IDA",
+        url: "https://hex-rays.com/ida-pro",
+        use: "Mature disassembly/decompilation, PDBs, type libraries, scripting, and plugin ecosystem.",
+      },
+      {
+        name: "Ghidra",
+        url: "https://github.com/NationalSecurityAgency/ghidra",
+        use: "Open-source disassembly, decompilation, PDBs, scripting, headless analysis, and version tracking.",
+      },
+      {
+        name: "Binary Ninja",
+        url: "https://binary.ninja/",
+        use: "Interactive IL-based analysis, data flow, types, automation, and collaborative reversing.",
+      },
+      {
+        name: "Windows Driver Plugin for IDA",
+        url: "https://github.com/FSecureLABS/win_driver_plugin",
+        use: "WDM/WDF entry points, dispatch tables, IOCTL decoding, and driver-specific annotation.",
+      },
+      {
+        name: "DriverBuddy",
+        url: "https://github.com/nccgroup/DriverBuddy",
+        use: "IDA helpers for Windows driver reverse engineering, devices, dispatch routines, and IOCTLs.",
+      },
+      {
+        name: "BinSkim",
+        url: "https://github.com/microsoft/binskim",
+        use: "Inspect PE/driver build provenance, signing, and exploit-mitigation properties with auditable SARIF output.",
+      },
+      {
+        name: "CodeQL for drivers",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/static-tools-and-codeql",
+        use: "Source-level semantic and data-flow queries plus driver certification suites.",
+      },
+      {
+        name: "Joern",
+        url: "https://github.com/joernio/joern",
+        use: "Code Property Graph queries over source or carefully normalized decompiler output.",
+      },
+    ],
+  },
+  {
+    title: "Kernel debugging & runtime inspection",
+    stage: "Confirm",
+    description:
+      "Prove reachability, controllability, lifetime, corruption, and mitigation state on the exact target build.",
+    tools: [
+      {
+        name: "WinDbg",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/",
+        use: "Kernel/user debugging, dump analysis, JavaScript/Data Model automation, symbols, and extensions.",
+      },
+      {
+        name: "KDNET",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/setting-up-a-network-debugging-connection",
+        use: "Fast supported kernel-debug transport for physical and virtual targets.",
+      },
+      {
+        name: "Driver Verifier",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/driver-verifier",
+        use: "Force allocation, IRQL, I/O, DMA, deadlock, security, and lifetime failures closer to root cause.",
+      },
+      {
+        name: "LiveKD",
+        url: "https://learn.microsoft.com/en-us/sysinternals/downloads/livekd",
+        use: "Run kernel debugger commands and produce memory dumps from a live system.",
+      },
+      {
+        name: "VirtualKD-Redux",
+        url: "https://github.com/4d61726b/VirtualKD-Redux",
+        use: "Accelerated VMware/VirtualBox kernel debugging for disposable research guests.",
+      },
+      {
+        name: "PoolViewer",
+        url: "https://github.com/yardenshafir/PoolViewer",
+        use: "Search and group kernel pool allocations in modern Windows crash dumps.",
+      },
+    ],
+  },
+  {
+    title: "Tracing, telemetry & behavioral comparison",
+    stage: "Observe",
+    description:
+      "Correlate static paths with the file, registry, image-load, process, object, and event behavior seen at runtime.",
+    tools: [
+      {
+        name: "Process Monitor",
+        url: "https://learn.microsoft.com/en-us/sysinternals/downloads/procmon",
+        use: "File, registry, process, thread, and image-load traces with stacks and filters.",
+      },
+      {
+        name: "Process Explorer",
+        url: "https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer",
+        use: "Processes, handles, DLLs, tokens, signatures, jobs, and runtime ownership.",
+      },
+      {
+        name: "Windows Performance Recorder/Analyzer",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/test/wpt/",
+        use: "ETW-backed system tracing, stack analysis, scheduling, I/O, and performance state.",
+      },
+      {
+        name: "KrabsETW",
+        url: "https://github.com/microsoft/krabsetw",
+        use: "Native C++ and .NET ETW consumers for purpose-built research instrumentation.",
+      },
+      {
+        name: "tiny_tracer",
+        url: "https://github.com/hasherezade/tiny_tracer",
+        use: "Intel Pin-based Windows execution traces for packed or high-volume user-mode targets.",
+      },
+    ],
+  },
+  {
+    title: "RPC, COM, ALPC & service inspection",
+    stage: "Map IPC",
+    description:
+      "Recover endpoint registration, interface syntax, activation, marshaling, access control, peer identity, and call behavior.",
+    tools: [
+      {
+        name: "RPC Investigator",
+        url: "https://github.com/trailofbits/RpcInvestigator",
+        use: "Enumerate RPC servers, inspect NDR, reconstruct procedures, and generate research clients.",
+      },
+      {
+        name: "RpcView",
+        url: "https://www.rpcview.org/",
+        use: "Inspect live RPC endpoints, interfaces, bindings, processes, and procedures.",
+      },
+      {
+        name: "OleView.NET",
+        url: "https://github.com/tyranid/oleviewdotnet",
+        use: "COM registration, activation, security, proxies, type libraries, marshaling, and runtime objects.",
+      },
+      {
+        name: "NtApiDotNet",
+        url: "https://www.nuget.org/packages/NtApiDotNet",
+        use: "Typed .NET wrappers for NT, ALPC, RPC, COM, tokens, objects, and security experiments.",
+      },
+      {
+        name: "Impel",
+        url: "https://github.com/cbev0x/impel",
+        use: "Systematic RPC authentication-coercion discovery and recording from a Linux research host.",
+      },
+    ],
+  },
+  {
+    title: "Fuzzing & harness engineering",
+    stage: "Discover",
+    description:
+      "Choose boundary-level, snapshot, model-based, or sequence-aware fuzzing according to the state required to reach the target.",
+    tools: [
+      {
+        name: "WTF",
+        url: "https://github.com/0vercl0k/wtf",
+        use: "Customizable snapshot fuzzing for deep Windows user- and kernel-mode targets.",
+      },
+      {
+        name: "kAFL / Nyx",
+        url: "https://github.com/IntelLabs/kAFL",
+        use: "Hardware-assisted whole-system coverage and snapshot fuzzing with Windows target support.",
+      },
+      {
+        name: "Rewind",
+        url: "https://github.com/quarkslab/rewind",
+        use: "Windows kernel snapshot fuzzing built from crash-dump and debugger-oriented state.",
+      },
+      {
+        name: "WinKAFL",
+        url: "https://github.com/Y3A/winkafl",
+        use: "Closed-source Windows driver coverage with static instrumentation and an IOCTL harness.",
+      },
+      {
+        name: "msFuzz",
+        url: "https://github.com/0dayResearchLab/msFuzz",
+        use: "Dependency- and sequence-aware WDM driver fuzzing with static and symbolic assistance.",
+      },
+      {
+        name: "IRPT",
+        url: "https://github.com/kirasys/irpt",
+        use: "Windows-aware coverage-guided driver fuzzing, state setup, reset, and crash collection.",
+      },
+      {
+        name: "HEVD",
+        url: "https://github.com/hacksysteam/HackSysExtremeVulnerableDriver",
+        use: "Intentional vulnerable-driver practice target for validating harnesses and exploit techniques.",
+        status: "Training target—not a fuzzer",
+      },
+    ],
+  },
+  {
+    title: "Patch diffing & fix validation",
+    stage: "Diff",
+    description:
+      "Compare exact vulnerable and fixed artifacts, then validate semantic impact, reachability, variant risk, and incomplete repairs.",
+    tools: [
+      {
+        name: "BinDiff",
+        url: "https://github.com/google/bindiff",
+        use: "Control-flow and call-graph function matching across binary versions.",
+      },
+      {
+        name: "Diaphora",
+        url: "https://github.com/joxeankoret/diaphora",
+        use: "IDA/Hex-Rays structural and pseudocode-oriented binary diffing.",
+      },
+      {
+        name: "ghidriff",
+        url: "https://github.com/clearbluejar/ghidriff",
+        use: "Headless Ghidra-based binary diffing with scriptable Markdown output.",
+      },
+      {
+        name: "Ghidra Version Tracking",
+        url: "https://www.ghidradocs.com/10.3_PUBLIC/help/VersionTracking/help/topics/VersionTrackingPlugin/VT_Tool.html",
+        use: "Built-in correlators for transferring markup and comparing program versions.",
+      },
+    ],
+  },
+  {
+    title: "Crash triage, minimization & exploitability",
+    stage: "Triage",
+    description:
+      "Turn a bugcheck into a stable, minimal reproducer with a defensible statement of attacker control.",
+    tools: [
+      {
+        name: "WinDbg !analyze",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/-analyze",
+        use: "Root-cause starting point for exception, bugcheck, stack, and dump metadata.",
+      },
+      {
+        name: "DumpChk",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/dumpchk",
+        use: "Validate crash-dump integrity and basic structure before deeper analysis.",
+      },
+      {
+        name: "DebugDiag",
+        url: "https://www.microsoft.com/en-us/download/details.aspx?id=103453",
+        use: "User-mode crash, hang, leak capture, and rule-based analysis for privileged services.",
+      },
+      {
+        name: "PageHeap / GFlags",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/gflags-and-pageheap",
+        use: "Detect user-mode heap corruption close to the invalid operation.",
+      },
+      {
+        name: "Application Verifier",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/application-verifier",
+        use: "User-mode heaps, handles, locks, exceptions, TLS, and API contract verification.",
+      },
+    ],
+  },
+  {
+    title: "Symbols, structures & native interfaces",
+    stage: "Resolve",
+    description:
+      "Use version-aware, auditable definitions rather than copying offsets or undocumented declarations from an unrelated build.",
+    tools: [
+      {
+        name: "phnt",
+        url: "https://github.com/winsiderss/phnt",
+        use: "Compilable Native API and internal Windows declarations maintained with System Informer.",
+      },
+      {
+        name: "NtDoc",
+        url: "https://ntdoc.m417z.com/",
+        use: "Browsable documentation generated from phnt with types, functions, and cross-links.",
+      },
+      {
+        name: "Vergilius Project",
+        url: "https://www.vergiliusproject.com/",
+        use: "Version-indexed Windows kernel structure layouts for many released builds.",
+      },
+      {
+        name: "Win32 Metadata",
+        url: "https://github.com/microsoft/win32metadata",
+        use: "Machine-readable Win32 SDK metadata and ABI definitions for language projections.",
+      },
+      {
+        name: "Windows Internals",
+        url: "https://windows-internals.com/",
+        use: "Primary companion research for modern internal structures, mechanisms, and mitigations.",
+      },
+    ],
+  },
+  {
+    title: "Memory forensics & implant inspection",
+    stage: "Investigate",
+    description:
+      "Inspect memory, modules, mappings, handles, callbacks, and artifacts without trusting the potentially compromised live view.",
+    tools: [
+      {
+        name: "Volatility 3",
+        url: "https://github.com/volatilityfoundation/volatility3",
+        use: "Symbol-aware memory forensics for processes, modules, drivers, callbacks, handles, and artifacts.",
+      },
+      {
+        name: "MemProcFS",
+        url: "https://github.com/ufrisk/MemProcFS",
+        use: "Expose memory artifacts as a virtual filesystem with live, dump, and acquisition backends.",
+      },
+      {
+        name: "WinPmem",
+        url: "https://github.com/Velocidex/WinPmem",
+        use: "Windows physical-memory acquisition for later forensic analysis.",
+      },
+      {
+        name: "PE-sieve",
+        url: "https://github.com/hasherezade/pe-sieve",
+        use: "Detect and dump replaced, implanted, hollowed, and shellcode-like process regions.",
+      },
+      {
+        name: "HollowsHunter",
+        url: "https://github.com/hasherezade/hollows_hunter",
+        use: "Scan multiple processes for in-memory implants using PE-sieve's engine.",
+      },
+    ],
+  },
+  {
+    title: "Lab, driver development & controlled loading",
+    stage: "Reproduce",
+    description:
+      "Build disposable, version-pinned targets and record the security features intentionally enabled or disabled for each experiment.",
+    tools: [
+      {
+        name: "Windows Driver Kit",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk",
+        use: "Official build, test, verifier, tracing, deployment, and driver-development environment.",
+      },
+      {
+        name: "WDK Learning Center",
+        url: "https://learn.microsoft.com/en-us/windows-hardware/drivers/",
+        use: "Canonical contracts for I/O, security, frameworks, installation, and debugging.",
+      },
+      {
+        name: "FLARE-VM",
+        url: "https://github.com/mandiant/flare-vm",
+        use: "Reproducible Windows malware-analysis workstation provisioning.",
+      },
+      {
+        name: "Commando VM",
+        url: "https://github.com/mandiant/commando-vm",
+        use: "Windows offensive-security and assessment workstation provisioning.",
+      },
+      {
+        name: "KDU",
+        url: "https://github.com/hfiref0x/KDU",
+        use: "Research framework for studying vulnerable-driver providers and kernel mapping.",
+        status: "Isolated lab only",
+      },
+      {
+        name: "kdmapper",
+        url: "https://github.com/TheCruZ/kdmapper",
+        use: "Study iqvw64e-assisted manual mapping and modern driver-loading constraints.",
+        status: "Isolated lab only",
+      },
+    ],
+  },
+];
+
+const caseStudies = [
+  {
+    title: "Arbitrary object-directory creation to LPE",
+    url: "https://projectzero.google/2018/08/windows-exploitation-tricks-exploiting.html",
+    source: "James Forshaw / Project Zero",
+    primitive:
+      "Object directory create → namespace shadowing → privileged symbolic-link recreation",
+    level: "Advanced",
+    reason:
+      "A model non-memory-corruption chain that makes Object Manager semantics, access checks, AppContainer namespaces, and each conversion step explicit.",
+  },
+  {
+    title: "Abusing arbitrary file deletes to escalate privilege",
+    url: "https://www.thezdi.com/blog/2022/3/16/abusing-arbitrary-file-deletes-to-escalate-privilege-and-other-great-tricks",
+    source: "Abdelhamid Naceri / ZDI",
+    primitive:
+      "Privileged delete → Windows Installer rollback conversion → controlled privileged file",
+    level: "Advanced",
+    reason:
+      "Explains why delete is usually insufficient, then provides source for a reusable delete-to-SYSTEM conversion through installer rollback state.",
+  },
+  {
+    title: "Weaponizing privileged file writes with USO",
+    url: "https://itm4n.github.io/usodllloader-part1/",
+    source: "itm4n",
+    primitive:
+      "Privileged file write → controlled service load path → SYSTEM execution",
+    level: "Intermediate",
+    reason:
+      "Two-part, implementation-backed study of identifying a reliable sink and trigger instead of treating arbitrary file write as equivalent to code execution.",
+  },
+  {
+    title: "Winning race conditions with path lookups",
+    url: "https://projectzero.google/2025/12/windows-exploitation-techniques.html",
+    source: "James Forshaw / Project Zero",
+    primitive:
+      "Oplock / namespace loop → deterministic path race → identity substitution",
+    level: "Advanced",
+    reason:
+      "A current, reusable methodology for expanding race windows and reasoning about NT path resolution rather than a one-off CVE walkthrough.",
+  },
+  {
+    title: "Windows I/O Manager access-mode variant class",
+    url: "https://www.microsoft.com/en-us/msrc/blog/2019/03/local-privilege-escalation-via-the-windows-i-o-manager-a-variant-finding-collaboration",
+    source: "MSRC and Project Zero",
+    primitive:
+      "RequestorMode confusion → missing forced access check → privileged object access",
+    level: "Intermediate",
+    reason:
+      "Connects one authorization mistake to systematic variant finding across drivers and explains why SL_FORCE_ACCESS_CHECK changes the security decision.",
+  },
+  {
+    title: "Windows DLL hijacking clarified",
+    url: "https://itm4n.github.io/windows-dll-hijacking-clarified/",
+    source: "itm4n",
+    primitive:
+      "Writable path / missing module → privileged loader resolution → code execution",
+    level: "Beginner → Intermediate",
+    reason:
+      "Establishes precise terminology for search-order, phantom, replacement, and proxying cases and supplies a repeatable validation workflow.",
+  },
+  {
+    title: "PrintSpoofer",
+    url: "https://itm4n.github.io/printspoofer-abusing-impersonate-privileges/",
+    source: "itm4n",
+    primitive:
+      "Pipe server → privileged client coercion → impersonation token → SYSTEM process",
+    level: "Intermediate",
+    reason:
+      "A compact, reproducible named-pipe identity chain with enough token and service detail to understand why it works on modern Windows.",
+  },
+  {
+    title: "Exploiting a simple vulnerability in 35 steps",
+    url: "https://windows-internals.com/exploiting-a-simple-vulnerability-in-35-easy-steps-or-less/",
+    source: "Yarden Shafir / Windows Internals",
+    primitive:
+      "Constrained kernel corruption → information leak → data-only privilege escalation",
+    level: "Advanced",
+    reason:
+      "Refuses to skip the engineering between a small primitive and reliable elevation, making it one of the strongest guided modern kernel labs.",
+  },
+] as const;
+
+const totalEntries =
+  techniqueFamilies.reduce((sum, family) => sum + family.techniques.length, 0) +
+  primitiveFamilies.reduce((sum, family) => sum + family.entries.length, 0) +
+  vulnerabilityFamilies.reduce(
+    (sum, family) => sum + family.entries.length,
+    0,
+  ) +
+  attackSurfaceFamilies.reduce(
+    (sum, family) => sum + family.entries.length,
+    0,
+  ) +
+  driverTypeFamilies.reduce((sum, family) => sum + family.entries.length, 0);
+const totalTools = toolFamilies.reduce(
+  (sum, family) => sum + family.tools.length,
+  0,
+);
+---
+
+<section class="atlas" aria-labelledby="atlas-heading">
+  <header class="atlas__hero" id="atlas-overview">
+    <p class="atlas__eyebrow">Windows Security Research Atlas</p>
+    <h2 id="atlas-heading">A capability-first map from exposure to impact</h2>
+    <p>
+      Inspired by <a
+        href="https://splintersfury.github.io/KernelSight/"
+        target="_blank"
+        rel="noreferrer">KernelSight</a
+      >, this model expands beyond kernel drivers and fixes a useful but
+      important taxonomy problem: a bug class, an obtained primitive, an
+      exploitation building block, and a final objective are not the same thing.
+      The atlas currently defines {totalEntries} concepts and {totalTools} workflow-selected
+      tools.
+    </p>
+  </header>
+
+  <nav class="atlas__nav" aria-label="Atlas sections">
+    <a href="#atlas-overview">Overview</a>
+    <a href="#technique-families">Technique families</a>
+    <a href="#primitives">Primitives</a>
+    <a href="#vulnerability-classes">Vulnerability classes</a>
+    <a href="#attack-surfaces">Attack surfaces</a>
+    <a href="#driver-types">Driver types</a>
+    <a href="#case-studies">Case studies</a>
+    <a href="#tooling">Tooling</a>
+    <a href="#research-library">Research library</a>
+    <a class="atlas__nav-ctf" href="#ctf-archive">CTF archive</a>
+  </nav>
+
+  <div class="atlas__pipeline" aria-label="Research pipeline">
+    {
+      pipeline.map((item) => (
+        <article>
+          <span>{item.step}</span>
+          <h3>{item.title}</h3>
+          <p>{item.description}</p>
+        </article>
+      ))
+    }
+  </div>
+
+  <aside class="atlas__rule">
+    <strong>The classification rule</strong>
+    <p>
+      Write the chain as <code
+        >exposure → root cause → constrained capability → composition → impact</code
+      >. For example, <code
+        >World-writable device → missing caller check → physical-memory map →
+        page-table edit → SYSTEM</code
+      >. This makes missing evidence visible and prevents “arbitrary R/W” from
+      hiding the actual defect.
+    </p>
+  </aside>
+
+  <section
+    class="atlas__section"
+    id="technique-families"
+    aria-labelledby="technique-families-heading"
+  >
+    <header class="atlas__section-head">
+      <div>
+        <p class="atlas__eyebrow">Browse by research objective</p>
+        <h2 id="technique-families-heading">Technique families</h2>
+      </div>
+      <p>
+        These are saved views over the research library, not duplicate resource
+        buckets. Select a technique such as COM hijacking or DLL hijacking to
+        apply its editorial query to the main atlas tables.
+      </p>
+    </header>
+    <div class="atlas__techniques">
+      {
+        techniqueFamilies.map((family) => (
+          <article>
+            <h3>{family.title}</h3>
+            <p>{family.description}</p>
+            <div>
+              {family.techniques.map((technique) => (
+                <button
+                  type="button"
+                  data-atlas-query={technique.query}
+                  aria-label={`Search the research library for ${technique.name}`}
+                >
+                  {technique.name}
+                </button>
+              ))}
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section
+    class="atlas__section"
+    id="primitives"
+    aria-labelledby="primitives-heading"
+  >
+    <header class="atlas__section-head">
+      <div>
+        <p class="atlas__eyebrow">What the attacker gains</p><h2
+          id="primitives-heading"
+        >
+          Primitives
+        </h2>
+      </div>
+      <p>
+        Capabilities are recorded with constraints, then separated from the
+        techniques used to stabilize them and the impact produced at the end.
+      </p>
+    </header>
+    <div class="atlas__families">
+      {
+        primitiveFamilies.map((family, index) => (
+          <details class="atlas__family" open={index === 0}>
+            <summary>
+              <>
+                <span>{family.title}</span>
+                <small>{family.entries.length} capabilities</small>
+              </>
+            </summary>
+            <p class="atlas__family-intro">{family.description}</p>
+            <dl>
+              {family.entries.map((entry) => (
+                <div>
+                  <dt>{entry.name}</dt>
+                  <dd>
+                    {entry.description}
+                    {entry.note && <small>{entry.note}</small>}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section
+    class="atlas__section"
+    id="vulnerability-classes"
+    aria-labelledby="vulnerability-classes-heading"
+  >
+    <header class="atlas__section-head">
+      <div>
+        <p class="atlas__eyebrow">Why the invariant breaks</p><h2
+          id="vulnerability-classes-heading"
+        >
+          Vulnerability classes
+        </h2>
+      </div>
+      <p>
+        Root causes are causal defects. Arbitrary read/write belongs in the
+        primitive layer; authorization and object security deserve first-class
+        treatment instead of disappearing inside “logic bug.”
+      </p>
+    </header>
+    <aside class="atlas__callout">
+      <h3>ACL/DACL: exposure is not automatically a vulnerability</h3>
+      <p>
+        A low-privilege user being able to open a device, query a service, or
+        connect to an RPC endpoint may be intentional. The security finding
+        begins when the granted access mask reaches a privileged operation that
+        lacks a correct per-request authorization check. For a service, <code
+          >SERVICE_QUERY_STATUS</code
+        > is normally benign; <code>SERVICE_CHANGE_CONFIG</code> can change the executable
+        that SCM later launches, while <code>WRITE_DAC</code> can let the caller grant
+        themselves stronger rights. For a driver, the device SDDL determines who can
+        obtain a handle, but each IOCTL still needs validation appropriate to its
+        effect. Always record the ACE, requested rights, reachable method, effective
+        token, and boundary crossed.
+      </p>
+      <p>
+        See Microsoft's <a
+          href="https://learn.microsoft.com/en-us/windows/win32/services/service-security-and-access-rights"
+          target="_blank"
+          rel="noreferrer">service access-rights reference</a
+        >
+        and <a
+          href="https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/applying-security-descriptors-on-the-device-object"
+          target="_blank"
+          rel="noreferrer">device-object security guidance</a
+        >.
+      </p>
+    </aside>
+    <div class="atlas__families">
+      {
+        vulnerabilityFamilies.map((family, index) => (
+          <details class="atlas__family" open={index === 2}>
+            <summary>
+              <>
+                <span>{family.title}</span>
+                <small>{family.entries.length} classes</small>
+              </>
+            </summary>
+            <p class="atlas__family-intro">{family.description}</p>
+            <dl>
+              {family.entries.map((entry) => (
+                <div>
+                  <dt>{entry.name}</dt>
+                  <dd>
+                    {entry.description}
+                    {entry.note && <small>{entry.note}</small>}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section
+    class="atlas__section"
+    id="attack-surfaces"
+    aria-labelledby="attack-surfaces-heading"
+  >
+    <header class="atlas__section-head">
+      <div>
+        <p class="atlas__eyebrow">Where input crosses trust</p><h2
+          id="attack-surfaces-heading"
+        >
+          Attack surfaces
+        </h2>
+      </div>
+      <p>
+        Entry points are organized by transport and parsed input. Framework,
+        component family, required privilege, and local/remote/guest/physical
+        exposure remain separate dimensions.
+      </p>
+    </header>
+    <div class="atlas__families">
+      {
+        attackSurfaceFamilies.map((family, index) => (
+          <details class="atlas__family" open={index === 0}>
+            <summary>
+              <>
+                <span>{family.title}</span>
+                <small>{family.entries.length} surfaces</small>
+              </>
+            </summary>
+            <p class="atlas__family-intro">{family.description}</p>
+            <dl>
+              {family.entries.map((entry) => (
+                <div>
+                  <dt>{entry.name}</dt>
+                  <dd>{entry.description}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section
+    class="atlas__section"
+    id="driver-types"
+    aria-labelledby="driver-types-heading"
+  >
+    <header class="atlas__section-head">
+      <div>
+        <p class="atlas__eyebrow">What the component controls</p><h2
+          id="driver-types-heading"
+        >
+          Driver &amp; component types
+        </h2>
+      </div>
+      <p>
+        A functional family is only the first axis. Framework, origin, exposure,
+        load model, stack role, signing, blocklist status, and mitigation
+        compatibility are required for meaningful comparison.
+      </p>
+    </header>
+    <div class="atlas__families">
+      {
+        driverTypeFamilies.map((family, index) => (
+          <details
+            class="atlas__family"
+            open={index === 0 || index === driverTypeFamilies.length - 1}
+          >
+            <summary>
+              <>
+                <span>{family.title}</span>
+                <small>{family.entries.length} entries</small>
+              </>
+            </summary>
+            <p class="atlas__family-intro">{family.description}</p>
+            <dl>
+              {family.entries.map((entry) => (
+                <div>
+                  <dt>{entry.name}</dt>
+                  <dd>{entry.description}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section
+    class="atlas__section"
+    id="case-studies"
+    aria-labelledby="case-studies-heading"
+  >
+    <header class="atlas__section-head">
+      <div>
+        <p class="atlas__eyebrow">High-signal reproductions</p><h2
+          id="case-studies-heading"
+        >
+          Lab-ready case studies
+        </h2>
+      </div>
+      <p>
+        Selected for primary evidence, a visible root cause and primitive chain,
+        reproducible artifacts or sufficient implementation detail, and
+        continuing value beyond one Windows build.
+      </p>
+    </header>
+    <div class="atlas__cases">
+      {
+        caseStudies.map((study) => (
+          <article>
+            <div class="atlas__case-meta">
+              <>
+                <span>{study.level}</span>
+                <span>Recommended lab</span>
+              </>
+            </div>
+            <h3>
+              <a href={study.url} target="_blank" rel="noreferrer">
+                {study.title}
+              </a>
+            </h3>
+            <p class="atlas__case-source">{study.source}</p>
+            <p>
+              <strong>Chain:</strong> {study.primitive}
+            </p>
+            <p>{study.reason}</p>
+          </article>
+        ))
+      }
+    </div>
+    <aside class="atlas__rule">
+      <strong>Case-study template</strong>
+      <p>
+        Context → reachable entry point → root cause → primitive with
+        constraints → reliability work → mitigation interaction → fixed build
+        and patch diff → detection/forensics → lab notes → primary references.
+      </p>
+    </aside>
+  </section>
+
+  <section
+    class="atlas__section"
+    id="tooling"
+    aria-labelledby="tooling-heading"
+  >
+    <header class="atlas__section-head">
+      <div>
+        <p class="atlas__eyebrow">Tools chosen by workflow stage</p><h2
+          id="tooling-heading"
+        >
+          Tooling
+        </h2>
+      </div>
+      <p>
+        This is broader than a static/fuzz/debug list. Each group states when it
+        belongs in the workflow; status labels call out training-only, archived,
+        or isolated-lab use where necessary.
+      </p>
+    </header>
+    <div class="atlas__families atlas__families--tools">
+      {
+        toolFamilies.map((family, index) => (
+          <details class="atlas__family" open={index === 0}>
+            <summary>
+              <>
+                <span>{family.title}</span>
+                <small>
+                  {family.stage} · {family.tools.length} tools
+                </small>
+              </>
+            </summary>
+            <p class="atlas__family-intro">{family.description}</p>
+            <ul class="atlas__tools">
+              {family.tools.map((tool) => (
+                <li>
+                  <div>
+                    <a href={tool.url} target="_blank" rel="noreferrer">
+                      {tool.name}
+                    </a>
+                    {tool.status && <span>{tool.status}</span>}
+                  </div>
+                  <p>{tool.use}</p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+</section>
+
+<script>
+  document
+    .querySelectorAll<HTMLButtonElement>("[data-atlas-query]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = document.querySelector<HTMLInputElement>(
+          "[data-research-search]",
+        );
+        const library =
+          document.querySelector<HTMLElement>("#research-library");
+        if (!input || !library) return;
+
+        input.value = button.dataset.atlasQuery ?? "";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        const reducedMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        ).matches;
+        library.scrollIntoView({
+          behavior: reducedMotion ? "auto" : "smooth",
+          block: "start",
+        });
+        input.focus({ preventScroll: true });
+      });
+    });
+</script>
+
+<style>
+  .atlas {
+    display: grid;
+    gap: var(--space-3xl);
+    margin-top: var(--space-2xl);
+  }
+  .atlas__hero {
+    display: grid;
+    gap: var(--space-sm);
+    max-width: var(--container-wide);
+    scroll-margin-top: 6rem;
+  }
+  .atlas__hero h2,
+  .atlas__hero p,
+  .atlas__eyebrow,
+  .atlas__section-head h2,
+  .atlas__section-head p {
+    margin: 0;
+  }
+  .atlas__hero > p:last-child,
+  .atlas__section-head > p {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+  .atlas__eyebrow {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+  .atlas__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-secondary);
+  }
+  .atlas__nav a {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    padding: var(--spacing-2) var(--spacing-3);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+  .atlas__nav a:hover {
+    border-color: var(--color-text-secondary);
+  }
+  .atlas__nav a:focus-visible,
+  .atlas__family summary:focus-visible,
+  .atlas__techniques button:focus-visible,
+  .atlas__tools a:focus-visible,
+  .atlas__cases a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .atlas__nav-ctf {
+    margin-left: auto;
+  }
+  .atlas__pipeline {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  .atlas__pipeline article {
+    min-width: 0;
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+  }
+  .atlas__pipeline span {
+    font-family: var(--font-mono);
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+  .atlas__pipeline h3 {
+    margin: var(--space-xs) 0;
+    font-size: var(--text-base);
+  }
+  .atlas__pipeline p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+  .atlas__rule,
+  .atlas__callout {
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-secondary);
+  }
+  .atlas__rule p,
+  .atlas__callout p {
+    margin: var(--space-xs) 0 0;
+    line-height: var(--leading-relaxed);
+  }
+  .atlas__callout {
+    display: grid;
+    gap: var(--space-sm);
+  }
+  .atlas__callout h3,
+  .atlas__callout p {
+    margin: 0;
+  }
+  .atlas__section {
+    display: grid;
+    gap: var(--space-xl);
+    scroll-margin-top: 6rem;
+  }
+  .atlas__section-head {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(20rem, 1.2fr);
+    align-items: end;
+    gap: var(--space-xl);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .atlas__section-head > div {
+    display: grid;
+    gap: var(--space-xs);
+  }
+  .atlas__techniques {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+  .atlas__techniques article {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+    min-width: 0;
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+  }
+  .atlas__techniques h3,
+  .atlas__techniques p {
+    margin: 0;
+  }
+  .atlas__techniques p {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+  .atlas__techniques article > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-top: var(--space-xs);
+  }
+  .atlas__techniques button {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    padding: var(--spacing-2) var(--spacing-3);
+    font: inherit;
+    font-size: var(--text-xs);
+    cursor: pointer;
+  }
+  .atlas__techniques button:hover {
+    border-color: var(--color-text-secondary);
+    background: var(--secondary-hover);
+  }
+  .atlas__families {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--space-md);
+  }
+  .atlas__family {
+    min-width: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    overflow: clip;
+  }
+  .atlas__family summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    cursor: pointer;
+    font-weight: var(--font-weight-bold);
+  }
+  .atlas__family summary:hover {
+    background: var(--color-bg-secondary);
+  }
+  .atlas__family summary small {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-normal);
+    text-align: right;
+  }
+  .atlas__family[open] summary {
+    border-bottom: 1px solid var(--color-border);
+  }
+  .atlas__family-intro {
+    margin: 0;
+    padding: var(--space-md) var(--space-lg);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .atlas__family dl {
+    margin: 0;
+  }
+  .atlas__family dl > div {
+    display: grid;
+    grid-template-columns: minmax(10rem, 0.65fr) minmax(0, 1.35fr);
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .atlas__family dl > div:last-child {
+    border-bottom: 0;
+  }
+  .atlas__family dt {
+    font-weight: var(--font-weight-semibold);
+  }
+  .atlas__family dd {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+  .atlas__family dd small {
+    display: block;
+    margin-top: var(--space-xs);
+    color: var(--color-text-primary);
+  }
+  .atlas__cases {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+  .atlas__cases article {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+  }
+  .atlas__cases h3,
+  .atlas__cases p {
+    margin: 0;
+  }
+  .atlas__cases p {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+  .atlas__cases strong {
+    color: var(--color-text-primary);
+  }
+  .atlas__case-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+  .atlas__case-meta span,
+  .atlas__tools span {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-secondary);
+    padding: var(--spacing-1) var(--spacing-2);
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .atlas__case-source {
+    font-family: var(--font-mono);
+  }
+  .atlas__tools {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .atlas__tools li {
+    display: grid;
+    grid-template-columns: minmax(11rem, 0.6fr) minmax(0, 1.4fr);
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .atlas__tools li:last-child {
+    border-bottom: 0;
+  }
+  .atlas__tools li > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    gap: var(--space-xs);
+  }
+  .atlas__tools a {
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+    text-underline-offset: var(--spacing-1);
+  }
+  .atlas__tools p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+  code {
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 64rem) {
+    .atlas__pipeline {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .atlas__section-head {
+      grid-template-columns: 1fr;
+      gap: var(--space-sm);
+    }
+    .atlas__families,
+    .atlas__techniques,
+    .atlas__cases {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 40rem) {
+    .atlas {
+      gap: var(--space-2xl);
+    }
+    .atlas__pipeline {
+      grid-template-columns: 1fr;
+    }
+    .atlas__nav-ctf {
+      margin-left: 0;
+    }
+    .atlas__family dl > div,
+    .atlas__tools li {
+      grid-template-columns: 1fr;
+      gap: var(--space-xs);
+    }
+    .atlas__family summary {
+      align-items: start;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .atlas * {
+      scroll-behavior: auto;
+    }
+  }
+</style>

@@ -190,6 +190,20 @@
       "i18nAware": true
     },
     {
+      "name": "ResearchAtlasGuide",
+      "tier": "component",
+      "path": "src/components/blog/ResearchAtlasGuide.astro",
+      "props": [],
+      "i18nAware": false
+    },
+    {
+      "name": "ResearchCheatsheet",
+      "tier": "component",
+      "path": "src/components/blog/ResearchCheatsheet.astro",
+      "props": [],
+      "i18nAware": false
+    },
+    {
       "name": "TableOfContents",
       "tier": "component",
       "path": "src/components/blog/TableOfContents.astro",
@@ -317,4 +331,3 @@
     { "name": "Post detail", "path": "src/pages/blog/[slug].astro", "locales": ["en"] }
   ]
 }
-

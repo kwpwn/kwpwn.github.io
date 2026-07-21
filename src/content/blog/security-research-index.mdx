@@ -1,6 +1,6 @@
 ---
-title: "Security Research & Exploit Development Link Index"
-description: "A curated and searchable Windows security research index, organized by exploit development, mitigations, evasion, CVE case studies, tools, and technical references."
+title: "Windows Security Research Atlas"
+description: "A capability-first Windows security research atlas covering primitives, vulnerability classes, attack surfaces, driver families, lab-ready case studies, tooling, and a separate CTF archive."
 locale: "en"
 publishDate: 2026-07-15
 draft: false
@@ -15,13 +15,22 @@ wide: true
 ---
 
 import ResearchCheatsheet from "../../components/blog/ResearchCheatsheet.astro";
+import ResearchAtlasGuide from "../../components/blog/ResearchAtlasGuide.astro";
 
-This is a deliberately opinionated index for Windows security research and
-exploit development. It prioritizes original research, reproducible technical
-work, source code, debugger-level explanations, and material that remains useful
-after a specific campaign or Windows build ages out. The focus spans BYOVD,
-kernel exploitation, COM/RPC/ALPC, APC, loaders, injection, malware internals,
-mitigations, EDR, and low-level references.
+This is a deliberately opinionated atlas for Windows security research and
+exploit development. It maps the full chain from component exposure and root
+cause to constrained primitive, exploit composition, mitigation interaction,
+and final impact. It prioritizes original research, reproducible technical work,
+source code, debugger-level explanations, and material that remains useful after
+a specific campaign or Windows build ages out.
+
+<ResearchAtlasGuide />
+
+## Curated research library
+
+The tables below are the source library behind the atlas. Windows CTF material
+is intentionally isolated in its own archive at the end; it does not contribute
+to the main atlas counts or case-study model.
 
 The researcher list is not a popularity ranking. It favors people and teams with
 a sustained body of original Windows work; the profile link points to X or
