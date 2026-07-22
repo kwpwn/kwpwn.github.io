@@ -1,0 +1,18 @@
+---
+import PublishedBlogDirectory from "../components/sections/PublishedBlogDirectory.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const locale = "en" as const;
+const title = "Published Blogs";
+const description =
+  "A searchable directory of published technical articles, research notes, and long-form write-ups.";
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  locale={locale}
+  path="/blogs/"
+>
+  <PublishedBlogDirectory locale={locale} />
+</BaseLayout>

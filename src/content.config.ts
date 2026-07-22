@@ -31,6 +31,7 @@ const blog = defineCollection({
       .optional(),
     toc: z.boolean().optional(),
     wide: z.boolean().default(false),
+    format: z.enum(["article", "interactive-atlas"]).default("article"),
     svgSlug: z.string().optional(),
     translationKey: z.string().optional(),
   }),

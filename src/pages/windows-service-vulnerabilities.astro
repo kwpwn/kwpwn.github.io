@@ -1,13 +1,13 @@
 ---
-import { WindowsServiceAtlas } from "../components/sections";
+import { WindowsServiceHub } from "../components/sections";
 import Container from "../components/ui/layout/Container/Container.astro";
 import Section from "../components/ui/layout/Section/Section.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
 const locale = "en" as const;
-const title = "Windows Service Vulnerability Atlas";
+const title = "Windows Service Vulnerability Research Portal";
 const description =
-  "An evidence-backed catalog of Windows service CVEs, zero-day and exploitation state, bug classes, impact, affected versions, fixed builds, and qualified public PoCs.";
+  "Explore Windows service vulnerabilities through focused security topics and 103 target pages with theory, affected versions, fixed builds, exploitation evidence, and qualified public PoCs.";
 ---
 
 <BaseLayout
@@ -18,7 +18,7 @@ const description =
 >
   <Section spacing="xl">
     <Container size="xl">
-      <WindowsServiceAtlas />
+      <WindowsServiceHub locale={locale} />
     </Container>
   </Section>
 </BaseLayout>

@@ -1,0 +1,731 @@
+---
+import type { WindowsServiceTopicContent } from "../../data/windows-service-topic-content";
+import catalog from "../../data/windows-service-vulnerabilities.generated.json";
+
+type Service = (typeof catalog.services)[number];
+type Vulnerability = (typeof catalog.vulnerabilities)[number];
+
+export interface Props {
+  topic: WindowsServiceTopicContent;
+  services: Service[];
+  vulnerabilities: Vulnerability[];
+  basePath?: string;
+}
+
+const {
+  topic,
+  services,
+  vulnerabilities,
+  basePath = "/windows-service-vulnerabilities",
+} = Astro.props;
+
+const formatNumber = (value: number) =>
+  new Intl.NumberFormat("en-US").format(value);
+const serviceBySlug = new Map(
+  services.map((service) => [service.slug, service]),
+);
+const exploited = vulnerabilities.filter((entry) => entry.exploited);
+const publicPoc = vulnerabilities.filter(
+  (entry) => entry.poc.status !== "none-located",
+);
+const critical = vulnerabilities.filter(
+  (entry) => entry.severity === "Critical",
+);
+const advisories = vulnerabilities.filter(
+  (entry) => entry.recordType === "security-advisory",
+);
+const serviceMetrics = vulnerabilities.reduce((metrics, entry) => {
+  const current = metrics.get(entry.serviceSlug) ?? {
+    exploited: 0,
+    publicPoc: 0,
+  };
+  if (entry.exploited) current.exploited += 1;
+  if (entry.poc.status !== "none-located") current.publicPoc += 1;
+  metrics.set(entry.serviceSlug, current);
+  return metrics;
+}, new Map<string, { exploited: number; publicPoc: number }>());
+const priorityRecords = [...vulnerabilities]
+  .sort(
+    (left, right) =>
+      Number(right.exploited) - Number(left.exploited) ||
+      Number(right.severity === "Critical") -
+        Number(left.severity === "Critical") ||
+      right.disclosed.localeCompare(left.disclosed),
+  )
+  .slice(0, 10);
+
+const impactCounts = [
+  ...vulnerabilities.reduce((counts, entry) => {
+    counts.set(entry.impact, (counts.get(entry.impact) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>()),
+]
+  .sort((left, right) => right[1] - left[1])
+  .slice(0, 6);
+
+const bugCounts = [
+  ...vulnerabilities.reduce((counts, entry) => {
+    counts.set(entry.bugClass, (counts.get(entry.bugClass) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>()),
+]
+  .sort((left, right) => right[1] - left[1])
+  .slice(0, 6);
+
+const orderedServices = [...services].sort(
+  (left, right) =>
+    (serviceMetrics.get(right.slug)?.exploited ?? 0) -
+      (serviceMetrics.get(left.slug)?.exploited ?? 0) ||
+    right.vulnerabilityCount - left.vulnerabilityCount ||
+    left.name.localeCompare(right.name),
+);
+---
+
+<article class="service-topic" aria-labelledby="topic-title">
+  <nav class="service-topic__breadcrumbs" aria-label="Breadcrumb">
+    <a href={`${basePath}/`}>Service atlas</a>
+    <span aria-hidden="true">/</span>
+    <span>Topics</span>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{topic.category}</span>
+  </nav>
+
+  <header class="service-topic__hero">
+    <p class="service-topic__eyebrow">{topic.eyebrow}</p>
+    <h1 id="topic-title">{topic.category}</h1>
+    <p class="service-topic__lede">{topic.summary}</p>
+    <div class="service-topic__actions">
+      <a href="#targets">Browse {services.length} targets</a>
+      <a
+        href={`/data/windows-service-vulnerabilities/topics/${topic.slug}.json`}
+        >Open topic JSON</a
+      >
+    </div>
+  </header>
+
+  <section class="service-topic__metrics" aria-label="Topic coverage">
+    <article>
+      <strong>{services.length}</strong><span>service targets</span>
+    </article>
+    <article>
+      <strong>{formatNumber(vulnerabilities.length)}</strong><span
+        >security records</span>
+    </article>
+    <article>
+      <strong>{formatNumber(exploited.length)}</strong><span
+        >known exploited</span>
+    </article>
+    <article>
+      <strong>{formatNumber(publicPoc.length)}</strong><span
+        >public PoC leads</span>
+    </article>
+    <article>
+      <strong>{formatNumber(critical.length)}</strong><span
+        >critical records</span>
+    </article>
+  </section>
+
+  <section class="service-topic__boundary" aria-labelledby="boundary-heading">
+    <div>
+      <p class="service-topic__eyebrow">Security model</p>
+      <h2 id="boundary-heading">Trust boundary</h2>
+    </div>
+    <div>
+      <p>{topic.boundary}</p>
+      <p>{topic.whyItMatters}</p>
+    </div>
+  </section>
+
+  <section class="service-topic__section" aria-labelledby="patterns-heading">
+    <div class="service-topic__section-heading">
+      <div>
+        <p class="service-topic__eyebrow">What repeatedly breaks</p>
+        <h2 id="patterns-heading">Weakness patterns</h2>
+      </div>
+      <p>
+        These patterns describe the boundary failures behind the records. A CVE
+        title may name only the affected component, so validate the actual sink
+        and authority transition before assigning a primitive.
+      </p>
+    </div>
+    <div class="service-topic__pattern-grid">
+      {
+        topic.weaknessPatterns.map((pattern, index) => (
+          <article>
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <h3>{pattern.title}</h3>
+            <p>{pattern.detail}</p>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="service-topic__analysis" aria-labelledby="shape-heading">
+    <div>
+      <p class="service-topic__eyebrow">Historical shape</p>
+      <h2 id="shape-heading">What the evidence contains</h2>
+      <p>
+        Counts are derived from the current Microsoft-backed catalog snapshot.
+        They describe published history, not the probability that an unpatched
+        target is reachable in a specific environment.
+      </p>
+    </div>
+    <div class="service-topic__distribution">
+      <section>
+        <h3>Impact distribution</h3>
+        <ul>
+          {
+            impactCounts.map(([label, count]) => (
+              <li>
+                <>
+                  <span>{label}</span>
+                  <strong>{formatNumber(count)}</strong>
+                </>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+      <section>
+        <h3>Leading bug classifications</h3>
+        <ul>
+          {
+            bugCounts.map(([label, count]) => (
+              <li>
+                <>
+                  <span>{label}</span>
+                  <strong>{formatNumber(count)}</strong>
+                </>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+    </div>
+  </section>
+
+  <section class="service-topic__section" aria-labelledby="audit-heading">
+    <div class="service-topic__section-heading">
+      <div>
+        <p class="service-topic__eyebrow">Review guide</p>
+        <h2 id="audit-heading">Audit questions</h2>
+      </div>
+      <p>
+        Use these questions to map the service before fuzzing or exploit work.
+        Record the evidence for every answer so affected and fixed builds remain
+        directly comparable.
+      </p>
+    </div>
+    <ol class="service-topic__checklist">
+      {topic.auditQuestions.map((question) => <li>{question}</li>)}
+    </ol>
+  </section>
+
+  <section class="service-topic__section" aria-labelledby="lab-heading">
+    <div class="service-topic__section-heading">
+      <div>
+        <p class="service-topic__eyebrow">Reproducible research</p>
+        <h2 id="lab-heading">Lab workflow</h2>
+      </div>
+      <p>
+        Public PoC links are discovery evidence, not trusted binaries. Rebuild
+        the behavior from primary records and run experiments only on isolated,
+        disposable systems.
+      </p>
+    </div>
+    <ol class="service-topic__workflow">
+      {
+        topic.labWorkflow.map((step, index) => (
+          <li>
+            <>
+              <span>{index + 1}</span>
+              <p>{step}</p>
+            </>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section
+    class="service-topic__section"
+    id="targets"
+    aria-labelledby="targets-heading"
+  >
+    <div class="service-topic__section-heading">
+      <div>
+        <p class="service-topic__eyebrow">Choose a target</p>
+        <h2 id="targets-heading">Service targets</h2>
+      </div>
+      <p>
+        Each target page contains its own theory, affected-version ledger,
+        exploitation history, PoC qualification, and record filters. No long
+        global CVE wall is rendered here.
+      </p>
+    </div>
+    <div class="service-topic__target-grid">
+      {
+        orderedServices.map((service) => (
+          <a href={`${basePath}/targets/${service.slug}/`}>
+            <span>{service.kind.replaceAll("-", " ")}</span>
+            <h3>{service.name}</h3>
+            <p>{service.description}</p>
+            <dl>
+              <div>
+                <dt>Records</dt>
+                <dd>{formatNumber(service.vulnerabilityCount)}</dd>
+              </div>
+              <div>
+                <dt>Exploited</dt>
+                <dd>
+                  {formatNumber(
+                    serviceMetrics.get(service.slug)?.exploited ?? 0,
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>PoC leads</dt>
+                <dd>
+                  {formatNumber(
+                    serviceMetrics.get(service.slug)?.publicPoc ?? 0,
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="service-topic__section" aria-labelledby="priority-heading">
+    <div class="service-topic__section-heading">
+      <div>
+        <p class="service-topic__eyebrow">Start with evidence</p>
+        <h2 id="priority-heading">Priority records</h2>
+      </div>
+      <p>
+        Known-exploited and critical records appear first, followed by recent
+        publications. Open the target page for the complete product and fixed
+        build matrix.
+      </p>
+    </div>
+    <div class="service-topic__record-list">
+      {
+        priorityRecords.map((entry) => {
+          const service = serviceBySlug.get(entry.serviceSlug);
+          return (
+            <article>
+              <div>
+                <a
+                  href={`${basePath}/targets/${entry.serviceSlug}/#${entry.id.toLowerCase()}`}
+                >
+                  {entry.id}
+                </a>
+                <span>{entry.severity}</span>
+                {entry.exploited && <b>Known exploited</b>}
+              </div>
+              <h3>{entry.title}</h3>
+              <p>
+                {service?.name} · {entry.impact} · {entry.bugClass}
+              </p>
+            </article>
+          );
+        })
+      }
+    </div>
+    {
+      advisories.length > 0 && (
+        <p class="service-topic__note">
+          This topic includes {formatNumber(advisories.length)} Microsoft
+          security advisory {advisories.length === 1 ? "record" : "records"} in
+          addition to CVEs. They remain separate so advisory identifiers are not
+          misrepresented as CVEs.
+        </p>
+      )
+    }
+  </section>
+
+  <aside class="service-topic__related" aria-labelledby="related-heading">
+    <div>
+      <p class="service-topic__eyebrow">Supporting theory</p>
+      <h2 id="related-heading">Related concepts</h2>
+    </div>
+    <div>
+      {
+        topic.relatedConcepts.map((concept) => (
+          <a href={concept.href}>{concept.label}</a>
+        ))
+      }
+    </div>
+  </aside>
+</article>
+
+<style>
+  .service-topic {
+    display: grid;
+    gap: var(--space-3xl);
+  }
+  .service-topic h1,
+  .service-topic h2,
+  .service-topic h3,
+  .service-topic p,
+  .service-topic dl,
+  .service-topic dd {
+    margin: 0;
+  }
+  .service-topic__breadcrumbs,
+  .service-topic__actions,
+  .service-topic__related > div:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+  }
+  .service-topic__breadcrumbs {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+  .service-topic__breadcrumbs a,
+  .service-topic__related a {
+    color: var(--color-text-primary);
+  }
+  .service-topic__hero {
+    display: grid;
+    gap: var(--space-md);
+    max-width: var(--container-wide);
+  }
+  .service-topic__hero h1 {
+    max-width: 18ch;
+    font-size: clamp(var(--text-4xl), 7vw, var(--text-5xl));
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+  }
+  .service-topic__eyebrow {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+  .service-topic__lede {
+    max-width: 76ch;
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+  .service-topic__actions a,
+  .service-topic__related a {
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+  .service-topic__actions a:first-child {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .service-topic__metrics {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  .service-topic__metrics article {
+    display: grid;
+    gap: var(--space-xs);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+  }
+  .service-topic__metrics strong {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xl);
+  }
+  .service-topic__metrics span {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+  .service-topic__boundary,
+  .service-topic__section-heading,
+  .service-topic__analysis,
+  .service-topic__related {
+    display: grid;
+    grid-template-columns: minmax(14rem, 0.7fr) minmax(0, 1.3fr);
+    gap: var(--space-xl);
+  }
+  .service-topic__boundary,
+  .service-topic__related {
+    padding: var(--space-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
+    background: var(--color-bg-secondary);
+  }
+  .service-topic__boundary > div,
+  .service-topic__analysis > div:first-child {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+  }
+  .service-topic__boundary > div:last-child {
+    gap: var(--space-md);
+  }
+  .service-topic__boundary p,
+  .service-topic__section-heading > p,
+  .service-topic__analysis > div:first-child p {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+  .service-topic__section {
+    display: grid;
+    gap: var(--space-lg);
+    scroll-margin-top: var(--space-xl);
+  }
+  .service-topic__section-heading {
+    align-items: end;
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .service-topic__section-heading > div {
+    display: grid;
+    gap: var(--space-xs);
+  }
+  .service-topic__pattern-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  .service-topic__pattern-grid article {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+  }
+  .service-topic__pattern-grid span {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .service-topic__pattern-grid p,
+  .service-topic__target-grid p,
+  .service-topic__record-list p {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+  .service-topic__distribution {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  .service-topic__distribution section {
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+  }
+  .service-topic__distribution ul {
+    display: grid;
+    gap: var(--space-xs);
+    margin: var(--space-md) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .service-topic__distribution li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding-top: var(--space-xs);
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+  .service-topic__distribution strong {
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+  }
+  .service-topic__checklist {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+    margin: 0;
+    padding: 0;
+    counter-reset: audit-question;
+    list-style: none;
+  }
+  .service-topic__checklist li {
+    position: relative;
+    padding: var(--space-lg) var(--space-lg) var(--space-lg) var(--space-3xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    line-height: var(--leading-relaxed);
+    counter-increment: audit-question;
+  }
+  .service-topic__checklist li::before {
+    position: absolute;
+    top: var(--space-lg);
+    left: var(--space-lg);
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    content: counter(audit-question, decimal-leading-zero);
+  }
+  .service-topic__workflow {
+    display: grid;
+    gap: var(--space-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .service-topic__workflow li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-md);
+    align-items: start;
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+  .service-topic__workflow span {
+    display: grid;
+    width: var(--space-xl);
+    height: var(--space-xl);
+    place-items: center;
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .service-topic__workflow p {
+    line-height: var(--leading-relaxed);
+  }
+  .service-topic__target-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  .service-topic__target-grid > a {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+    min-width: 0;
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    color: var(--color-text-primary);
+    text-decoration: none;
+  }
+  .service-topic__target-grid > a:hover,
+  .service-topic__actions a:hover,
+  .service-topic__related a:hover {
+    border-color: var(--color-text-secondary);
+    box-shadow: var(--shadow-sm);
+  }
+  .service-topic__target-grid > a > span {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+  }
+  .service-topic__target-grid dl {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-xs);
+    margin-top: auto;
+    padding-top: var(--space-sm);
+  }
+  .service-topic__target-grid dl div {
+    display: grid;
+    gap: var(--space-xs);
+  }
+  .service-topic__target-grid dt {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+  .service-topic__target-grid dd {
+    font-family: var(--font-mono);
+    font-weight: var(--font-weight-semibold);
+  }
+  .service-topic__record-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  .service-topic__record-list article {
+    display: grid;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+  }
+  .service-topic__record-list article > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    align-items: center;
+  }
+  .service-topic__record-list article > div > * {
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+  .service-topic__record-list article > div > a {
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-weight: var(--font-weight-semibold);
+  }
+  .service-topic__record-list article > div > b {
+    background: var(--destructive);
+    color: var(--destructive-foreground);
+  }
+  .service-topic__note {
+    padding: var(--space-md);
+    border-left: var(--spacing-1) solid var(--color-border);
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+  @media (max-width: 72rem) {
+    .service-topic__pattern-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .service-topic__target-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 54rem) {
+    .service-topic__metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .service-topic__boundary,
+    .service-topic__section-heading,
+    .service-topic__analysis,
+    .service-topic__related {
+      grid-template-columns: 1fr;
+      gap: var(--space-md);
+    }
+  }
+  @media (max-width: 40rem) {
+    .service-topic__pattern-grid,
+    .service-topic__distribution,
+    .service-topic__checklist,
+    .service-topic__target-grid,
+    .service-topic__record-list {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

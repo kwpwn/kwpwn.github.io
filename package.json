@@ -15,7 +15,7 @@
     "build": "astro build && node scripts/generate-media-manifest.cjs && node scripts/validate-handbook-depth.mjs",
     "preview": "astro preview",
     "astro": "astro",
-    "lint": "pnpm run lint:js && pnpm run lint:css && pnpm run type-check && pnpm run check:kpis && pnpm run validate:research && pnpm run validate:services && pnpm run validate:handbook && pnpm run validate:i18n && pnpm run validate:secrets",
+    "lint": "pnpm run lint:js && pnpm run lint:css && pnpm run type-check && pnpm run check:kpis && pnpm run validate:research && pnpm run validate:services && pnpm run validate:service-routes && pnpm run validate:handbook && pnpm run validate:i18n && pnpm run validate:secrets",
     "lint:js": "eslint . --ignore-pattern dist --ignore-pattern .astro --ignore-pattern .wrangler --ignore-pattern node_modules",
     "lint:css": "stylelint src/styles/",
     "check:kpis": "node scripts/check-kpis.mjs",
@@ -29,6 +29,7 @@
     "validate:i18n": "node scripts/validate-i18n.js",
     "validate:research": "node scripts/validate-research-catalog.mjs",
     "validate:services": "node scripts/validate-windows-service-catalog.mjs",
+    "validate:service-routes": "node scripts/validate-windows-service-routes.mjs",
     "sync:services": "node scripts/sync-windows-service-vulnerabilities.mjs",
     "validate:handbook": "node scripts/validate-handbook.mjs",
     "validate:secrets": "node scripts/validate-secrets.cjs"

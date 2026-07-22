@@ -28,3 +28,7 @@ export { default as Comparison } from "./Comparison.astro";
 export { default as LogoCloud } from "./LogoCloud.astro";
 export { default as WindowsSecurityConcepts } from "./WindowsSecurityConcepts.astro";
 export { default as WindowsServiceAtlas } from "./WindowsServiceAtlas.astro";
+export { default as WindowsServiceHub } from "./WindowsServiceHub.astro";
+export { default as WindowsServiceTarget } from "./WindowsServiceTarget.astro";
+export { default as WindowsServiceTopic } from "./WindowsServiceTopic.astro";
+export { default as PublishedBlogDirectory } from "./PublishedBlogDirectory.astro";

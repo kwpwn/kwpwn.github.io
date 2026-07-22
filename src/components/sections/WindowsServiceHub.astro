@@ -1,0 +1,860 @@
+---
+import {
+  getWindowsServiceMetrics,
+  getWindowsServiceTargetRoute,
+  getWindowsServiceTopicRoute,
+  windowsServiceCatalog,
+  windowsServiceCategoryGroups,
+  type WindowsServiceTarget,
+} from "../../lib/windows-service-catalog";
+
+export interface Props {
+  locale?: string;
+}
+
+const { locale = "en" } = Astro.props;
+const formatNumber = (value: number) =>
+  new Intl.NumberFormat("en-US").format(value);
+const targetEntries = windowsServiceCatalog.services
+  .map((service) => ({
+    service,
+    metrics: getWindowsServiceMetrics(service),
+  }))
+  .sort(
+    (left, right) =>
+      right.metrics.knownExploitedCount - left.metrics.knownExploitedCount ||
+      right.metrics.recordCount - left.metrics.recordCount ||
+      left.service.name.localeCompare(right.service.name),
+  );
+const priorityTargets = targetEntries.slice(0, 9);
+const serviceBySlug = new Map(
+  windowsServiceCatalog.services.map((service) => [service.slug, service]),
+);
+const latestExploited = windowsServiceCatalog.vulnerabilities
+  .filter((entry) => entry.exploited)
+  .sort((left, right) => right.disclosed.localeCompare(left.disclosed))
+  .slice(0, 8);
+const categories = [...windowsServiceCategoryGroups].sort((left, right) =>
+  left.category.localeCompare(right.category),
+);
+const blogsPath = locale === "en" ? "/blogs/" : `/${locale}/blogs/`;
+const targetRoute = (service: WindowsServiceTarget) =>
+  getWindowsServiceTargetRoute(service, locale);
+const topicRoute = (category: string) =>
+  getWindowsServiceTopicRoute(category, locale);
+---
+
+<section
+  class="service-hub"
+  data-service-hub
+  data-desktop-page-size="18"
+  data-mobile-page-size="6"
+  aria-labelledby="hub-title"
+>
+  <header class="service-hub__hero">
+    <p class="service-hub__eyebrow">Windows vulnerability research portal</p>
+    <h1 id="hub-title">Research by topic. Investigate one target at a time.</h1>
+    <p class="service-hub__lede">
+      The atlas is split into focused pages so you never have to scroll through
+      thousands of unrelated records. Start with a security domain, open a
+      service target, then work through its theory, affected versions,
+      exploitation evidence, and qualified PoC leads.
+    </p>
+    <div class="service-hub__actions">
+      <a href="#topics">Browse 12 research topics</a>
+      <a href="#target-finder">Find a service target</a>
+      <a href={blogsPath}>View published blogs</a>
+    </div>
+  </header>
+
+  <section class="service-hub__metrics" aria-label="Catalog coverage">
+    <article>
+      <strong>{formatNumber(windowsServiceCatalog.meta.serviceCount)}</strong>
+      <span>target pages</span>
+    </article>
+    <article>
+      <strong>{formatNumber(windowsServiceCatalog.meta.uniqueCveCount)}</strong>
+      <span>unique CVEs</span>
+    </article>
+    <article>
+      <strong>{formatNumber(windowsServiceCatalog.meta.advisoryCount)}</strong>
+      <span>security advisories</span>
+    </article>
+    <article>
+      <strong
+        >{formatNumber(windowsServiceCatalog.meta.knownExploitedCount)}</strong
+      >
+      <span>known exploited</span>
+    </article>
+    <article>
+      <strong>{formatNumber(windowsServiceCatalog.meta.publicPocCount)}</strong>
+      <span>PoC leads</span>
+    </article>
+  </section>
+
+  <section class="service-hub__start" aria-labelledby="start-heading">
+    <div class="service-hub__section-heading">
+      <div>
+        <p class="service-hub__eyebrow">Pick the right entry point</p>
+        <h2 id="start-heading">Three ways to use the portal</h2>
+      </div>
+      <p>
+        The same evidence is exposed through human-readable pages and scoped
+        JSON endpoints. Missing disclosure or PoC evidence remains explicitly
+        unknown rather than being presented as proof of safety.
+      </p>
+    </div>
+    <div class="service-hub__start-grid">
+      <article>
+        <span>01</span>
+        <h3>Learn a security domain</h3>
+        <p>
+          Topic pages explain trust boundaries, recurring bug patterns, audit
+          questions, lab workflow, and every Windows target in that domain.
+        </p>
+        <a href="#topics">Choose a topic</a>
+      </article>
+      <article>
+        <span>02</span>
+        <h3>Investigate one target</h3>
+        <p>
+          Target pages isolate one service family and contain its complete CVE,
+          advisory, version, build, exploitation, and PoC history.
+        </p>
+        <a href="#target-finder">Open target finder</a>
+      </article>
+      <article>
+        <span>03</span>
+        <h3>Consume structured evidence</h3>
+        <p>
+          Use the global dataset or smaller per-topic and per-target JSON files
+          for notebooks, diffing, dashboards, and local research tooling.
+        </p>
+        <a href="/data/windows-service-vulnerabilities.json">Open global JSON</a
+        >
+      </article>
+    </div>
+  </section>
+
+  <section
+    class="service-hub__section"
+    id="topics"
+    aria-labelledby="topics-heading"
+  >
+    <div class="service-hub__section-heading">
+      <div>
+        <p class="service-hub__eyebrow">Theory plus evidence</p>
+        <h2 id="topics-heading">Research topics</h2>
+      </div>
+      <p>
+        Each topic is a standalone learning and audit page. Counts describe the
+        current catalog snapshot and link onward to narrower target histories.
+      </p>
+    </div>
+    <div class="service-hub__topic-grid">
+      {
+        categories.map((group) => (
+          <a href={topicRoute(group.category)}>
+            <span>{group.theory.eyebrow}</span>
+            <h3>{group.category}</h3>
+            <p>{group.theory.summary}</p>
+            <dl>
+              <div>
+                <dt>Targets</dt>
+                <dd>{group.services.length}</dd>
+              </div>
+              <div>
+                <dt>Records</dt>
+                <dd>{formatNumber(group.metrics.recordCount)}</dd>
+              </div>
+              <div>
+                <dt>Exploited</dt>
+                <dd>{formatNumber(group.metrics.knownExploitedCount)}</dd>
+              </div>
+            </dl>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="service-hub__section" aria-labelledby="priority-heading">
+    <div class="service-hub__section-heading">
+      <div>
+        <p class="service-hub__eyebrow">Evidence-led shortlist</p>
+        <h2 id="priority-heading">Priority targets</h2>
+      </div>
+      <p>
+        Ordered by published known-exploitation evidence, then catalog depth.
+        This is a reading priority, not a claim about exposure in your network.
+      </p>
+    </div>
+    <div class="service-hub__priority-grid">
+      {
+        priorityTargets.map(({ service, metrics }) => (
+          <a href={targetRoute(service)}>
+            <span>{service.category}</span>
+            <h3>{service.name}</h3>
+            <p>{service.description}</p>
+            <div>
+              <b>{formatNumber(metrics.recordCount)} records</b>
+              <b>{formatNumber(metrics.knownExploitedCount)} exploited</b>
+              <b>{formatNumber(metrics.publicPocCount)} PoC leads</b>
+            </div>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section
+    class="service-hub__section"
+    id="target-finder"
+    aria-labelledby="finder-heading"
+  >
+    <div class="service-hub__section-heading">
+      <div>
+        <p class="service-hub__eyebrow">103 focused pages</p>
+        <h2 id="finder-heading">Target finder</h2>
+      </div>
+      <p>
+        Search by service, role, protocol, SCM name, category, or exposure. Up
+        to 18 matching targets are shown at once on larger screens, or 6 on
+        compact screens.
+      </p>
+    </div>
+    <form class="service-hub__filters" data-target-filters>
+      <label>
+        <span>Search targets</span>
+        <input
+          type="search"
+          name="query"
+          placeholder="Print Spooler, RPC, TermService, remote..."
+          autocomplete="off"
+          data-target-search
+        />
+      </label>
+      <label>
+        <span>Security domain</span>
+        <select name="category" data-target-category>
+          <option value="">All topics</option>
+          {
+            categories.map((group) => (
+              <option value={group.category}>{group.category}</option>
+            ))
+          }
+        </select>
+      </label>
+      <button type="reset">Reset</button>
+    </form>
+    <div class="service-hub__result-bar">
+      <p data-target-status aria-live="polite">
+        {targetEntries.length} matching targets · showing 1–18
+      </p>
+      <div aria-label="Target result pages">
+        <button type="button" data-target-prev disabled>Previous</button>
+        <span data-target-page>Page 1 of 6</span>
+        <button type="button" data-target-next>Next</button>
+      </div>
+    </div>
+    <div class="service-hub__target-grid" data-target-results>
+      {
+        targetEntries.map(({ service, metrics }, index) => (
+          <a
+            href={targetRoute(service)}
+            class="service-hub__target"
+            data-target-card
+            data-category={service.category}
+            data-searchable={`${service.name} ${service.description} ${service.category} ${service.kind} ${service.exposure} ${service.scmNames.join(" ")}`}
+            hidden={index >= 18}
+          >
+            <span>{service.category}</span>
+            <h3>{service.name}</h3>
+            <p>{service.description}</p>
+            <small>
+              {service.kind.replaceAll("-", " ")} · {service.exposure}
+            </small>
+            <div>
+              <b>{formatNumber(metrics.recordCount)} records</b>
+              {metrics.knownExploitedCount > 0 && (
+                <b>{formatNumber(metrics.knownExploitedCount)} exploited</b>
+              )}
+            </div>
+          </a>
+        ))
+      }
+    </div>
+    <p class="service-hub__empty" data-target-empty hidden>
+      No service target matches both filters.
+    </p>
+  </section>
+
+  <section class="service-hub__section" aria-labelledby="exploited-heading">
+    <div class="service-hub__section-heading">
+      <div>
+        <p class="service-hub__eyebrow">Recent observed exploitation</p>
+        <h2 id="exploited-heading">Latest known-exploited records</h2>
+      </div>
+      <p>
+        These are the newest records with a Microsoft or CISA exploitation
+        signal. Open the owning target for full affected versions and evidence.
+      </p>
+    </div>
+    <div class="service-hub__record-grid">
+      {
+        latestExploited.map((entry) => {
+          const service = serviceBySlug.get(entry.serviceSlug);
+          return (
+            <article>
+              <div>
+                <a
+                  href={`${getWindowsServiceTargetRoute(entry.serviceSlug, locale)}#${entry.id.toLowerCase()}`}
+                >
+                  {entry.id}
+                </a>
+                <b>Known exploited</b>
+              </div>
+              <h3>{entry.title}</h3>
+              <p>
+                {service?.name} · {entry.impact} · {entry.disclosed}
+              </p>
+            </article>
+          );
+        })
+      }
+    </div>
+  </section>
+
+  <section class="service-hub__published" aria-labelledby="published-heading">
+    <div>
+      <p class="service-hub__eyebrow">Editorial layer</p>
+      <h2 id="published-heading">Published blogs</h2>
+      <p>
+        The evidence atlas stays structured and current. Long-form experiments,
+        notes, and write-ups live in a separate, searchable published-post
+        directory.
+      </p>
+    </div>
+    <div>
+      <a href={blogsPath}>Browse published posts</a>
+      <a href="/data/published-blogs.json">Open published-post JSON</a>
+    </div>
+  </section>
+
+  <aside class="service-hub__method" aria-labelledby="method-heading">
+    <div>
+      <p class="service-hub__eyebrow">Coverage contract</p>
+      <h2 id="method-heading">How the evidence is bounded</h2>
+    </div>
+    <div>
+      <p><strong>Included:</strong> {windowsServiceCatalog.meta.definition}</p>
+      <p><strong>Excluded:</strong> {windowsServiceCatalog.meta.exclusions}</p>
+      <p>
+        Snapshot <time datetime={windowsServiceCatalog.meta.snapshotDate}
+          >{windowsServiceCatalog.meta.snapshotDate}</time
+        > after inspecting {
+          formatNumber(windowsServiceCatalog.meta.msrcRecordCount)
+        }
+        Microsoft Security Update Guide records. Zero-day is modeled as disclosure
+        and exploitation state; public PoC candidates remain unverified unless the
+        catalog explicitly labels a credible reproducer.
+      </p>
+      <div>
+        <a href={windowsServiceCatalog.meta.sourceGuideUrl}>Microsoft SUG</a>
+        <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+          >CISA KEV</a
+        >
+        <a href="https://github.com/nomi-sec/PoC-in-GitHub"
+          >PoC discovery index</a
+        >
+      </div>
+    </div>
+  </aside>
+</section>
+
+<script>
+  document
+    .querySelectorAll<HTMLElement>("[data-service-hub]")
+    .forEach((root) => {
+      const form = root.querySelector<HTMLFormElement>("[data-target-filters]");
+      const cards = [
+        ...root.querySelectorAll<HTMLElement>("[data-target-card]"),
+      ];
+      const status = root.querySelector<HTMLElement>("[data-target-status]");
+      const pageLabel = root.querySelector<HTMLElement>("[data-target-page]");
+      const previous =
+        root.querySelector<HTMLButtonElement>("[data-target-prev]");
+      const next = root.querySelector<HTMLButtonElement>("[data-target-next]");
+      const empty = root.querySelector<HTMLElement>("[data-target-empty]");
+      if (!form || !status || !pageLabel || !previous || !next || !empty)
+        return;
+
+      const compactViewport = window.matchMedia("(max-width: 48rem)");
+      const desktopPageSize = Number(root.dataset.desktopPageSize ?? 18);
+      const mobilePageSize = Number(root.dataset.mobilePageSize ?? 6);
+      let pageSize = compactViewport.matches ? mobilePageSize : desktopPageSize;
+      let page = 1;
+      let matches = cards;
+
+      const render = () => {
+        const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
+        page = Math.min(Math.max(page, 1), pageCount);
+        const start = (page - 1) * pageSize;
+        const end = Math.min(start + pageSize, matches.length);
+        const visible = new Set(matches.slice(start, end));
+        cards.forEach((card) => (card.hidden = !visible.has(card)));
+        empty.hidden = matches.length > 0;
+        status.textContent = `${matches.length.toLocaleString()} matching targets${matches.length ? ` · showing ${start + 1}–${end}` : ""}`;
+        pageLabel.textContent = `Page ${page} of ${pageCount}`;
+        previous.disabled = page === 1;
+        next.disabled = page === pageCount;
+      };
+
+      const filter = () => {
+        const data = new FormData(form);
+        const terms = String(data.get("query") ?? "")
+          .trim()
+          .toLowerCase()
+          .split(/\s+/)
+          .filter(Boolean);
+        const category = String(data.get("category") ?? "");
+        matches = cards.filter((card) => {
+          const searchable = (card.dataset.searchable ?? "").toLowerCase();
+          return (
+            terms.every((term) => searchable.includes(term)) &&
+            (!category || card.dataset.category === category)
+          );
+        });
+        page = 1;
+        render();
+      };
+
+      const updatePageSize = () => {
+        const nextPageSize = compactViewport.matches
+          ? mobilePageSize
+          : desktopPageSize;
+        if (nextPageSize === pageSize) return;
+
+        const currentStart = (page - 1) * pageSize;
+        pageSize = nextPageSize;
+        page = Math.floor(currentStart / pageSize) + 1;
+        render();
+      };
+
+      form.addEventListener("input", filter);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        filter();
+      });
+      form.addEventListener("reset", () => window.setTimeout(filter));
+      previous.addEventListener("click", () => {
+        page -= 1;
+        render();
+      });
+      next.addEventListener("click", () => {
+        page += 1;
+        render();
+      });
+      compactViewport.addEventListener("change", updatePageSize);
+      render();
+    });
+</script>
+
+<style>
+  .service-hub {
+    display: grid;
+    gap: var(--space-3xl);
+  }
+  .service-hub h1,
+  .service-hub h2,
+  .service-hub h3,
+  .service-hub p,
+  .service-hub dl,
+  .service-hub dd {
+    margin: 0;
+  }
+  .service-hub__hero {
+    display: grid;
+    gap: var(--space-md);
+    max-width: var(--container-wide);
+  }
+  .service-hub__hero h1 {
+    max-width: 20ch;
+    font-size: clamp(var(--text-4xl), 7vw, var(--text-5xl));
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+  }
+  .service-hub__eyebrow {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+  .service-hub__lede {
+    max-width: 74ch;
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+  .service-hub__actions,
+  .service-hub__method div:last-child > div,
+  .service-hub__published > div:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+  .service-hub__actions a,
+  .service-hub__method a,
+  .service-hub__published a {
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+  .service-hub__actions a:first-child,
+  .service-hub__published a:first-child {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .service-hub__metrics {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  .service-hub__metrics article {
+    display: grid;
+    gap: var(--space-xs);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+  }
+  .service-hub__metrics strong {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xl);
+  }
+  .service-hub__metrics span {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+  .service-hub__start,
+  .service-hub__section {
+    display: grid;
+    gap: var(--space-lg);
+    scroll-margin-top: var(--space-xl);
+  }
+  .service-hub__section-heading,
+  .service-hub__published,
+  .service-hub__method {
+    display: grid;
+    grid-template-columns: minmax(15rem, 0.7fr) minmax(0, 1.3fr);
+    gap: var(--space-xl);
+  }
+  .service-hub__section-heading {
+    align-items: end;
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .service-hub__section-heading > div {
+    display: grid;
+    gap: var(--space-xs);
+  }
+  .service-hub__section-heading > p,
+  .service-hub__method p,
+  .service-hub__published p {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+  .service-hub__start-grid,
+  .service-hub__priority-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  .service-hub__start-grid article,
+  .service-hub__priority-grid > a,
+  .service-hub__record-grid article {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+  }
+  .service-hub__start-grid article > span,
+  .service-hub__priority-grid > a > span {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+  }
+  .service-hub__start-grid p,
+  .service-hub__priority-grid p,
+  .service-hub__record-grid p,
+  .service-hub__target p,
+  .service-hub__topic-grid p {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+  .service-hub__start-grid a {
+    margin-top: auto;
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+  .service-hub__topic-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  .service-hub__topic-grid > a,
+  .service-hub__target {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+    min-width: 0;
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    color: var(--color-text-primary);
+    text-decoration: none;
+  }
+  .service-hub__topic-grid > a > span,
+  .service-hub__target > span {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+  }
+  .service-hub__topic-grid dl {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-sm);
+    margin-top: auto;
+    padding-top: var(--space-sm);
+  }
+  .service-hub__topic-grid dl div {
+    display: grid;
+    gap: var(--space-xs);
+  }
+  .service-hub__topic-grid dt {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+  .service-hub__topic-grid dd {
+    font-family: var(--font-mono);
+    font-weight: var(--font-weight-semibold);
+  }
+  .service-hub__priority-grid > a {
+    color: var(--color-text-primary);
+    text-decoration: none;
+  }
+  .service-hub__priority-grid > a > div,
+  .service-hub__target > div,
+  .service-hub__record-grid article > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-top: auto;
+  }
+  .service-hub__priority-grid b,
+  .service-hub__target b,
+  .service-hub__record-grid b {
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+  .service-hub__filters {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-secondary);
+  }
+  .service-hub__filters label {
+    display: grid;
+    gap: var(--space-xs);
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+  }
+  .service-hub__filters input,
+  .service-hub__filters select,
+  .service-hub__filters button,
+  .service-hub__result-bar button {
+    min-height: var(--control-height-md);
+    padding: var(--spacing-2) var(--spacing-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--card);
+    color: var(--color-text-primary);
+    font: inherit;
+  }
+  .service-hub__filters button {
+    align-self: end;
+    cursor: pointer;
+  }
+  .service-hub__filters input:focus-visible,
+  .service-hub__filters select:focus-visible,
+  .service-hub__filters button:focus-visible,
+  .service-hub__result-bar button:focus-visible,
+  .service-hub a:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+  .service-hub__result-bar {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+    align-items: center;
+  }
+  .service-hub__result-bar > p,
+  .service-hub__result-bar span {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .service-hub__result-bar > div {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+  }
+  .service-hub__result-bar button {
+    cursor: pointer;
+  }
+  .service-hub__result-bar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .service-hub__target-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  .service-hub__target[hidden] {
+    display: none;
+  }
+  .service-hub__target small {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+  .service-hub__empty {
+    padding: var(--space-xl);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-xl);
+    color: var(--color-text-secondary);
+    text-align: center;
+  }
+  .service-hub__record-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  .service-hub__record-grid article > div > a {
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+  }
+  .service-hub__record-grid b {
+    background: var(--destructive);
+    color: var(--destructive-foreground);
+  }
+  .service-hub__published,
+  .service-hub__method {
+    padding: var(--space-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
+    background: var(--color-bg-secondary);
+  }
+  .service-hub__published > div,
+  .service-hub__method > div {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+  }
+  .service-hub__published > div:last-child {
+    display: flex;
+    align-items: start;
+  }
+  .service-hub__method div:last-child > div {
+    margin-top: var(--space-sm);
+  }
+  .service-hub__topic-grid > a:hover,
+  .service-hub__priority-grid > a:hover,
+  .service-hub__target:hover,
+  .service-hub__actions a:hover,
+  .service-hub__published a:hover,
+  .service-hub__method a:hover {
+    border-color: var(--color-text-secondary);
+    box-shadow: var(--shadow-sm);
+  }
+  @media (max-width: 64rem) {
+    .service-hub__metrics,
+    .service-hub__topic-grid,
+    .service-hub__priority-grid,
+    .service-hub__target-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 48rem) {
+    .service-hub__section-heading,
+    .service-hub__published,
+    .service-hub__method {
+      grid-template-columns: 1fr;
+      gap: var(--space-md);
+    }
+    .service-hub__start-grid,
+    .service-hub__record-grid {
+      grid-template-columns: 1fr;
+    }
+    .service-hub__filters {
+      grid-template-columns: 1fr;
+    }
+    .service-hub__result-bar {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  }
+  @media (max-width: 36rem) {
+    .service-hub__topic-grid,
+    .service-hub__priority-grid,
+    .service-hub__target-grid {
+      grid-template-columns: 1fr;
+    }
+    .service-hub__metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .service-hub__metrics article:last-child {
+      grid-column: 1 / -1;
+    }
+    .service-hub__topic-grid > a > p {
+      display: none;
+    }
+    .service-hub__priority-grid p {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+    .service-hub__result-bar > div {
+      justify-content: space-between;
+    }
+  }
+</style>

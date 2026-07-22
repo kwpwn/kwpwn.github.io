@@ -1,0 +1,53 @@
+---
+import WindowsServiceTarget from "../../../../components/sections/WindowsServiceTarget.astro";
+import Container from "../../../../components/ui/layout/Container/Container.astro";
+import Section from "../../../../components/ui/layout/Section/Section.astro";
+import { i18nConfig } from "../../../../config/i18n.config";
+import catalog from "../../../../data/windows-service-vulnerabilities.generated.json";
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import type { Locale } from "../../../../lib/site-config";
+import { getWindowsServiceTargetMetaDescription } from "../../../../lib/windows-service-catalog";
+
+export function getStaticPaths() {
+  const locales = i18nConfig.locales as Locale[];
+  const services = catalog.services as Array<{ slug: string }>;
+  return locales
+    .filter((locale) => locale !== i18nConfig.defaultLocale)
+    .flatMap((locale) =>
+      services.map((service) => ({
+        params: { locale, service: service.slug },
+        props: { serviceSlug: service.slug },
+      })),
+    );
+}
+
+interface Props {
+  serviceSlug: string;
+}
+
+const { serviceSlug } = Astro.props as Props;
+const locale = Astro.params.locale as Locale;
+const services = catalog.services as Array<{
+  slug: string;
+  name: string;
+  description: string;
+  vulnerabilityCount: number;
+}>;
+const service = services.find((entry) => entry.slug === serviceSlug);
+
+if (!service) {
+  throw new Error(`Unknown Windows service target: ${serviceSlug}`);
+}
+
+const title = `${service.name} Vulnerabilities — Windows Service Atlas`;
+const description = getWindowsServiceTargetMetaDescription(service);
+const path = `/windows-service-vulnerabilities/targets/${service.slug}/`;
+---
+
+<BaseLayout title={title} description={description} locale={locale} path={path}>
+  <Section spacing="xl">
+    <Container size="xl">
+      <WindowsServiceTarget serviceSlug={service.slug} locale={locale} />
+    </Container>
+  </Section>
+</BaseLayout>

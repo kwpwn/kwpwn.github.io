@@ -94,13 +94,26 @@ Collection-bound blocks. Compose primitives + the patterns in `patterns.md`.
 | ApiFlagsCheatsheet | `handbook/ApiFlagsCheatsheet.astro` | —                                                                 | Searchable Windows API and flag-family reference.                                                     |
 | CaseStudyLibrary   | `handbook/CaseStudyLibrary.astro`   | —                                                                 | Curated exploit-chain studies plus the KernelSight case-study ledger.                                 |
 
-### Windows service vulnerability atlas
+### Windows service research portal
 
-`WindowsServiceAtlas` is the `sections/WindowsServiceAtlas.astro` page block. It
-accepts an optional `datasetUrl`, renders the authoritative service taxonomy and
-methodology server-side, then progressively loads the generated vulnerability
-ledger for client-side filtering and pagination. Keep the machine-readable
-endpoint at `data/windows-service-vulnerabilities.json` synchronized through
+The service catalog uses four page-oriented sections:
+
+- `WindowsServiceHub` is the compact portal landing. It exposes topic cards,
+  priority targets, a paginated target finder, recent exploited records, and
+  links to the editorial blog directory.
+- `WindowsServiceTopic` renders one of the 12 security domains with theory,
+  trust boundaries, bug patterns, audit questions, lab workflow, target cards,
+  and priority evidence.
+- `WindowsServiceTarget` renders one of 103 service dossiers with local filters,
+  pagination, and its complete version/build/KB/exploitation/PoC ledger.
+- `PublishedBlogDirectory` is the independent, filterable view of published
+  long-form posts.
+
+Canonical route and aggregation logic lives in
+`src/lib/windows-service-catalog.ts`; use its URL builders instead of composing
+topic or target paths manually. The global, per-topic, per-target, and
+published-blog JSON endpoints mirror the human-readable hierarchy. Keep the
+generated catalog synchronized through
 `scripts/sync-windows-service-vulnerabilities.mjs`; do not hand-edit its output.
 
 ## Rules

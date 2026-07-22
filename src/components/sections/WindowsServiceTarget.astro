@@ -1,0 +1,1697 @@
+---
+import catalog from "../../data/windows-service-vulnerabilities.generated.json";
+import { windowsServiceTopicByCategory } from "../../data/windows-service-topic-content";
+import {
+  getWindowsServiceTargetRoute,
+  getWindowsServiceTopicRoute,
+} from "../../lib/windows-service-catalog";
+
+export interface Props {
+  serviceSlug: string;
+  locale?: string;
+}
+
+interface ServiceEntry {
+  slug: string;
+  name: string;
+  category: string;
+  kind: string;
+  exposure: string;
+  description: string;
+  scmNames: string[];
+  vulnerabilityCount: number;
+}
+
+interface VulnerabilityEntry {
+  id: string;
+  serviceSlug: string;
+  title: string;
+  disclosed: string | null;
+  severity: string;
+  impact: string;
+  cvss: number | null;
+  vector: string | null;
+  cwe: string[];
+  bugClass: string;
+  impactExplanation: string;
+  publiclyDisclosed: boolean;
+  exploited: boolean;
+  zeroDayStatus: string;
+  affectedProducts: string[];
+  fixedBuilds: string[];
+  kbArticles: Array<{
+    id: string;
+    url: string;
+    fixedBuild: string | null;
+  }>;
+  poc: {
+    status: string;
+    url: string | null;
+    repository: string | null;
+  };
+  sources: {
+    msrc: string;
+    cve: string | null;
+    kev: string | null;
+    pocIndex: string | null;
+  };
+  kev: {
+    dateAdded: string;
+    requiredAction: string;
+    dueDate: string;
+  } | null;
+}
+
+const { serviceSlug, locale = "en" } = Astro.props as Props;
+const services = catalog.services as ServiceEntry[];
+const vulnerabilities = catalog.vulnerabilities as VulnerabilityEntry[];
+const service = services.find((entry) => entry.slug === serviceSlug);
+
+if (!service) {
+  throw new Error(`Unknown Windows service target: ${serviceSlug}`);
+}
+
+const categoryTheory = windowsServiceTopicByCategory.get(service.category);
+
+if (!categoryTheory) {
+  throw new Error(
+    `Missing Windows service topic theory for category: ${service.category}`,
+  );
+}
+
+const routePrefix = locale === "en" ? "" : `/${locale}`;
+const atlasHref = `${routePrefix}/windows-service-vulnerabilities/`;
+const categoryHref = getWindowsServiceTopicRoute(service.category, locale);
+const serviceHref = (slug: string) =>
+  getWindowsServiceTargetRoute(slug, locale);
+const records = vulnerabilities
+  .filter((entry) => entry.serviceSlug === service.slug)
+  .sort(
+    (left, right) =>
+      (right.disclosed ?? "0000-00-00").localeCompare(
+        left.disclosed ?? "0000-00-00",
+      ) || right.id.localeCompare(left.id),
+  );
+const relatedServices = services
+  .filter(
+    (entry) =>
+      entry.category === service.category && entry.slug !== service.slug,
+  )
+  .sort(
+    (left, right) =>
+      right.vulnerabilityCount - left.vulnerabilityCount ||
+      left.name.localeCompare(right.name),
+  )
+  .slice(0, 6);
+
+const countBy = (values: string[]) =>
+  [
+    ...values.reduce((counts, value) => {
+      counts.set(value, (counts.get(value) ?? 0) + 1);
+      return counts;
+    }, new Map<string, number>()),
+  ].sort(
+    (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
+  );
+const impacts = countBy(records.map((entry) => entry.impact));
+const bugClasses = countBy(records.map((entry) => entry.bugClass));
+const severities = countBy(records.map((entry) => entry.severity));
+const pocStatuses = [
+  ...new Set(records.map((entry) => entry.poc.status)),
+].sort();
+const exploitedCount = records.filter((entry) => entry.exploited).length;
+const pocCount = records.filter(
+  (entry) => entry.poc.status !== "none-located",
+).length;
+const criticalCount = records.filter(
+  (entry) => entry.severity === "Critical",
+).length;
+const affectedProducts = new Set(
+  records.flatMap((entry) => entry.affectedProducts),
+).size;
+
+const formatNumber = (value: number) =>
+  new Intl.NumberFormat("en-US").format(value);
+const formatDate = (value: string | null) =>
+  value
+    ? new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      }).format(new Date(`${value}T00:00:00Z`))
+    : "Date not published";
+const humanize = (value: string) => value.replaceAll("-", " ");
+const pocLabel = (status: string) =>
+  ({
+    "credible-reproducer": "Credible reproducer",
+    "verified-primary": "Primary PoC",
+    "indexed-unverified": "Indexed candidate — unverified",
+    "none-located": "No public PoC located",
+  })[status] ?? humanize(status);
+const disclosureLabel = (status: string) =>
+  ({
+    "exploited-and-publicly-disclosed":
+      "Exploitation detected and public disclosure reported",
+    "exploitation-detected-timing-unconfirmed":
+      "Exploitation detected; pre-fix timing is not established here",
+    "known-exploited-timing-unconfirmed":
+      "Known exploited; pre-fix timing is not established here",
+    "public-before-or-at-fix":
+      "Publicly disclosed before or at the coordinated fix",
+    "not-reported": "No zero-day or public-disclosure signal reported",
+  })[status] ?? humanize(status);
+
+const exposureTheory = service.exposure.toLowerCase().includes("remote")
+  ? `The exposed path can be reached across a network or domain boundary. Model discovery, authentication, parsing, authorization, and the service process token as separate gates; a CVSS network vector does not prove that every deployment is internet-reachable.`
+  : service.exposure.toLowerCase().includes("local")
+    ? `The primary boundary is local. Prioritize low-privilege callers, service ACLs, named objects, IPC endpoints, file and registry inputs, impersonation, and the token held by the hosting process. “Local” still matters in sandboxes, multi-user hosts, and post-compromise chains.`
+    : `The target spans more than one exposure model. Trace each entry point independently and distinguish a locally initiated client path from a remotely reachable server endpoint before assigning prerequisites.`;
+const kindTheory =
+  service.kind === "server-role"
+    ? `This is a deployable Windows Server role rather than a single executable. Its security boundary can include role services, protocol listeners, management surfaces, databases, and privileged worker processes.`
+    : service.kind.includes("client")
+      ? `This target is client-side or client-initiated. The attacker may control a server, response, referral, file, or network peer that causes a privileged Windows client component to parse untrusted data.`
+      : service.kind.includes("protocol")
+        ? `This family represents a protocol surface. The vulnerable implementation may cross user mode and kernel mode or be shared by several Windows services, so confirm the precise code path instead of inferring it from the protocol name alone.`
+        : `This family represents an operating-system service or service-hosted component. SCM identity, host process, service SID, privileges, trigger conditions, and IPC endpoints together define the practical boundary.`;
+const leadingImpact = impacts[0]?.[0] ?? "security impact";
+const leadingBug = bugClasses[0]?.[0] ?? "the published weakness classes";
+const riskTheory = `Across ${formatNumber(records.length)} mapped records, ${leadingImpact} is the most frequent published impact and ${leadingBug} is the most frequent bug classification. Frequency is historical context, not a prediction: reachable attack surface, required privileges, process token, mitigations, and affected build determine the risk of an individual record.`;
+const targetIdentifiers = service.scmNames.length
+  ? service.scmNames.join(", ")
+  : "the role, protocol, and hosting processes discovered in the lab";
+const categoryLensContext = `Treat these ${service.category.toLowerCase()} patterns as research hypotheses for ${service.name}, not as claims that every path is implemented. Start from ${targetIdentifiers}, then confirm the process, endpoint, caller, and object that actually cross the boundary.`;
+---
+
+<article
+  class="service-target"
+  data-service-target
+  data-page-size="16"
+  aria-labelledby="service-target-title"
+>
+  <nav class="service-target__breadcrumbs" aria-label="Breadcrumb">
+    <a href={atlasHref}>Service atlas</a>
+    <span aria-hidden="true">/</span>
+    <a href={categoryHref}>{service.category}</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{service.name}</span>
+  </nav>
+
+  <header class="service-target__hero">
+    <div class="service-target__hero-copy">
+      <p class="service-target__eyebrow">Windows target dossier</p>
+      <h1 id="service-target-title">{service.name}</h1>
+      <p class="service-target__lede">{service.description}</p>
+      <div class="service-target__actions">
+        <a href="#evidence-ledger">Explore the evidence</a>
+        <a href={categoryHref}>Open {service.category}</a>
+      </div>
+    </div>
+    <dl class="service-target__identity" aria-label="Target identity">
+      <div>
+        <dt>Category</dt>
+        <dd>{service.category}</dd>
+      </div>
+      <div>
+        <dt>Target kind</dt>
+        <dd>{humanize(service.kind)}</dd>
+      </div>
+      <div>
+        <dt>Exposure</dt>
+        <dd>{service.exposure}</dd>
+      </div>
+      <div>
+        <dt>SCM / role identifiers</dt>
+        <dd>
+          {
+            service.scmNames.length
+              ? service.scmNames.join(", ")
+              : "No single SCM name"
+          }
+        </dd>
+      </div>
+    </dl>
+  </header>
+
+  <section class="service-target__metrics" aria-labelledby="coverage-heading">
+    <div class="service-target__section-heading">
+      <div>
+        <p class="service-target__eyebrow">Observed history</p>
+        <h2 id="coverage-heading">Coverage at a glance</h2>
+      </div>
+      <p>
+        Counts reflect the catalog snapshot on <time
+          datetime={catalog.meta.snapshotDate}
+          >{formatDate(catalog.meta.snapshotDate)}</time
+        >. They describe published evidence, not the current exposure of an
+        unverified host.
+      </p>
+    </div>
+    <dl class="service-target__metric-grid">
+      <div>
+        <dt>Security records</dt><dd>{formatNumber(records.length)}</dd>
+      </div>
+      <div><dt>Known exploited</dt><dd>{formatNumber(exploitedCount)}</dd></div>
+      <div><dt>Public PoC leads</dt><dd>{formatNumber(pocCount)}</dd></div>
+      <div>
+        <dt>Critical severity</dt><dd>{formatNumber(criticalCount)}</dd>
+      </div>
+      <div>
+        <dt>Affected product labels</dt><dd>
+          {formatNumber(affectedProducts)}
+        </dd>
+      </div>
+    </dl>
+    <div class="service-target__distribution-grid">
+      <section aria-labelledby="impact-distribution-heading">
+        <h3 id="impact-distribution-heading">Impact distribution</h3>
+        <ul>
+          {
+            impacts.map(([label, count]) => (
+              <li>
+                <>
+                  <span>{label}</span>
+                  <strong>{count}</strong>
+                </>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+      <section aria-labelledby="severity-distribution-heading">
+        <h3 id="severity-distribution-heading">Severity distribution</h3>
+        <ul>
+          {
+            severities.map(([label, count]) => (
+              <li>
+                <>
+                  <span>{label}</span>
+                  <strong>{count}</strong>
+                </>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+      <section aria-labelledby="bug-distribution-heading">
+        <h3 id="bug-distribution-heading">Leading bug classes</h3>
+        <ul>
+          {
+            bugClasses.slice(0, 7).map(([label, count]) => (
+              <li>
+                <>
+                  <span>{label}</span>
+                  <strong>{count}</strong>
+                </>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+    </div>
+  </section>
+
+  <section class="service-target__theory" aria-labelledby="theory-heading">
+    <div class="service-target__section-heading">
+      <div>
+        <p class="service-target__eyebrow">Theory before tooling</p>
+        <h2 id="theory-heading">Understand the target boundary</h2>
+      </div>
+      <p>
+        A product title is a starting point, not an architectural proof. Map the
+        actual process, endpoint, caller, privilege transition, and affected
+        build before testing.
+      </p>
+    </div>
+    <div class="service-target__theory-grid">
+      <article>
+        <span>01</span>
+        <h3>What the target represents</h3>
+        <p>{kindTheory}</p>
+      </article>
+      <article>
+        <span>02</span>
+        <h3>Where trust can cross</h3>
+        <p>{exposureTheory}</p>
+      </article>
+      <article>
+        <span>03</span>
+        <h3>How to read historical risk</h3>
+        <p>{riskTheory}</p>
+      </article>
+    </div>
+    <section
+      class="service-target__category-lens"
+      aria-labelledby="category-boundary-heading"
+    >
+      <div class="service-target__category-boundary">
+        <span>{categoryTheory.eyebrow}</span>
+        <h3 id="category-boundary-heading">
+          Apply the {service.category} boundary to {service.name}
+        </h3>
+        <p>{categoryTheory.boundary}</p>
+        <p>{categoryLensContext}</p>
+      </div>
+      <div class="service-target__category-patterns">
+        <h3>Three failure modes to validate first</h3>
+        <ol>
+          {
+            categoryTheory.weaknessPatterns.slice(0, 3).map((pattern) => (
+              <li>
+                <div>
+                  <h4>{pattern.title}</h4>
+                  <p>{pattern.detail}</p>
+                </div>
+              </li>
+            ))
+          }
+        </ol>
+      </div>
+    </section>
+  </section>
+
+  <section class="service-target__audit" aria-labelledby="audit-heading">
+    <div class="service-target__section-heading">
+      <div>
+        <p class="service-target__eyebrow">Repeatable workflow</p>
+        <h2 id="audit-heading">Audit this service family</h2>
+      </div>
+      <p>
+        Use an isolated, authorized lab. Public exploit repositories are leads,
+        not trusted binaries, and should be reviewed before execution.
+      </p>
+    </div>
+    <ol class="service-target__audit-steps">
+      <li>
+        <strong>Inventory the deployment</strong>
+        <p>
+          Record Windows edition, build, installed roles and features, service
+          state, startup trigger, host process, service SID, account,
+          privileges, dependencies, and listening endpoints. Do not infer
+          enablement from the presence of a binary alone.
+        </p>
+      </li>
+      <li>
+        <strong>Map callers and controllable inputs</strong>
+        <p>
+          Trace RPC, ALPC, COM, named pipes, sockets, files, registry keys,
+          shared memory, callbacks, and management APIs. Identify which inputs
+          are reachable by an unauthenticated peer, domain principal, or local
+          low-privilege user.
+        </p>
+      </li>
+      <li>
+        <strong>Test authorization and identity transitions</strong>
+        <p>
+          Review object ACLs, service-control permissions, impersonation level,
+          token handling, path canonicalization, delegation, and privileged file
+          operations. Separate configuration weaknesses from memory-safety or
+          protocol-parser flaws.
+        </p>
+      </li>
+      <li>
+        <strong>Reproduce safely and capture evidence</strong>
+        <p>
+          Snapshot the VM, enable relevant ETW and service logs, attach an
+          appropriate debugger or verifier, minimize the trigger, and preserve
+          crash, stack, network, and build metadata. Never test against systems
+          you do not own or administer.
+        </p>
+      </li>
+      <li>
+        <strong>Validate remediation</strong>
+        <p>
+          Match the exact affected product row to its KB and fixed build, then
+          retest the same path. A newer marketing version or installed KB number
+          alone is weaker evidence than the component and build state published
+          for the affected product.
+        </p>
+      </li>
+    </ol>
+  </section>
+
+  <section
+    class="service-target__ledger"
+    id="evidence-ledger"
+    aria-labelledby="ledger-heading"
+  >
+    <div class="service-target__section-heading">
+      <div>
+        <p class="service-target__eyebrow">Target-specific evidence</p>
+        <h2 id="ledger-heading">Vulnerability ledger</h2>
+      </div>
+      <p>
+        Search and combine filters within {service.name}. Open a record for the
+        complete affected-product, fixed-build, KB, exploitation, and PoC
+        evidence.
+      </p>
+    </div>
+
+    <form class="service-target__filters" data-target-filters>
+      <label class="service-target__search">
+        <span>Search this target</span>
+        <input
+          type="search"
+          name="query"
+          placeholder={`CVE, ${bugClasses[0]?.[0] ?? "bug class"}, build, or KB…`}
+          autocomplete="off"
+          data-target-search
+        />
+      </label>
+      <label>
+        <span>Impact</span>
+        <select name="impact">
+          <option value="">All impacts</option>
+          {impacts.map(([impact]) => <option value={impact}>{impact}</option>)}
+        </select>
+      </label>
+      <label>
+        <span>Severity</span>
+        <select name="severity">
+          <option value="">All severities</option>
+          {
+            severities.map(([severity]) => (
+              <option value={severity}>{severity}</option>
+            ))
+          }
+        </select>
+      </label>
+      <label>
+        <span>Evidence</span>
+        <select name="evidence">
+          <option value="">Any evidence state</option>
+          <option value="exploited">Known exploited</option>
+          <option value="disclosed">Publicly disclosed</option>
+          <option value="neither">Neither signal reported</option>
+        </select>
+      </label>
+      <label>
+        <span>PoC status</span>
+        <select name="poc">
+          <option value="">Any PoC status</option>
+          {
+            pocStatuses.map((status) => (
+              <option value={status}>{pocLabel(status)}</option>
+            ))
+          }
+        </select>
+      </label>
+      <button type="reset">Reset filters</button>
+    </form>
+
+    <div class="service-target__result-bar">
+      <p data-target-status aria-live="polite" tabindex="-1">
+        Showing {Math.min(16, records.length)} of {formatNumber(records.length)} records
+      </p>
+      <label>
+        <span>Records per page</span>
+        <select data-target-page-size>
+          <option value="8">8</option>
+          <option value="16" selected>16</option>
+          <option value="32">32</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="service-target__records" data-target-records>
+      {
+        records.map((record, index) => {
+          const searchText = [
+            record.id,
+            record.title,
+            record.impact,
+            record.severity,
+            record.bugClass,
+            record.impactExplanation,
+            ...record.cwe,
+            ...record.affectedProducts,
+            ...record.fixedBuilds,
+            ...record.kbArticles.flatMap((kb) => [kb.id, kb.fixedBuild ?? ""]),
+          ]
+            .join(" ")
+            .toLowerCase();
+          const evidence =
+            [
+              record.exploited ? "exploited" : "",
+              record.publiclyDisclosed ? "disclosed" : "",
+            ]
+              .filter(Boolean)
+              .join(" ") || "neither";
+
+          return (
+            <details
+              id={record.id.toLowerCase()}
+              class="service-target__record"
+              data-target-record
+              data-search={searchText}
+              data-impact={record.impact}
+              data-severity={record.severity}
+              data-evidence={evidence}
+              data-poc={record.poc.status}
+              hidden={index >= 16}
+            >
+              <summary>
+                <span class="service-target__record-identity">
+                  <strong>{record.id}</strong>
+                  <span>{record.severity}</span>
+                  <span>{record.impact}</span>
+                  {record.exploited && <b>Known exploited</b>}
+                  {!record.exploited && record.publiclyDisclosed && (
+                    <b>Public disclosure</b>
+                  )}
+                </span>
+                <span class="service-target__record-title">{record.title}</span>
+                <small>
+                  {formatDate(record.disclosed)} ·{" "}
+                  {record.cvss === null
+                    ? "CVSS not published"
+                    : `CVSS ${record.cvss.toFixed(1)}`}
+                </small>
+              </summary>
+              <div class="service-target__record-body">
+                <section aria-labelledby={`${record.id}-classification`}>
+                  <h3 id={`${record.id}-classification`}>Bug and impact</h3>
+                  <dl>
+                    <div>
+                      <>
+                        <dt>Bug class</dt>
+                        <dd>{record.bugClass}</dd>
+                      </>
+                    </div>
+                    <div>
+                      <>
+                        <dt>Published CWE</dt>
+                        <dd>
+                          {record.cwe.length
+                            ? record.cwe.join("; ")
+                            : "Not published"}
+                        </dd>
+                      </>
+                    </div>
+                    <div>
+                      <>
+                        <dt>Impact</dt>
+                        <dd>{record.impact}</dd>
+                      </>
+                    </div>
+                    <div>
+                      <>
+                        <dt>Vector</dt>
+                        <dd>
+                          <code>{record.vector ?? "Not published"}</code>
+                        </dd>
+                      </>
+                    </div>
+                  </dl>
+                  <p>{record.impactExplanation}</p>
+                </section>
+
+                <section aria-labelledby={`${record.id}-disclosure`}>
+                  <h3 id={`${record.id}-disclosure`}>
+                    Disclosure and exploitation
+                  </h3>
+                  <p>{disclosureLabel(record.zeroDayStatus)}</p>
+                  <dl>
+                    <div>
+                      <>
+                        <dt>Publicly disclosed</dt>
+                        <dd>
+                          {record.publiclyDisclosed ? "Yes" : "Not reported"}
+                        </dd>
+                      </>
+                    </div>
+                    <div>
+                      <>
+                        <dt>Known exploited</dt>
+                        <dd>{record.exploited ? "Yes" : "Not reported"}</dd>
+                      </>
+                    </div>
+                    {record.kev && (
+                      <div>
+                        <dt>CISA KEV added</dt>
+                        <dd>{formatDate(record.kev.dateAdded)}</dd>
+                      </div>
+                    )}
+                    {record.kev && (
+                      <div>
+                        <dt>Remediation due</dt>
+                        <dd>{formatDate(record.kev.dueDate)}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  {record.kev && <p>{record.kev.requiredAction}</p>}
+                </section>
+
+                <section aria-labelledby={`${record.id}-products`}>
+                  <h3 id={`${record.id}-products`}>
+                    Affected products and versions
+                  </h3>
+                  {record.affectedProducts.length ? (
+                    <ul>
+                      {record.affectedProducts.map((product) => (
+                        <li>{product}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>No affected-product row was published.</p>
+                  )}
+                </section>
+
+                <section aria-labelledby={`${record.id}-fixes`}>
+                  <h3 id={`${record.id}-fixes`}>Fixed builds and KBs</h3>
+                  {record.fixedBuilds.length ? (
+                    <p>
+                      <strong>Fixed builds:</strong>{" "}
+                      {record.fixedBuilds.join(", ")}
+                    </p>
+                  ) : (
+                    <p>No fixed build was published in the source matrix.</p>
+                  )}
+                  {record.kbArticles.length ? (
+                    <ul class="service-target__link-list">
+                      {record.kbArticles.map((kb) => (
+                        <li>
+                          <a href={kb.url} target="_blank" rel="noreferrer">
+                            {kb.id}
+                          </a>
+                          {kb.fixedBuild && (
+                            <span> — build {kb.fixedBuild}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>No KB link was published in the source matrix.</p>
+                  )}
+                </section>
+
+                <section aria-labelledby={`${record.id}-poc`}>
+                  <h3 id={`${record.id}-poc`}>Public PoC assessment</h3>
+                  <p>
+                    <strong>{pocLabel(record.poc.status)}</strong>
+                  </p>
+                  {record.poc.repository && <p>{record.poc.repository}</p>}
+                  {record.poc.url ? (
+                    <p>
+                      <a href={record.poc.url} target="_blank" rel="noreferrer">
+                        Review the PoC lead
+                      </a>
+                    </p>
+                  ) : (
+                    <p>
+                      No indexed public repository was located at snapshot time.
+                      This is not evidence that private or unindexed exploit
+                      code does not exist.
+                    </p>
+                  )}
+                  <p class="service-target__warning">
+                    Treat public exploit code as untrusted. Read it first,
+                    isolate the lab, and do not execute third-party binaries on
+                    a host that contains sensitive data or credentials.
+                  </p>
+                </section>
+
+                <nav
+                  class="service-target__sources"
+                  aria-label={`${record.id} evidence sources`}
+                >
+                  <a
+                    href={record.sources.msrc}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Microsoft advisory
+                  </a>
+                  {record.sources.cve && (
+                    <a
+                      href={record.sources.cve}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      CVE record
+                    </a>
+                  )}
+                  {record.sources.kev && (
+                    <a
+                      href={record.sources.kev}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      CISA KEV
+                    </a>
+                  )}
+                  {record.sources.pocIndex && (
+                    <a
+                      href={record.sources.pocIndex}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      PoC index evidence
+                    </a>
+                  )}
+                </nav>
+              </div>
+            </details>
+          );
+        })
+      }
+    </div>
+
+    <p class="service-target__empty" data-target-empty hidden>
+      No record matches this combination. Clear one or more filters to widen the
+      target history.
+    </p>
+    <nav
+      class="service-target__pagination"
+      aria-label={`${service.name} vulnerability pages`}
+    >
+      <button type="button" data-target-previous disabled>Previous</button>
+      <span data-target-page-label
+        >Page 1 of {Math.max(1, Math.ceil(records.length / 16))}</span
+      >
+      <button type="button" data-target-next disabled={records.length <= 16}
+        >Next</button
+      >
+    </nav>
+  </section>
+
+  <section class="service-target__related" aria-labelledby="related-heading">
+    <div class="service-target__section-heading">
+      <div>
+        <p class="service-target__eyebrow">Continue the map</p>
+        <h2 id="related-heading">Related {service.category} targets</h2>
+      </div>
+      <p>
+        Neighboring families share a research domain, not necessarily a process
+        or trust boundary. Use the category page to compare the complete set.
+      </p>
+    </div>
+    {
+      relatedServices.length ? (
+        <div class="service-target__related-grid">
+          {relatedServices.map((entry) => (
+            <a href={serviceHref(entry.slug)}>
+              <span>{humanize(entry.kind)}</span>
+              <strong>{entry.name}</strong>
+              <small>
+                {formatNumber(entry.vulnerabilityCount)} records ·{" "}
+                {entry.exposure}
+              </small>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p class="service-target__related-empty">
+          This is the only mapped target in its category.
+        </p>
+      )
+    }
+    <a class="service-target__category-link" href={categoryHref}>
+      Browse the complete {service.category} topic
+    </a>
+  </section>
+</article>
+
+<script>
+  document
+    .querySelectorAll<HTMLElement>("[data-service-target]")
+    .forEach((root) => {
+      const form = root.querySelector<HTMLFormElement>("[data-target-filters]");
+      const cards = Array.from(
+        root.querySelectorAll<HTMLDetailsElement>("[data-target-record]"),
+      );
+      const status = root.querySelector<HTMLElement>("[data-target-status]");
+      const empty = root.querySelector<HTMLElement>("[data-target-empty]");
+      const previous = root.querySelector<HTMLButtonElement>(
+        "[data-target-previous]",
+      );
+      const next = root.querySelector<HTMLButtonElement>("[data-target-next]");
+      const pageLabel = root.querySelector<HTMLElement>(
+        "[data-target-page-label]",
+      );
+      const sizeSelect = root.querySelector<HTMLSelectElement>(
+        "[data-target-page-size]",
+      );
+      if (
+        !form ||
+        !status ||
+        !empty ||
+        !previous ||
+        !next ||
+        !pageLabel ||
+        !sizeSelect
+      )
+        return;
+
+      let page = 1;
+      let matches = cards;
+      let suppressResetFilter = false;
+
+      const render = () => {
+        const pageSize = Number(sizeSelect.value);
+        const pages = Math.max(1, Math.ceil(matches.length / pageSize));
+        page = Math.min(page, pages);
+        const start = (page - 1) * pageSize;
+        const visible = new Set(matches.slice(start, start + pageSize));
+
+        cards.forEach((card) => {
+          card.hidden = !visible.has(card);
+          if (card.hidden) card.open = false;
+        });
+        empty.hidden = matches.length !== 0;
+        previous.disabled = page <= 1;
+        next.disabled = page >= pages || matches.length === 0;
+        pageLabel.textContent = `Page ${matches.length ? page : 0} of ${matches.length ? pages : 0}`;
+        status.textContent = matches.length
+          ? `Showing ${start + 1}–${Math.min(start + pageSize, matches.length)} of ${matches.length} matching records`
+          : "No matching records";
+      };
+
+      const applyFilters = () => {
+        const values = new FormData(form);
+        const query = String(values.get("query") ?? "")
+          .trim()
+          .toLowerCase();
+        const impact = String(values.get("impact") ?? "");
+        const severity = String(values.get("severity") ?? "");
+        const evidence = String(values.get("evidence") ?? "");
+        const poc = String(values.get("poc") ?? "");
+
+        matches = cards.filter(
+          (card) =>
+            (!query || (card.dataset.search ?? "").includes(query)) &&
+            (!impact || card.dataset.impact === impact) &&
+            (!severity || card.dataset.severity === severity) &&
+            (!evidence ||
+              (card.dataset.evidence ?? "").split(" ").includes(evidence)) &&
+            (!poc || card.dataset.poc === poc),
+        );
+        page = 1;
+        render();
+      };
+
+      form.addEventListener("input", applyFilters);
+      form.addEventListener("change", applyFilters);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        applyFilters();
+      });
+      form.addEventListener("reset", () => {
+        if (suppressResetFilter) return;
+        window.setTimeout(applyFilters, 0);
+      });
+      sizeSelect.addEventListener("change", () => {
+        page = 1;
+        render();
+      });
+      previous.addEventListener("click", () => {
+        page -= 1;
+        render();
+        status.focus();
+      });
+      next.addEventListener("click", () => {
+        page += 1;
+        render();
+        status.focus();
+      });
+
+      const revealHashTarget = () => {
+        let recordId: string;
+        try {
+          recordId = decodeURIComponent(window.location.hash.slice(1));
+        } catch {
+          return false;
+        }
+        if (!recordId) return false;
+
+        const card = cards.find(
+          (entry) => entry.id.toLowerCase() === recordId.toLowerCase(),
+        );
+        if (!card) return false;
+
+        if (!matches.includes(card)) {
+          suppressResetFilter = true;
+          form.reset();
+          suppressResetFilter = false;
+          matches = cards;
+        }
+
+        const pageSize = Number(sizeSelect.value);
+        page = Math.floor(matches.indexOf(card) / pageSize) + 1;
+        render();
+        card.open = true;
+
+        window.requestAnimationFrame(() => {
+          card.scrollIntoView({ block: "start" });
+          card.querySelector<HTMLElement>("summary")?.focus({
+            preventScroll: true,
+          });
+        });
+        return true;
+      };
+
+      if (!revealHashTarget()) render();
+      window.addEventListener("hashchange", revealHashTarget);
+    });
+</script>
+
+<style>
+  .service-target {
+    display: grid;
+    gap: var(--space-3xl);
+  }
+
+  .service-target__breadcrumbs,
+  .service-target__actions,
+  .service-target__sources {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .service-target__breadcrumbs {
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+  }
+
+  .service-target a {
+    color: var(--foreground);
+    text-underline-offset: 0.2em;
+  }
+
+  .service-target a:hover {
+    text-decoration-thickness: 0.12em;
+  }
+
+  .service-target a:focus-visible,
+  .service-target button:focus-visible,
+  .service-target input:focus-visible,
+  .service-target select:focus-visible,
+  .service-target summary:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .service-target__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: var(--space-2xl);
+    align-items: end;
+    padding-block: var(--space-xl);
+    border-block: 1px solid var(--border);
+  }
+
+  .service-target__hero-copy,
+  .service-target__section-heading > div {
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .service-target__eyebrow {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .service-target h1,
+  .service-target h2,
+  .service-target h3,
+  .service-target p,
+  .service-target dl {
+    margin-block: 0;
+  }
+
+  .service-target h1 {
+    max-width: 16ch;
+    font-size: var(--heading-h1);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .service-target__lede {
+    max-width: 68ch;
+    color: var(--muted-foreground);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+
+  .service-target__actions {
+    margin-top: var(--space-md);
+  }
+
+  .service-target__actions a,
+  .service-target__category-link {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--space-2xl);
+    padding-inline: var(--space-lg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+
+  .service-target__actions a:first-child {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .service-target__identity {
+    display: grid;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .service-target__identity div,
+  .service-target__record-body dl div {
+    display: grid;
+    grid-template-columns: minmax(7rem, 0.65fr) minmax(0, 1fr);
+    gap: var(--space-sm);
+  }
+
+  .service-target__identity dt,
+  .service-target__record-body dt {
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+  }
+
+  .service-target__identity dd,
+  .service-target__record-body dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .service-target__metrics,
+  .service-target__theory,
+  .service-target__audit,
+  .service-target__ledger,
+  .service-target__related {
+    display: grid;
+    gap: var(--space-xl);
+    scroll-margin-top: var(--space-xl);
+  }
+
+  .service-target__section-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+    gap: var(--space-xl);
+    align-items: end;
+  }
+
+  .service-target__section-heading > p {
+    max-width: 68ch;
+    color: var(--muted-foreground);
+    line-height: var(--leading-relaxed);
+  }
+
+  .service-target__metric-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+  }
+
+  .service-target__metric-grid div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column-reverse;
+    gap: var(--space-xs);
+    padding: var(--space-lg);
+    background: var(--card);
+  }
+
+  .service-target__metric-grid div + div {
+    border-left: 1px solid var(--border);
+  }
+
+  .service-target__metric-grid dt {
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+  }
+
+  .service-target__metric-grid dd {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .service-target__distribution-grid,
+  .service-target__theory-grid,
+  .service-target__related-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-lg);
+  }
+
+  .service-target__category-lens {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-xl);
+    padding: var(--space-xl);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--muted);
+  }
+
+  .service-target__category-boundary,
+  .service-target__category-patterns,
+  .service-target__category-patterns ol,
+  .service-target__category-patterns li > div {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+  }
+
+  .service-target__category-boundary > span {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .service-target__category-boundary p,
+  .service-target__category-patterns p {
+    color: var(--muted-foreground);
+    line-height: var(--leading-relaxed);
+  }
+
+  .service-target__category-patterns ol {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    counter-reset: category-pattern;
+  }
+
+  .service-target__category-patterns li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-sm);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+    counter-increment: category-pattern;
+  }
+
+  .service-target__category-patterns li::before {
+    content: "0" counter(category-pattern);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .service-target__category-patterns h3,
+  .service-target__category-patterns h4 {
+    margin: 0;
+  }
+
+  .service-target__category-patterns h4 {
+    font-size: var(--text-base);
+  }
+
+  .service-target__distribution-grid > section,
+  .service-target__theory-grid > article {
+    padding: var(--space-lg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+  }
+
+  .service-target__distribution-grid h3,
+  .service-target__theory-grid h3 {
+    margin-bottom: var(--space-md);
+    font-size: var(--text-lg);
+  }
+
+  .service-target__distribution-grid ul {
+    display: grid;
+    gap: var(--space-xs);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .service-target__distribution-grid li {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: space-between;
+    padding-block: var(--space-xs);
+    border-bottom: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+  }
+
+  .service-target__distribution-grid li:last-child {
+    border-bottom: 0;
+  }
+
+  .service-target__distribution-grid strong {
+    color: var(--foreground);
+  }
+
+  .service-target__theory-grid article {
+    display: grid;
+    align-content: start;
+    gap: var(--space-md);
+  }
+
+  .service-target__theory-grid article > span {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .service-target__theory-grid p,
+  .service-target__audit-steps p {
+    color: var(--muted-foreground);
+    line-height: var(--leading-relaxed);
+  }
+
+  .service-target__audit-steps {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: 0;
+    margin: 0;
+    border-block: 1px solid var(--border);
+    list-style: none;
+    counter-reset: audit-step;
+  }
+
+  .service-target__audit-steps li {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    counter-increment: audit-step;
+  }
+
+  .service-target__audit-steps li + li {
+    border-left: 1px solid var(--border);
+  }
+
+  .service-target__audit-steps li::before {
+    content: "0" counter(audit-step);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .service-target__filters {
+    display: grid;
+    grid-template-columns: minmax(16rem, 2fr) repeat(4, minmax(0, 1fr)) auto;
+    gap: var(--space-sm);
+    align-items: end;
+    padding: var(--space-lg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--muted);
+  }
+
+  .service-target__filters label,
+  .service-target__result-bar label {
+    display: grid;
+    gap: var(--space-xs);
+    min-width: 0;
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .service-target__filters input,
+  .service-target__filters select,
+  .service-target__result-bar select,
+  .service-target__filters button,
+  .service-target__pagination button {
+    min-width: 0;
+    min-height: var(--space-2xl);
+    padding-inline: var(--space-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--background);
+    color: var(--foreground);
+    font: inherit;
+  }
+
+  .service-target__filters button,
+  .service-target__pagination button {
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .service-target__filters button:hover,
+  .service-target__pagination button:hover:not(:disabled) {
+    background: var(--secondary);
+  }
+
+  .service-target__pagination button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .service-target__result-bar,
+  .service-target__pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .service-target__result-bar p {
+    color: var(--muted-foreground);
+  }
+
+  .service-target__records {
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .service-target__record {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    overflow: hidden;
+    scroll-margin-top: var(--space-xl);
+  }
+
+  .service-target__record[open] {
+    box-shadow: var(--shadow-md);
+  }
+
+  .service-target__record summary {
+    display: grid;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .service-target__record summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .service-target__record summary::after {
+    content: "Open evidence";
+    justify-self: start;
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+  }
+
+  .service-target__record[open] summary::after {
+    content: "Close evidence";
+  }
+
+  .service-target__record-identity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .service-target__record-identity > strong {
+    font-family: var(--font-mono);
+  }
+
+  .service-target__record-identity > span,
+  .service-target__record-identity > b {
+    padding: calc(var(--space-xs) / 2) var(--space-xs);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .service-target__record-identity > b {
+    border-color: var(--destructive);
+    background: var(--destructive);
+    color: var(--destructive-foreground);
+  }
+
+  .service-target__record-title {
+    max-width: 72ch;
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .service-target__record summary small {
+    color: var(--muted-foreground);
+  }
+
+  .service-target__record-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 1px solid var(--border);
+  }
+
+  .service-target__record-body > section {
+    display: grid;
+    align-content: start;
+    gap: var(--space-md);
+    min-width: 0;
+    padding: var(--space-lg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .service-target__record-body > section:nth-child(odd) {
+    border-right: 1px solid var(--border);
+  }
+
+  .service-target__record-body h3 {
+    font-size: var(--text-lg);
+  }
+
+  .service-target__record-body dl {
+    display: grid;
+    gap: var(--space-xs);
+  }
+
+  .service-target__record-body p,
+  .service-target__record-body li {
+    overflow-wrap: anywhere;
+    line-height: var(--leading-relaxed);
+  }
+
+  .service-target__record-body ul {
+    display: grid;
+    gap: var(--space-xs);
+    padding-left: var(--space-lg);
+    margin: 0;
+  }
+
+  .service-target__record-body code {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .service-target__warning {
+    padding: var(--space-md);
+    border-left: var(--space-xs) solid var(--warning);
+    background: var(--muted);
+  }
+
+  .service-target__sources {
+    grid-column: 1 / -1;
+    padding: var(--space-lg);
+  }
+
+  .service-target__sources a {
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .service-target__empty,
+  .service-target__related-empty {
+    padding: var(--space-xl);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-lg);
+    color: var(--muted-foreground);
+    text-align: center;
+  }
+
+  .service-target__pagination {
+    justify-content: center;
+  }
+
+  .service-target__pagination span {
+    min-width: 10ch;
+    color: var(--muted-foreground);
+    text-align: center;
+  }
+
+  .service-target__related-grid a {
+    display: grid;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    text-decoration: none;
+  }
+
+  .service-target__related-grid a:hover {
+    border-color: var(--foreground);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .service-target__related-grid span,
+  .service-target__related-grid small {
+    color: var(--muted-foreground);
+  }
+
+  .service-target__related-grid span {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+  }
+
+  .service-target__category-link {
+    justify-self: start;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  @media (max-width: 64rem) {
+    .service-target__hero,
+    .service-target__section-heading {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+
+    .service-target__metric-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .service-target__metric-grid div + div {
+      border-left: 0;
+    }
+
+    .service-target__metric-grid div:not(:nth-child(3n + 1)) {
+      border-left: 1px solid var(--border);
+    }
+
+    .service-target__metric-grid div:nth-child(n + 4) {
+      border-top: 1px solid var(--border);
+    }
+
+    .service-target__audit-steps {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .service-target__audit-steps li + li {
+      border-left: 0;
+    }
+
+    .service-target__audit-steps li:nth-child(even) {
+      border-left: 1px solid var(--border);
+    }
+
+    .service-target__audit-steps li:nth-child(n + 3) {
+      border-top: 1px solid var(--border);
+    }
+
+    .service-target__filters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .service-target__search {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .service-target {
+      gap: var(--space-2xl);
+    }
+
+    .service-target__distribution-grid,
+    .service-target__theory-grid,
+    .service-target__category-lens,
+    .service-target__related-grid,
+    .service-target__record-body {
+      grid-template-columns: 1fr;
+    }
+
+    .service-target__record-body > section:nth-child(odd) {
+      border-right: 0;
+    }
+
+    .service-target__metric-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .service-target__metric-grid div:not(:nth-child(3n + 1)) {
+      border-left: 0;
+    }
+
+    .service-target__metric-grid div:nth-child(n + 4) {
+      border-top: 0;
+    }
+
+    .service-target__metric-grid div:nth-child(even) {
+      border-left: 1px solid var(--border);
+    }
+
+    .service-target__metric-grid div:nth-child(n + 3) {
+      border-top: 1px solid var(--border);
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .service-target__filters,
+    .service-target__audit-steps,
+    .service-target__metric-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .service-target__metric-grid div:nth-child(even),
+    .service-target__audit-steps li:nth-child(even) {
+      border-left: 0;
+    }
+
+    .service-target__metric-grid div + div,
+    .service-target__audit-steps li + li {
+      border-top: 1px solid var(--border);
+    }
+
+    .service-target__identity div,
+    .service-target__record-body dl div {
+      grid-template-columns: 1fr;
+      gap: calc(var(--space-xs) / 2);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .service-target *,
+    .service-target *::before,
+    .service-target *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+</style>

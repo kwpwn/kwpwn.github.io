@@ -1,6 +1,8 @@
 {
   "nav.home": "Home",
   "nav.windowsSecurityConcepts": "Concepts",
+  "nav.windowsServiceAtlas": "Service Atlas",
+  "nav.blogs": "Blogs",
   "nav.about": "About",
   "nav.services": "Services",
   "nav.pricing": "Pricing",
@@ -44,6 +46,7 @@
   "blog.updatedOn": "Updated on",
   "blog.minuteRead": "min read",
   "blog.minutesRead": "{n} min read",
+  "blog.interactiveAtlas": "Interactive atlas",
   "blog.share": "Share",
   "blog.shareVia": "Share via",
   "blog.copyLink": "Copy link",

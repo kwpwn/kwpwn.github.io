@@ -12,6 +12,11 @@ export const mainNav: NavItem[] = [
     href: "/windows-security-concepts/",
     labelKey: "nav.windowsSecurityConcepts",
   },
+  {
+    href: "/windows-service-vulnerabilities/",
+    labelKey: "nav.windowsServiceAtlas",
+  },
+  { href: "/blogs/", labelKey: "nav.blogs" },
 ] as const;
 
 export const footerNav = {

@@ -1,0 +1,731 @@
+---
+import { getCollection, type CollectionEntry } from "astro:content";
+import { resolveRoute } from "../../i18n/routes";
+import {
+  getBlogFormatLabel,
+  getBlogReadingStats,
+} from "../../lib/blog-presentation";
+import type { Locale } from "../../lib/site-config";
+import { Badge, Card, Container, Section } from "../ui";
+
+export interface Props {
+  locale?: Locale;
+}
+
+const { locale = "en" } = Astro.props as Props;
+const now = Date.now();
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+
+function comparePosts(a: CollectionEntry<"blog">, b: CollectionEntry<"blog">) {
+  return (
+    b.data.publishDate.getTime() - a.data.publishDate.getTime() ||
+    a.id.localeCompare(b.id, "en")
+  );
+}
+
+const allPosts: CollectionEntry<"blog">[] = await getCollection("blog");
+const posts = allPosts
+  .filter(
+    (post) =>
+      post.data.locale === locale &&
+      !post.data.draft &&
+      post.data.publishDate.getTime() <= now,
+  )
+  .sort(comparePosts)
+  .map((post) => ({
+    post,
+    reading: getBlogReadingStats(post.body ?? "", post.data.format),
+    formatLabel: getBlogFormatLabel(post.data.format),
+    href: resolveRoute(locale, `/blog/${post.id}/`),
+    year: String(post.data.publishDate.getUTCFullYear()),
+    searchIndex: [
+      post.data.title,
+      post.data.description,
+      post.data.author,
+      ...post.data.tags,
+    ]
+      .join(" ")
+      .toLocaleLowerCase("en-US"),
+  }));
+
+const tagCounts = new Map<string, number>();
+const yearCounts = new Map<string, number>();
+
+for (const { post, year } of posts) {
+  for (const tag of new Set<string>(post.data.tags as string[])) {
+    tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  }
+  yearCounts.set(year, (yearCounts.get(year) ?? 0) + 1);
+}
+
+const tags = [...tagCounts].sort(([a], [b]) =>
+  a.localeCompare(b, "en", { sensitivity: "base" }),
+);
+const years = [...yearCounts].sort(([a], [b]) => Number(b) - Number(a));
+const firstYear = years.at(-1)?.[0];
+const latestYear = years.at(0)?.[0];
+const yearRange =
+  firstYear && latestYear
+    ? firstYear === latestYear
+      ? firstYear
+      : `${firstYear}–${latestYear}`
+    : "No releases yet";
+---
+
+<Section spacing="xl" class="published-directory-section">
+  <Container size="xl">
+    <div class="published-directory" data-published-blog-directory>
+      <header class="published-directory__intro">
+        <div class="published-directory__heading">
+          <p class="published-directory__eyebrow">Published writing</p>
+          <h1>Blog directory</h1>
+          <p class="published-directory__lead">
+            Browse released research notes and technical articles without the
+            rest of the knowledge base getting in the way.
+          </p>
+        </div>
+
+        <dl class="published-directory__summary" aria-label="Directory summary">
+          <div>
+            <dt>Releases</dt>
+            <dd>{posts.length}</dd>
+          </div>
+          <div>
+            <dt>Topics</dt>
+            <dd>{tags.length}</dd>
+          </div>
+          <div>
+            <dt>Published</dt>
+            <dd>{yearRange}</dd>
+          </div>
+        </dl>
+      </header>
+
+      {
+        posts.length > 0 ? (
+          <>
+            <div class="published-directory__toolbar" role="search">
+              <div class="published-directory__field published-directory__field--search">
+                <label for="published-blog-search">Search releases</label>
+                <input
+                  id="published-blog-search"
+                  type="search"
+                  placeholder="Title, summary, author, or tag"
+                  autocomplete="off"
+                  data-blog-search
+                />
+              </div>
+
+              <div class="published-directory__field">
+                <label for="published-blog-tag">Topic</label>
+                <select id="published-blog-tag" data-blog-tag>
+                  <option value="">All topics ({posts.length})</option>
+                  {tags.map(([tag, count]) => (
+                    <option value={tag}>
+                      {tag} ({count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div class="published-directory__field">
+                <label for="published-blog-year">Year</label>
+                <select id="published-blog-year" data-blog-year>
+                  <option value="">All years ({posts.length})</option>
+                  {years.map(([year, count]) => (
+                    <option value={year}>
+                      {year} ({count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                class="published-directory__reset"
+                data-blog-reset
+              >
+                Reset
+              </button>
+            </div>
+
+            <div class="published-directory__status-row">
+              <p
+                class="published-directory__status"
+                role="status"
+                aria-live="polite"
+                data-blog-status
+              >
+                Showing all {posts.length} published{" "}
+                {posts.length === 1 ? "release" : "releases"}.
+              </p>
+              <a href="/data/published-blogs.json">JSON feed</a>
+            </div>
+
+            <ul class="published-directory__list" data-blog-list>
+              {posts.map(
+                ({ post, reading, formatLabel, href, year, searchIndex }) => (
+                  <li
+                    data-blog-post
+                    data-search-index={searchIndex}
+                    data-tags={JSON.stringify(
+                      post.data.tags.map((tag: string) =>
+                        tag.toLocaleLowerCase("en-US"),
+                      ),
+                    )}
+                    data-year={year}
+                  >
+                    <Card hover class="published-post">
+                      <div class="published-post__topline">
+                        <p class="published-post__dates">
+                          <span>
+                            Published
+                            <time
+                              datetime={post.data.publishDate.toISOString()}
+                            >
+                              {dateFormatter.format(post.data.publishDate)}
+                            </time>
+                          </span>
+                          {post.data.updatedAt && (
+                            <span>
+                              Updated
+                              <time
+                                datetime={post.data.updatedAt.toISOString()}
+                              >
+                                {dateFormatter.format(post.data.updatedAt)}
+                              </time>
+                            </span>
+                          )}
+                        </p>
+                        <div class="published-post__badges">
+                          <Badge variant="outline" size="sm">
+                            {formatLabel}
+                          </Badge>
+                          {post.data.featured && (
+                            <Badge variant="outline" size="sm">
+                              Featured
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <h2>
+                        <a href={href}>{post.data.title}</a>
+                      </h2>
+                      <p class="published-post__description">
+                        {post.data.description}
+                      </p>
+
+                      {post.data.tags.length > 0 && (
+                        <ul
+                          class="published-post__tags"
+                          aria-label={`Topics for ${post.data.title}`}
+                        >
+                          {post.data.tags.map((tag: string) => (
+                            <li>
+                              <Badge size="sm">{tag}</Badge>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      <div class="published-post__footer">
+                        <p>
+                          <span>By {post.data.author}</span>
+                          {reading ? (
+                            <>
+                              <span aria-hidden="true">·</span>
+                              <span>About {reading.minutes} min</span>
+                              <span aria-hidden="true">·</span>
+                              <span>
+                                {reading.words.toLocaleString("en-US")} words
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span aria-hidden="true">·</span>
+                              <span>Interactive reference</span>
+                            </>
+                          )}
+                        </p>
+                        <a class="published-post__link" href={href}>
+                          {post.data.format === "interactive-atlas"
+                            ? "Explore atlas"
+                            : "Read article"}{" "}
+                          <span aria-hidden="true">→</span>
+                        </a>
+                      </div>
+                    </Card>
+                  </li>
+                ),
+              )}
+            </ul>
+
+            <div class="published-directory__empty" data-blog-empty hidden>
+              <h2>No releases match these filters</h2>
+              <p>
+                Try a broader search, another topic, or reset the directory.
+              </p>
+            </div>
+          </>
+        ) : (
+          <div class="published-directory__empty">
+            <h2>No published releases yet</h2>
+            <p>New releases will appear here after publication.</p>
+          </div>
+        )
+      }
+    </div>
+  </Container>
+</Section>
+
+<script>
+  const directory = document.querySelector<HTMLElement>(
+    "[data-published-blog-directory]",
+  );
+
+  if (directory) {
+    const search =
+      directory.querySelector<HTMLInputElement>("[data-blog-search]");
+    const tag = directory.querySelector<HTMLSelectElement>("[data-blog-tag]");
+    const year = directory.querySelector<HTMLSelectElement>("[data-blog-year]");
+    const reset =
+      directory.querySelector<HTMLButtonElement>("[data-blog-reset]");
+    const status = directory.querySelector<HTMLElement>("[data-blog-status]");
+    const empty = directory.querySelector<HTMLElement>("[data-blog-empty]");
+    const posts = Array.from(
+      directory.querySelectorAll<HTMLElement>("[data-blog-post]"),
+    );
+    const params = new URLSearchParams(window.location.search);
+
+    const normalize = (value: string) =>
+      value.trim().toLocaleLowerCase("en-US");
+    const optionExists = (select: HTMLSelectElement, value: string) =>
+      Array.from(select.options).some((option) => option.value === value);
+
+    if (search) search.value = params.get("q") ?? "";
+    if (
+      tag &&
+      params.has("tag") &&
+      optionExists(tag, params.get("tag") ?? "")
+    ) {
+      tag.value = params.get("tag") ?? "";
+    }
+    if (
+      year &&
+      params.has("year") &&
+      optionExists(year, params.get("year") ?? "")
+    ) {
+      year.value = params.get("year") ?? "";
+    }
+
+    const syncQuery = (name: string, value: string) => {
+      if (value) params.set(name, value);
+      else params.delete(name);
+    };
+
+    const applyFilters = () => {
+      const query = normalize(search?.value ?? "");
+      const selectedTag = normalize(tag?.value ?? "");
+      const selectedYear = year?.value ?? "";
+      let visible = 0;
+
+      for (const post of posts) {
+        const index = post.dataset.searchIndex ?? "";
+        const postTags = JSON.parse(post.dataset.tags ?? "[]") as string[];
+        const matches =
+          (!query || index.includes(query)) &&
+          (!selectedTag || postTags.includes(selectedTag)) &&
+          (!selectedYear || post.dataset.year === selectedYear);
+
+        post.hidden = !matches;
+        if (matches) visible += 1;
+      }
+
+      if (status) {
+        const suffix = visible === 1 ? "release" : "releases";
+        status.textContent = `Showing ${visible} of ${posts.length} published ${suffix}.`;
+      }
+      if (empty) empty.hidden = visible !== 0;
+      if (reset) reset.disabled = !query && !selectedTag && !selectedYear;
+
+      syncQuery("q", search?.value.trim() ?? "");
+      syncQuery("tag", tag?.value ?? "");
+      syncQuery("year", selectedYear);
+      const nextQuery = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`,
+      );
+    };
+
+    search?.addEventListener("input", applyFilters);
+    tag?.addEventListener("change", applyFilters);
+    year?.addEventListener("change", applyFilters);
+    reset?.addEventListener("click", () => {
+      if (search) search.value = "";
+      if (tag) tag.value = "";
+      if (year) year.value = "";
+      applyFilters();
+      search?.focus();
+    });
+
+    applyFilters();
+  }
+</script>
+
+<style>
+  .published-directory {
+    display: grid;
+    gap: var(--space-xl);
+  }
+
+  .published-directory__intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: var(--space-2xl);
+    align-items: end;
+    padding-bottom: var(--space-xl);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .published-directory__heading {
+    max-width: var(--container-wide);
+  }
+
+  .published-directory__eyebrow {
+    margin: 0 0 var(--space-sm);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+  }
+
+  .published-directory__heading h1 {
+    margin: 0;
+    font-size: var(--heading-h1);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .published-directory__lead {
+    max-width: var(--container-narrow-xl);
+    margin: var(--space-md) 0 0;
+    color: var(--muted-foreground);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+  }
+
+  .published-directory__summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-sm);
+    margin: 0;
+  }
+
+  .published-directory__summary div {
+    min-width: 0;
+    padding-left: var(--space-md);
+    border-left: 1px solid var(--border);
+  }
+
+  .published-directory__summary dt {
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+  }
+
+  .published-directory__summary dd {
+    margin: var(--space-xs) 0 0;
+    font-family: var(--font-heading);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .published-directory__toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto;
+    gap: var(--space-md);
+    align-items: end;
+    padding: var(--space-lg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+  }
+
+  .published-directory__field {
+    display: grid;
+    min-width: 0;
+    gap: var(--space-xs);
+  }
+
+  .published-directory__field label {
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .published-directory__field input,
+  .published-directory__field select {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--space-2xl);
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--background);
+    color: var(--foreground);
+    font: inherit;
+  }
+
+  .published-directory__field input::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  .published-directory__reset {
+    min-height: var(--space-2xl);
+    padding: var(--space-sm) var(--space-lg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    font: inherit;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .published-directory__reset:hover:not(:disabled) {
+    background: var(--secondary-hover);
+  }
+
+  .published-directory__reset:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .published-directory__field input:focus-visible,
+  .published-directory__field select:focus-visible,
+  .published-directory__reset:focus-visible,
+  .published-directory a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .published-directory__status-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    align-items: center;
+  }
+
+  .published-directory__status {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+  }
+
+  .published-directory__status-row a {
+    color: var(--foreground);
+    font-size: var(--text-sm);
+    text-underline-offset: var(--space-xs);
+  }
+
+  .published-directory__list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-lg);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .published-directory__list > li {
+    min-width: 0;
+  }
+
+  .published-directory__list > li[hidden] {
+    display: none;
+  }
+
+  :global(.published-post) {
+    height: 100%;
+  }
+
+  :global(.published-post .ui-card__body) {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: var(--space-md);
+  }
+
+  .published-post__topline,
+  .published-post__badges,
+  .published-post__dates,
+  .published-post__footer,
+  .published-post__footer p {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs) var(--space-sm);
+  }
+
+  .published-post__topline {
+    justify-content: space-between;
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+  }
+
+  .published-post__dates {
+    margin: 0;
+  }
+
+  .published-post__dates span {
+    display: inline-flex;
+    gap: var(--space-xs);
+  }
+
+  :global(.published-post h2) {
+    margin: 0;
+    font-size: var(--text-2xl);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  :global(.published-post h2 a) {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  :global(.published-post h2 a:hover) {
+    text-decoration: underline;
+    text-underline-offset: var(--space-xs);
+  }
+
+  .published-post__description {
+    margin: 0;
+    color: var(--muted-foreground);
+    line-height: var(--leading-relaxed);
+  }
+
+  .published-post__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .published-post__footer {
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+  }
+
+  .published-post__footer p {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+  }
+
+  .published-post__link {
+    color: var(--foreground);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+
+  .published-post__link span {
+    display: inline-block;
+    transition: transform 0.2s ease;
+  }
+
+  .published-post__link:hover span {
+    transform: translateX(var(--space-xs));
+  }
+
+  .published-directory__empty {
+    padding: var(--space-2xl);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-xl);
+    text-align: center;
+  }
+
+  .published-directory__empty h2,
+  .published-directory__empty p {
+    margin: 0;
+  }
+
+  .published-directory__empty h2 {
+    font-size: var(--text-xl);
+  }
+
+  .published-directory__empty p {
+    margin-top: var(--space-sm);
+    color: var(--muted-foreground);
+  }
+
+  @media (max-width: 64rem) {
+    .published-directory__intro {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-xl);
+    }
+
+    .published-directory__toolbar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .published-directory__field--search {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .published-directory__summary,
+    .published-directory__toolbar,
+    .published-directory__list {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .published-directory__field--search {
+      grid-column: auto;
+    }
+
+    .published-directory__summary div {
+      padding: 0 0 var(--space-sm);
+      border-bottom: 1px solid var(--border);
+      border-left: 0;
+    }
+
+    .published-directory__summary div:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .published-post__footer {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .published-directory__reset,
+    .published-post__link span {
+      transition: none;
+    }
+
+    .published-post__link:hover span {
+      transform: none;
+    }
+  }
+</style>

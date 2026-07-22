@@ -29,6 +29,7 @@ export function resolveRoute(locale: Locale, path: string): string {
 export function stripLocale(path: string): string {
   for (const loc of SITE_CONFIG.locales) {
     const prefix = localePrefix(loc);
+    if (!prefix) continue;
     if (path === prefix || path === `${prefix}/`) return "/";
     if (path.startsWith(`${prefix}/`)) {
       return path.slice(prefix.length) || "/";
@@ -43,6 +44,7 @@ export function stripLocale(path: string): string {
 export function detectLocale(path: string): Locale {
   for (const loc of SITE_CONFIG.locales) {
     const prefix = localePrefix(loc);
+    if (!prefix) continue;
     if (path === prefix || path.startsWith(`${prefix}/`)) return loc;
   }
   return SITE_CONFIG.defaultLocale;

@@ -437,6 +437,34 @@
       "path": "src/components/sections/WindowsServiceAtlas.astro",
       "props": ["datasetUrl"],
       "i18nAware": false
+    },
+    {
+      "name": "WindowsServiceHub",
+      "tier": "section",
+      "path": "src/components/sections/WindowsServiceHub.astro",
+      "props": ["locale"],
+      "i18nAware": true
+    },
+    {
+      "name": "WindowsServiceTopic",
+      "tier": "section",
+      "path": "src/components/sections/WindowsServiceTopic.astro",
+      "props": ["topic", "services", "vulnerabilities", "basePath"],
+      "i18nAware": true
+    },
+    {
+      "name": "WindowsServiceTarget",
+      "tier": "section",
+      "path": "src/components/sections/WindowsServiceTarget.astro",
+      "props": ["serviceSlug", "locale"],
+      "i18nAware": true
+    },
+    {
+      "name": "PublishedBlogDirectory",
+      "tier": "section",
+      "path": "src/components/sections/PublishedBlogDirectory.astro",
+      "props": ["locale"],
+      "i18nAware": true
     }
   ],
   "pages": [
@@ -511,8 +539,53 @@
       "locales": []
     },
     {
+      "name": "Windows service vulnerability topic",
+      "path": "src/pages/windows-service-vulnerabilities/topics/[topic].astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Localized Windows service vulnerability topic",
+      "path": "src/pages/[locale]/windows-service-vulnerabilities/topics/[topic].astro",
+      "locales": []
+    },
+    {
+      "name": "Windows service vulnerability target",
+      "path": "src/pages/windows-service-vulnerabilities/targets/[service].astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Localized Windows service vulnerability target",
+      "path": "src/pages/[locale]/windows-service-vulnerabilities/targets/[service].astro",
+      "locales": []
+    },
+    {
+      "name": "Published blogs",
+      "path": "src/pages/blogs.astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Localized published blogs",
+      "path": "src/pages/[locale]/blogs.astro",
+      "locales": []
+    },
+    {
       "name": "Windows service vulnerability JSON",
       "path": "src/pages/data/windows-service-vulnerabilities.json.ts",
+      "locales": ["en"]
+    },
+    {
+      "name": "Windows service topic JSON",
+      "path": "src/pages/data/windows-service-vulnerabilities/topics/[topic].json.ts",
+      "locales": ["en"]
+    },
+    {
+      "name": "Windows service target JSON",
+      "path": "src/pages/data/windows-service-vulnerabilities/targets/[service].json.ts",
+      "locales": ["en"]
+    },
+    {
+      "name": "Published blogs JSON",
+      "path": "src/pages/data/published-blogs.json.ts",
       "locales": ["en"]
     }
   ]

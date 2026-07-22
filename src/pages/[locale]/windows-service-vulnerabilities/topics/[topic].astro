@@ -1,0 +1,64 @@
+---
+import WindowsServiceTopic from "../../../../components/sections/WindowsServiceTopic.astro";
+import Container from "../../../../components/ui/layout/Container/Container.astro";
+import Section from "../../../../components/ui/layout/Section/Section.astro";
+import { i18nConfig } from "../../../../config/i18n.config";
+import {
+  windowsServiceTopicContent,
+  type WindowsServiceTopicContent,
+} from "../../../../data/windows-service-topic-content";
+import catalog from "../../../../data/windows-service-vulnerabilities.generated.json";
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import type { Locale } from "../../../../lib/site-config";
+import { getWindowsServiceTopicMetaDescription } from "../../../../lib/windows-service-catalog";
+
+export function getStaticPaths() {
+  return i18nConfig.locales
+    .filter((locale) => locale !== i18nConfig.defaultLocale)
+    .flatMap((locale) =>
+      windowsServiceTopicContent.map((topic) => ({
+        params: { locale, topic: topic.slug },
+        props: { topic },
+      })),
+    );
+}
+
+interface Props {
+  topic: WindowsServiceTopicContent;
+}
+
+const { topic } = Astro.props;
+const locale = Astro.params.locale as Locale;
+const basePath = `/${locale}/windows-service-vulnerabilities`;
+const services = catalog.services.filter(
+  (service) => service.category === topic.category,
+);
+const serviceSlugs = new Set(services.map((service) => service.slug));
+const vulnerabilities = catalog.vulnerabilities.filter((entry) =>
+  serviceSlugs.has(entry.serviceSlug),
+);
+const title = `${topic.category} — Windows Service Vulnerabilities`;
+const description = getWindowsServiceTopicMetaDescription(
+  topic.category,
+  services.length,
+  vulnerabilities.length,
+);
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  locale={locale}
+  path={`/windows-service-vulnerabilities/topics/${topic.slug}/`}
+>
+  <Section spacing="xl">
+    <Container size="xl">
+      <WindowsServiceTopic
+        topic={topic}
+        services={services}
+        vulnerabilities={vulnerabilities}
+        basePath={basePath}
+      />
+    </Container>
+  </Section>
+</BaseLayout>

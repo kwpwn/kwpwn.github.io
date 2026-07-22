@@ -1,0 +1,26 @@
+---
+import PublishedBlogDirectory from "../../components/sections/PublishedBlogDirectory.astro";
+import { i18nConfig } from "../../config/i18n.config";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import type { Locale } from "../../lib/site-config";
+
+export function getStaticPaths() {
+  return i18nConfig.locales
+    .filter((locale) => locale !== i18nConfig.defaultLocale)
+    .map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const title = "Published Blogs";
+const description =
+  "A searchable directory of published technical articles, research notes, and long-form write-ups.";
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  locale={locale}
+  path="/blogs/"
+>
+  <PublishedBlogDirectory locale={locale} />
+</BaseLayout>
