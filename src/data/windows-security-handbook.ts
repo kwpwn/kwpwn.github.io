@@ -303,7 +303,7 @@ const concepts: HandbookConcept[] = [
       language: "powershell",
       description:
         "This read-only sample exposes the user, groups, and privilege state that should be recorded before evaluating an LPE chain.",
-      code: `whoami /user\nwhoami /groups\nwhoami /priv\nwhoami /all`,
+      code: `$snapshot = [ordered]@{\n  TimestampUtc = (Get-Date).ToUniversalTime().ToString('o')\n  Build = [System.Environment]::OSVersion.VersionString\n  User = whoami.exe /user\n  Groups = whoami.exe /groups\n  Privileges = whoami.exe /priv\n  CompleteTokenView = whoami.exe /all\n}\n\n$snapshot | ConvertTo-Json -Depth 4\n\n# Repeat from the comparison process or impersonating thread. Record token type,\n# impersonation level, integrity, elevation, enabled privileges, and restricted SIDs.`,
     },
     sources: [
       {
@@ -371,7 +371,7 @@ const concepts: HandbookConcept[] = [
       language: "powershell",
       description:
         "This does not modify the service. Read the ACEs, then decode the service-specific rights instead of treating every non-default SDDL string as a vulnerability.",
-      code: `sc.exe sdshow Spooler\nGet-Acl 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Spooler' | Format-List`,
+      code: `$serviceName = 'Spooler'\n$serviceKey = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\$serviceName"\n\nsc.exe sdshow $serviceName\nGet-Acl -LiteralPath $serviceKey | Format-List Owner, Group, Sddl, AccessToString\nGet-CimInstance Win32_Service -Filter "Name='$serviceName'" |\n  Select-Object Name, StartName, State, StartMode, PathName\n\n# Decode every ACE into service-specific rights such as SERVICE_START,\n# SERVICE_STOP, SERVICE_CHANGE_CONFIG, WRITE_DAC, and WRITE_OWNER. Compare an\n# allowed request with a denied request; this snippet does not change the DACL.`,
     },
     sources: [
       {

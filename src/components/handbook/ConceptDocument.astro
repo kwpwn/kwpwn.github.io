@@ -4,7 +4,9 @@ import {
   handbookConceptBySlug,
   type HandbookConcept,
 } from "../../data/windows-security-handbook";
+import { buildConceptDeepDive } from "../../data/windows-security-depth";
 import Badge from "../ui/data-display/Badge/Badge.astro";
+import Card from "../ui/data-display/Card/Card.astro";
 import Icon from "../ui/primitives/Icon/Icon.astro";
 
 export interface Props {
@@ -19,6 +21,7 @@ const related = concept.related
 const apiCheatsheetHref = concept.apis?.length
   ? `/windows-api-cheatsheet/?q=${encodeURIComponent(concept.apis[0].name)}#api-directory`
   : "/windows-api-cheatsheet/";
+const deepDive = buildConceptDeepDive(concept);
 ---
 
 <article class="concept-document">
@@ -62,7 +65,7 @@ const apiCheatsheetHref = concept.apis?.length
   <div class="concept-document__layout">
     <div class="concept-document__body">
       <section id="meaning" aria-labelledby="meaning-heading">
-        <p class="concept-document__section-number">01 · Meaning</p>
+        <p class="concept-document__section-number">01 / Meaning</p>
         <h2 id="meaning-heading">What this concept means</h2>
         <p>{concept.summary}</p>
         <p>{concept.mentalModel}</p>
@@ -72,8 +75,42 @@ const apiCheatsheetHref = concept.apis?.length
         </aside>
       </section>
 
+      <section id="context" aria-labelledby="context-heading">
+        <p class="concept-document__section-number">02 / System context</p>
+        <h2 id="context-heading">
+          Where it sits in the Windows security model
+        </h2>
+        <div class="concept-document__prose-stack">
+          {deepDive.context.map((paragraph) => <p>{paragraph}</p>)}
+        </div>
+      </section>
+
+      <section id="invariant" aria-labelledby="invariant-heading">
+        <p class="concept-document__section-number">03 / Security contract</p>
+        <h2 id="invariant-heading">
+          The invariant, the failure, and the effect
+        </h2>
+        <div class="concept-document__invariant-grid">
+          <Card class="concept-invariant">
+            <p>Expected contract</p>
+            <h3>What must remain true</h3>
+            <p>{deepDive.invariant.expected}</p>
+          </Card>
+          <Card class="concept-invariant">
+            <p>Failure condition</p>
+            <h3>What becomes false</h3>
+            <p>{deepDive.invariant.failure}</p>
+          </Card>
+          <Card class="concept-invariant">
+            <p>Security effect</p>
+            <h3>Why the distinction matters</h3>
+            <p>{deepDive.invariant.securityEffect}</p>
+          </Card>
+        </div>
+      </section>
+
       <section id="capability" aria-labelledby="capability-heading">
-        <p class="concept-document__section-number">02 · Capability</p>
+        <p class="concept-document__section-number">04 / Capability</p>
         <h2 id="capability-heading">What it lets you explain or obtain</h2>
         <ul class="concept-document__capabilities">
           {
@@ -87,8 +124,65 @@ const apiCheatsheetHref = concept.apis?.length
         </ul>
       </section>
 
+      <section id="example" aria-labelledby="example-heading">
+        <p class="concept-document__section-number">05 / Worked example</p>
+        <h2 id="example-heading">{deepDive.example.title}</h2>
+        <p>{deepDive.example.setup}</p>
+        <ol class="concept-document__flow concept-document__flow--example">
+          {
+            deepDive.example.steps.map((step, index) => (
+              <li>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <p>{step}</p>
+              </li>
+            ))
+          }
+        </ol>
+        <aside class="concept-document__example-result">
+          <div>
+            <strong>What to observe</strong>
+            <p>{deepDive.example.observation}</p>
+          </div>
+          <div>
+            <strong>Transferable lesson</strong>
+            <p>{deepDive.example.lesson}</p>
+          </div>
+        </aside>
+      </section>
+
+      <section id="constraints" aria-labelledby="constraints-heading">
+        <p class="concept-document__section-number">06 / Constraints</p>
+        <h2 id="constraints-heading">What changes the conclusion</h2>
+        <p>
+          Treat each row as an independent claim. A convincing result answers
+          the question and preserves the evidence that supports it.
+        </p>
+        <div class="concept-document__table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Dimension</th>
+                <th scope="col">Question</th>
+                <th scope="col">Required evidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                deepDive.constraints.map((item) => (
+                  <tr>
+                    <th scope="row">{item.dimension}</th>
+                    <td>{item.question}</td>
+                    <td>{item.evidence}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section id="mechanics" aria-labelledby="mechanics-heading">
-        <p class="concept-document__section-number">03 · Mechanics</p>
+        <p class="concept-document__section-number">07 / Mechanics</p>
         <h2 id="mechanics-heading">Reason through it step by step</h2>
         <ol class="concept-document__flow">
           {
@@ -103,7 +197,7 @@ const apiCheatsheetHref = concept.apis?.length
       </section>
 
       <section id="audit" aria-labelledby="audit-heading">
-        <p class="concept-document__section-number">04 · Audit</p>
+        <p class="concept-document__section-number">08 / Audit</p>
         <h2 id="audit-heading">Questions that keep the analysis honest</h2>
         <ul class="concept-document__questions">
           {
@@ -115,12 +209,40 @@ const apiCheatsheetHref = concept.apis?.length
             ))
           }
         </ul>
+        <h3>Evidence worth preserving</h3>
+        <ul class="concept-document__evidence">
+          {
+            deepDive.evidence.map((item) => (
+              <li>
+                <Icon name="lucide:file-check-2" size={18} />
+                <span>{item}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section id="pitfalls" aria-labelledby="pitfalls-heading">
+        <p class="concept-document__section-number">09 / Common mistakes</p>
+        <h2 id="pitfalls-heading">
+          What this concept does not prove by itself
+        </h2>
+        <ul class="concept-document__pitfalls">
+          {
+            deepDive.pitfalls.map((item) => (
+              <li>
+                <Icon name="lucide:triangle-alert" size={18} />
+                <span>{item}</span>
+              </li>
+            ))
+          }
+        </ul>
       </section>
 
       {
         concept.apis?.length ? (
           <section id="apis" aria-labelledby="apis-heading">
-            <p class="concept-document__section-number">05 · APIs and flags</p>
+            <p class="concept-document__section-number">10 / APIs and flags</p>
             <div class="concept-document__heading-action">
               <h2 id="apis-heading">Interfaces to recognize</h2>
               <a href={apiCheatsheetHref}>Open API cheatsheet</a>
@@ -157,58 +279,72 @@ const apiCheatsheetHref = concept.apis?.length
 
       <section id="lab" aria-labelledby="lab-heading">
         <p class="concept-document__section-number">
-          {concept.apis?.length ? "06" : "05"} · Lab
+          {concept.apis?.length ? "11" : "10"} / Lab
         </p>
         <h2 id="lab-heading">
-          {concept.demo ? concept.demo.title : "A safe way to study it"}
+          {deepDive.lab.demo.title}
         </h2>
-        {
-          concept.demo ? (
-            <>
-              <p>{concept.demo.description}</p>
-              <div class="concept-document__code">
-                <div>
-                  <span>{concept.demo.language}</span>
-                  <span>Educational lab snippet</span>
-                </div>
-                <pre tabindex="0">
-                  <code>{concept.demo.code}</code>
-                </pre>
-              </div>
-            </>
-          ) : (
-            <div class="concept-document__lab-brief">
-              <ol>
-                <li>
-                  Pin a disposable Windows build, relevant binary version,
-                  symbols, and mitigation state.
-                </li>
-                <li>
-                  Choose the first audit question above and write the
-                  observation that would falsify your current assumption.
-                </li>
-                <li>
-                  Use read-only enumeration, tracing, or debugger inspection
-                  before changing system state.
-                </li>
-                <li>
-                  Record the exact command, object, access mask, call stack, and
-                  negative result alongside the successful path.
-                </li>
-              </ol>
-              <p>
-                This page intentionally avoids a generic exploit recipe. The
-                safe lab objective is to prove the boundary and mechanics on an
-                isolated target before attempting any capability conversion.
-              </p>
-            </div>
-          )
-        }
+        <p>{deepDive.lab.objective}</p>
+        <div class="concept-document__lab-grid">
+          <Card class="concept-lab-card">
+            <h3>Setup</h3>
+            <ul>{deepDive.lab.setup.map((item) => <li>{item}</li>)}</ul>
+          </Card>
+          <Card class="concept-lab-card">
+            <h3>Expected evidence</h3>
+            <ul>{deepDive.lab.expected.map((item) => <li>{item}</li>)}</ul>
+          </Card>
+        </div>
+        <h3>Procedure</h3>
+        <ol class="concept-document__procedure">
+          {
+            deepDive.lab.procedure.map((item, index) => (
+              <li>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <p>{item}</p>
+              </li>
+            ))
+          }
+        </ol>
+        <p>{deepDive.lab.demo.description}</p>
+        <div class="concept-document__code">
+          <div>
+            <span>{deepDive.lab.demo.language}</span>
+            <span>Educational lab snippet</span>
+          </div>
+          <pre
+            tabindex="0">
+            <code>{deepDive.lab.demo.code}</code>
+          </pre>
+        </div>
+        <aside class="concept-document__cleanup">
+          <h3>Cleanup and record keeping</h3>
+          <ul>
+            {deepDive.lab.cleanup.map((item) => <li>{item}</li>)}
+          </ul>
+        </aside>
+      </section>
+
+      <section id="defenses" aria-labelledby="defenses-heading">
+        <p class="concept-document__section-number">
+          {concept.apis?.length ? "12" : "11"} / Defensive guidance
+        </p>
+        <h2 id="defenses-heading">How to remove the unsafe assumption</h2>
+        <ul class="concept-document__defenses">
+          {
+            deepDive.defenses.map((item) => (
+              <li>
+                <Icon name="lucide:shield-check" size={18} />
+                <span>{item}</span>
+              </li>
+            ))
+          }
+        </ul>
       </section>
 
       <section id="sources" aria-labelledby="sources-heading">
         <p class="concept-document__section-number">
-          {concept.apis?.length ? "07" : "06"} · Continue
+          {concept.apis?.length ? "13" : "12"} / Continue
         </p>
         <h2 id="sources-heading">Primary sources and related concepts</h2>
         <div class="concept-document__source-grid">
@@ -267,11 +403,17 @@ const apiCheatsheetHref = concept.apis?.length
         <p>On this page</p>
         <nav>
           <a href="#meaning">Meaning</a>
+          <a href="#context">System context</a>
+          <a href="#invariant">Security contract</a>
           <a href="#capability">Capability</a>
+          <a href="#example">Worked example</a>
+          <a href="#constraints">Constraints</a>
           <a href="#mechanics">Mechanics</a>
-          <a href="#audit">Audit questions</a>
+          <a href="#audit">Audit and evidence</a>
+          <a href="#pitfalls">Common mistakes</a>
           {concept.apis?.length ? <a href="#apis">APIs and flags</a> : null}
-          <a href="#lab">Lab</a>
+          <a href="#lab">Reproducible lab</a>
+          <a href="#defenses">Defensive guidance</a>
           <a href="#sources">Sources</a>
         </nav>
       </div>
@@ -432,8 +574,72 @@ const apiCheatsheetHref = concept.apis?.length
     line-height: var(--leading-relaxed);
   }
 
+  .concept-document__prose-stack {
+    display: grid;
+    gap: var(--space-lg);
+  }
+
+  .concept-document__prose-stack p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__invariant-grid {
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .concept-invariant :global(.ui-card__body) {
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .concept-invariant p,
+  .concept-invariant h3 {
+    margin: 0;
+  }
+
+  .concept-invariant :global(.ui-card__body) > p:first-child {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .concept-invariant :global(.ui-card__body) > p:last-child {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__example-result {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+  }
+
+  .concept-document__example-result > div {
+    min-width: 0;
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-secondary);
+  }
+
+  .concept-document__example-result p {
+    margin: var(--space-xs) 0 0;
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
   .concept-document__capabilities,
-  .concept-document__questions {
+  .concept-document__questions,
+  .concept-document__evidence,
+  .concept-document__pitfalls,
+  .concept-document__defenses {
     display: grid;
     gap: var(--space-sm);
     margin: 0;
@@ -442,7 +648,10 @@ const apiCheatsheetHref = concept.apis?.length
   }
 
   .concept-document__capabilities li,
-  .concept-document__questions li {
+  .concept-document__questions li,
+  .concept-document__evidence li,
+  .concept-document__pitfalls li,
+  .concept-document__defenses li {
     display: flex;
     gap: var(--space-sm);
     align-items: flex-start;
@@ -453,9 +662,16 @@ const apiCheatsheetHref = concept.apis?.length
   }
 
   .concept-document__capabilities :global(svg),
-  .concept-document__questions :global(svg) {
+  .concept-document__questions :global(svg),
+  .concept-document__evidence :global(svg),
+  .concept-document__pitfalls :global(svg),
+  .concept-document__defenses :global(svg) {
     flex-shrink: 0;
     margin-top: var(--spacing-1);
+  }
+
+  .concept-document__questions + h3 {
+    margin-top: var(--space-xl);
   }
 
   .concept-document__flow {
@@ -573,26 +789,81 @@ const apiCheatsheetHref = concept.apis?.length
     tab-size: 4;
   }
 
-  .concept-document__lab-brief {
+  .concept-document__lab-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+    margin-block: var(--space-lg) var(--space-xl);
+  }
+
+  .concept-lab-card :global(.ui-card__body) {
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .concept-lab-card h3,
+  .concept-lab-card ul {
+    margin: 0;
+  }
+
+  .concept-lab-card ul,
+  .concept-document__cleanup ul {
+    display: grid;
+    gap: var(--space-sm);
+    padding-left: var(--space-lg);
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__procedure {
+    display: grid;
+    gap: var(--space-sm);
+    margin: 0 0 var(--space-xl);
+    padding: 0;
+    list-style: none;
+  }
+
+  .concept-document__procedure li {
+    display: grid;
+    grid-template-columns: var(--space-xl) minmax(0, 1fr);
+    gap: var(--space-md);
+    align-items: start;
+  }
+
+  .concept-document__procedure span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--space-xl);
+    height: var(--space-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .concept-document__procedure p {
+    margin: 0;
+    padding-top: var(--space-xs);
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__cleanup {
+    margin-top: var(--space-lg);
     padding: var(--space-lg);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
     background: var(--color-bg-secondary);
   }
 
-  .concept-document__lab-brief ol {
-    display: grid;
-    gap: var(--space-sm);
-    margin: 0;
-    padding-left: var(--space-lg);
+  .concept-document__cleanup h3,
+  .concept-document__cleanup ul {
+    margin-top: 0;
   }
 
-  .concept-document__lab-brief p {
-    margin: var(--space-lg) 0 0;
-    padding-top: var(--space-lg);
-    border-top: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-    line-height: var(--leading-relaxed);
+  .concept-document__cleanup ul {
+    margin-bottom: 0;
   }
 
   .concept-document__source-grid {
@@ -728,6 +999,11 @@ const apiCheatsheetHref = concept.apis?.length
     }
 
     .concept-document__source-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .concept-document__example-result,
+    .concept-document__lab-grid {
       grid-template-columns: 1fr;
     }
 

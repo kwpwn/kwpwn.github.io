@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/generate-media-manifest.cjs && node scripts/validate-handbook-depth.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "lint": "pnpm run lint:js && pnpm run lint:css && pnpm run type-check && pnpm run check:kpis && pnpm run validate:research && pnpm run validate:handbook && pnpm run validate:i18n && pnpm run validate:secrets",
@@ -29,8 +29,7 @@
     "validate:i18n": "node scripts/validate-i18n.js",
     "validate:research": "node scripts/validate-research-catalog.mjs",
     "validate:handbook": "node scripts/validate-handbook.mjs",
-    "validate:secrets": "node scripts/validate-secrets.cjs",
-    "postbuild": "node scripts/generate-media-manifest.cjs"
+    "validate:secrets": "node scripts/validate-secrets.cjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.3",
