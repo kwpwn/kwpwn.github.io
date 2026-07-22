@@ -1075,6 +1075,119 @@ const groups = [
   ]},
 ] as const;
 const total = groups.reduce((sum, group) => sum + group.items.length, 0);
+type ResearchResource = (typeof groups)[number]["items"][number];
+interface IndexedResearcher {
+  name: string;
+  site: string;
+  url: string;
+  profile: string;
+  focus: string;
+  aliases: string[];
+  resourceCount: number;
+  searchable: string;
+  curated: boolean;
+}
+const normalizeResearchName = (value: string) =>
+  value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+const indexedBylines = new Map<
+  string,
+  {
+    name: string;
+    resources: ResearchResource[];
+    groups: Set<string>;
+  }
+>();
+for (const group of groups) {
+  for (const item of group.items) {
+    const name = item[2];
+    const key = normalizeResearchName(name);
+    const current = indexedBylines.get(key) ?? {
+      name,
+      resources: [],
+      groups: new Set<string>(),
+    };
+    current.resources.push(item);
+    current.groups.add(group.title);
+    indexedBylines.set(key, current);
+  }
+}
+const claimedBylines = new Set<string>();
+const indexedResearchers: IndexedResearcher[] = researchers.map(
+  ([name, site, url, profile, focus]) => {
+    const canonical = normalizeResearchName(name);
+    const handle = normalizeResearchName(name.match(/\(([^)]+)\)/)?.[1] ?? "");
+    const matches = [...indexedBylines.entries()].filter(([key]) =>
+      key === canonical ||
+      key.includes(canonical) ||
+      canonical.includes(key) ||
+      (handle.length >= 3 && (key === handle || key.includes(handle))),
+    );
+    matches.forEach(([key]) => claimedBylines.add(key));
+    const resources = matches.flatMap(([, value]) => value.resources);
+    const aliases = matches.map(([, value]) => value.name);
+    return {
+      name,
+      site,
+      url,
+      profile,
+      focus,
+      aliases,
+      resourceCount: resources.length,
+      searchable: [
+        name,
+        site,
+        focus,
+        ...aliases,
+        ...resources.flatMap((item) => [
+          item[0],
+          item[2],
+          item[3],
+          item[5],
+          item[6],
+        ]),
+      ].join(" "),
+      curated: true,
+    };
+  },
+);
+for (const [key, contributor] of indexedBylines) {
+  if (claimedBylines.has(key)) continue;
+  const first = contributor.resources[0];
+  const host = new URL(first[1]).hostname.replace(/^www\./, "");
+  const areas = [...contributor.groups].slice(0, 4);
+  indexedResearchers.push({
+    name: contributor.name,
+    site: host,
+    url: first[1],
+    profile: first[1],
+    focus: `${contributor.resources.length} indexed contribution${contributor.resources.length === 1 ? "" : "s"} across ${areas.join(", ")}. This source-byline record is generated from the catalog evidence so every author and research team remains discoverable.`,
+    aliases: [contributor.name],
+    resourceCount: contributor.resources.length,
+    searchable: [
+      contributor.name,
+      host,
+      ...contributor.resources.flatMap((item) => [
+        item[0],
+        item[2],
+        item[3],
+        item[5],
+        item[6],
+      ]),
+    ].join(" "),
+    curated: false,
+  });
+}
+indexedResearchers.sort(
+  (left, right) =>
+    Number(right.curated) - Number(left.curated) ||
+    right.resourceCount - left.resourceCount ||
+    left.name.localeCompare(right.name),
+);
 const mainGroups = groups.filter((group) => group.id !== "ctf");
 const ctfGroup = groups.find((group) => group.id === "ctf");
 const mainTotal = mainGroups.reduce((sum, group) => sum + group.items.length, 0);
@@ -1086,7 +1199,7 @@ const stars = (rating: number) => `${"★".repeat(rating)}${"☆".repeat(5 - rat
   <div class="research-index__search">
     <label for="research-search">Search the index</label>
     <input id="research-search" type="search" placeholder="Try: KASLR, EDR, pool, CVE, I/O rings..." autocomplete="off" data-research-search />
-    <p data-research-status aria-live="polite">{researchers.length} researchers · {mainTotal} atlas resources · {ctfTotal} CTF resources</p>
+    <p data-research-status aria-live="polite">{indexedResearchers.length} researcher and team records · {mainTotal} atlas resources · {ctfTotal} CTF resources</p>
   </div>
   <aside class="research-index__rubric" aria-label="Reading priority rubric">
     <strong>Reading priority</strong>
@@ -1098,10 +1211,11 @@ const stars = (rating: number) => `${"★".repeat(rating)}${"☆".repeat(5 - rat
     <a class="research-index__jump-ctf" href="#ctf-archive">CTF archive</a>
   </nav>
   <section data-index-group aria-labelledby="researchers-heading">
-    <div class="research-index__heading"><div><p class="research-index__kicker">People to follow</p><h2 id="researchers-heading">Researchers &amp; Blogs</h2></div><span>{researchers.length} entries</span></div>
-    <div class="research-index__table-wrap"><table><thead><tr><th>Researcher</th><th>Blog</th><th>Primary focus</th></tr></thead><tbody>
-      {researchers.map(([name, site, url, profile, focus]) => <tr data-index-row data-kind="researcher" data-searchable={`${name} ${site} ${focus}`}><td><a href={profile} target="_blank" rel="noreferrer">{name}</a></td><td><a href={url} target="_blank" rel="noreferrer">{site}</a></td><td>{focus}</td></tr>)}
-    </tbody></table></div><p class="research-index__none" data-group-empty hidden>No matching researchers.</p>
+    <div class="research-index__heading"><div><p class="research-index__kicker">Complete source attribution</p><h2 id="researchers-heading">Researchers, Teams &amp; Source Bylines</h2></div><span>{indexedResearchers.length} entries</span></div>
+    <p class="research-index__directory-note">Curated profiles appear first. Every remaining author or organization credited by a resource receives a source-byline record linked to its first indexed work, so a matching resource always has a discoverable contributor.</p>
+    <div class="research-index__table-wrap"><table><thead><tr><th>Researcher / team</th><th>Reference</th><th>Catalog coverage</th></tr></thead><tbody>
+      {indexedResearchers.map(({ name, site, url, profile, focus, aliases, resourceCount, searchable, curated }) => <tr data-index-row data-kind="researcher" data-searchable={searchable}><td><a href={profile} target="_blank" rel="noreferrer">{name}</a><small>{curated ? "Curated profile" : "Indexed source byline"}</small></td><td><a href={url} target="_blank" rel="noreferrer">{site}</a>{aliases.length > 1 && <small>Also credited as: {aliases.join(" · ")}</small>}</td><td>{focus}<small>{resourceCount} linked resource{resourceCount === 1 ? "" : "s"}</small></td></tr>)}
+    </tbody></table></div><p class="research-index__none" data-group-empty hidden>No contributor byline matches this query.</p>
   </section>
   {mainGroups.map((group) => <section id={`${group.id}-section`} data-index-group aria-labelledby={`${group.id}-heading`}>
     <div class="research-index__heading"><div><p class="research-index__kicker">{group.kicker}</p><h2 id={`${group.id}-heading`}>{group.title}</h2></div><span>{group.items.length} entries</span></div>

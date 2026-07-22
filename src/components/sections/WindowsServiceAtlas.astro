@@ -1,0 +1,1297 @@
+---
+import catalog from "../../data/windows-service-vulnerabilities.generated.json";
+
+export interface Props {
+  datasetUrl?: string;
+}
+
+const { datasetUrl = "/data/windows-service-vulnerabilities.json" } =
+  Astro.props;
+const { meta, services, vulnerabilities } = catalog;
+const orderedServices = [...services].sort(
+  (left, right) =>
+    left.category.localeCompare(right.category) ||
+    left.name.localeCompare(right.name),
+);
+const categories = [...new Set(services.map((entry) => entry.category))].sort();
+const featured = vulnerabilities.filter((entry) => entry.exploited).slice(0, 8);
+const formatNumber = (value: number) =>
+  new Intl.NumberFormat("en-US").format(value);
+const formatDate = (value: string | null) =>
+  value
+    ? new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      }).format(new Date(`${value}T00:00:00Z`))
+    : "Date not published";
+const serviceBySlug = new Map(services.map((entry) => [entry.slug, entry]));
+---
+
+<section
+  class="service-atlas"
+  data-service-atlas
+  data-dataset-url={datasetUrl}
+  aria-labelledby="service-atlas-title"
+>
+  <header class="service-atlas__hero">
+    <p class="service-atlas__eyebrow">Evidence-backed Windows research</p>
+    <h1 id="service-atlas-title">Windows Service Vulnerability Atlas</h1>
+    <p class="service-atlas__lede">
+      A searchable historical catalog of vulnerabilities in built-in Windows
+      services, server roles, service protocols, clients, and endpoint
+      substrates. Every record keeps its bug class, impact, affected product
+      matrix, fixed builds, exploitation evidence, and carefully qualified
+      public-PoC status together.
+    </p>
+    <div class="service-atlas__hero-actions">
+      <a href="#vulnerability-explorer">
+        Explore {formatNumber(meta.vulnerabilityCount)} records
+      </a>
+      <a href={datasetUrl}>Open the JSON dataset</a>
+    </div>
+    <div class="service-atlas__metrics" aria-label="Catalog coverage">
+      <article>
+        <strong>{formatNumber(meta.serviceCount)}</strong><span
+          >service families</span
+        >
+      </article>
+      <article>
+        <strong>{formatNumber(meta.uniqueCveCount)}</strong><span
+          >unique CVEs</span
+        >
+      </article>
+      <article>
+        <strong>{formatNumber(meta.advisoryCount)}</strong><span
+          >security advisories</span
+        >
+      </article>
+      <article>
+        <strong>{formatNumber(meta.knownExploitedCount)}</strong><span
+          >known exploited</span
+        >
+      </article>
+      <article>
+        <strong>{formatNumber(meta.publicPocCount)}</strong><span
+          >PoC leads</span
+        >
+      </article>
+    </div>
+  </header>
+
+  <aside class="service-atlas__scope" aria-labelledby="scope-heading">
+    <div>
+      <p class="service-atlas__eyebrow">Coverage contract</p>
+      <h2 id="scope-heading">What “complete” means here</h2>
+    </div>
+    <div>
+      <p><strong>Included:</strong> {meta.definition}</p>
+      <p><strong>Excluded:</strong> {meta.exclusions}</p>
+      <p>
+        The census inspected all {formatNumber(meta.msrcRecordCount)} records in the
+        Microsoft Security Update Guide feed and classified the {
+          formatNumber(meta.microsoftCnaRecordCount)
+        }
+        records issued by Microsoft as of <time datetime={meta.snapshotDate}
+          >{formatDate(meta.snapshotDate)}</time
+        >. A zero-day is modeled as disclosure or exploitation state—not as a
+        root-cause class. Once a fix and public record exist, the same entry is
+        an n-day research target; the history is preserved instead of copied
+        into a second list.
+      </p>
+    </div>
+  </aside>
+
+  <section class="service-atlas__method" aria-labelledby="method-heading">
+    <div class="service-atlas__section-heading">
+      <div>
+        <p class="service-atlas__eyebrow">How to read the evidence</p>
+        <h2 id="method-heading">Source and confidence model</h2>
+      </div>
+      <p>
+        Facts from vendors and government catalogs are separated from community
+        discovery metadata. Missing evidence is reported as unknown, never
+        silently converted into “safe” or “no exploit.”
+      </p>
+    </div>
+    <ol class="service-atlas__method-grid">
+      <li>
+        <span>01</span><strong>Microsoft record</strong>
+        <p>
+          CVE, severity, CWE, impact, product versions, KBs, fixed builds,
+          disclosure, and MSRC exploitation status.
+        </p>
+      </li>
+      <li>
+        <span>02</span><strong>Independent exploitation signal</strong>
+        <p>
+          CISA KEV is merged as a second authoritative signal for observed
+          exploitation and remediation deadlines.
+        </p>
+      </li>
+      <li>
+        <span>03</span><strong>PoC confidence</strong>
+        <p>
+          “Credible reproducer” is curated. “Indexed candidate” is a lead from a
+          public index and must be reviewed in an isolated lab.
+        </p>
+      </li>
+      <li>
+        <span>04</span><strong>No PoC located</strong>
+        <p>
+          No indexed public repository was found at snapshot time. This does not
+          claim that private or unindexed exploit code does not exist.
+        </p>
+      </li>
+    </ol>
+    <div class="service-atlas__sources">
+      <a href={meta.sourceGuideUrl} target="_blank" rel="noreferrer"
+        >Microsoft Security Update Guide</a
+      >
+      <a
+        href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+        target="_blank"
+        rel="noreferrer">CISA KEV</a
+      >
+      <a
+        href="https://github.com/CVEProject/cvelistV5"
+        target="_blank"
+        rel="noreferrer">Official CVE List cache</a
+      >
+      <a
+        href="https://github.com/nomi-sec/PoC-in-GitHub"
+        target="_blank"
+        rel="noreferrer">PoC discovery index</a
+      >
+      <a
+        href="https://arxiv.org/abs/2210.08374"
+        target="_blank"
+        rel="noreferrer">PoC safety research</a
+      >
+    </div>
+  </section>
+
+  <section class="service-atlas__inventory" aria-labelledby="inventory-heading">
+    <div class="service-atlas__section-heading">
+      <div>
+        <p class="service-atlas__eyebrow">Service taxonomy</p>
+        <h2 id="inventory-heading">Mapped service families</h2>
+      </div>
+      <p>
+        Select a family to move directly into its vulnerability history. SCM
+        names are identifiers, not proof that every affected code path runs in a
+        standalone service process.
+      </p>
+    </div>
+    <details class="service-atlas__inventory-browser">
+      <summary>
+        Browse all {formatNumber(orderedServices.length)} mapped families
+      </summary>
+      <div class="service-atlas__service-grid">
+        {
+          orderedServices.map((entry) => (
+            <button
+              type="button"
+              class="service-atlas__service"
+              data-service-pick={entry.slug}
+            >
+              <span>{entry.category}</span>
+              <strong>{entry.name}</strong>
+              <small>
+                {entry.kind.replaceAll("-", " ")} · {entry.exposure}
+              </small>
+              <b>{formatNumber(entry.vulnerabilityCount)} records</b>
+            </button>
+          ))
+        }
+      </div>
+    </details>
+  </section>
+
+  <section
+    class="service-atlas__explorer"
+    id="vulnerability-explorer"
+    aria-labelledby="explorer-heading"
+  >
+    <div class="service-atlas__section-heading">
+      <div>
+        <p class="service-atlas__eyebrow">Filterable evidence ledger</p>
+        <h2 id="explorer-heading">Vulnerability explorer</h2>
+      </div>
+      <p>
+        Search a CVE, service, bug class, Windows release, fixed build, or KB.
+        Filters combine, and results are newest first.
+      </p>
+    </div>
+
+    <form class="service-atlas__filters" data-service-filters>
+      <label class="service-atlas__search">
+        <span>Search the catalog</span>
+        <input
+          type="search"
+          name="query"
+          placeholder="CVE-2021-34527, Spooler, use-after-free, Server 2022…"
+          autocomplete="off"
+          data-service-search
+        />
+      </label>
+      <label>
+        <span>Service family</span>
+        <select name="service" data-service-select>
+          <option value="">All service families</option>
+          {
+            orderedServices.map((entry) => (
+              <option value={entry.slug}>{entry.name}</option>
+            ))
+          }
+        </select>
+      </label>
+      <label>
+        <span>Category</span>
+        <select name="category">
+          <option value="">All categories</option>
+          {
+            categories.map((category) => (
+              <option value={category}>{category}</option>
+            ))
+          }
+        </select>
+      </label>
+      <label>
+        <span>Impact</span>
+        <select name="impact">
+          <option value="">All impacts</option>
+          <option value="Remote Code Execution">Remote code execution</option>
+          <option value="Elevation of Privilege">Elevation of privilege</option>
+          <option value="Information Disclosure">Information disclosure</option>
+          <option value="Denial of Service">Denial of service</option>
+          <option value="Security Feature Bypass"
+            >Security feature bypass</option
+          >
+          <option value="Spoofing">Spoofing</option>
+        </select>
+      </label>
+      <label>
+        <span>Evidence state</span>
+        <select name="evidence">
+          <option value="">All evidence states</option>
+          <option value="exploited">Known exploited</option>
+          <option value="public">Publicly disclosed</option>
+          <option value="not-known">Neither known</option>
+        </select>
+      </label>
+      <label>
+        <span>Public PoC</span>
+        <select name="poc">
+          <option value="">Any PoC status</option>
+          <option value="credible-reproducer">Credible reproducer</option>
+          <option value="indexed-unverified">Indexed candidate</option>
+          <option value="none-located">None located</option>
+        </select>
+      </label>
+      <label>
+        <span>Severity</span>
+        <select name="severity">
+          <option value="">All severities</option>
+          <option value="Critical">Critical</option>
+          <option value="Important">Important</option>
+          <option value="Moderate">Moderate</option>
+          <option value="Low">Low</option>
+        </select>
+      </label>
+      <button type="reset" data-service-reset>Reset filters</button>
+    </form>
+
+    <div class="service-atlas__result-bar">
+      <p data-service-status aria-live="polite">
+        Loading the complete dataset…
+      </p>
+      <label>
+        <span>Results per page</span>
+        <select data-page-size>
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="service-atlas__results" data-service-results aria-busy="true">
+      {
+        featured.map((entry) => {
+          const service = serviceBySlug.get(entry.serviceSlug);
+          return (
+            <article class="service-atlas__record service-atlas__record--preview">
+              <div>
+                <a href={entry.sources.msrc} target="_blank" rel="noreferrer">
+                  {entry.id}
+                </a>
+                <span>{entry.severity}</span>
+                <span>Known exploited</span>
+              </div>
+              <h3>{entry.title}</h3>
+              <p>{service?.name}</p>
+            </article>
+          );
+        })
+      }
+    </div>
+    <nav
+      class="service-atlas__pagination"
+      aria-label="Vulnerability result pages"
+    >
+      <button type="button" data-page-prev disabled>Previous</button>
+      <span data-page-label>Page 1</span>
+      <button type="button" data-page-next disabled>Next</button>
+    </nav>
+    <noscript>
+      <p class="service-atlas__noscript">
+        JavaScript is required for local filtering. The complete evidence set is
+        still available from the <a href={datasetUrl}
+          >machine-readable JSON endpoint</a
+        >.
+      </p>
+    </noscript>
+  </section>
+</section>
+
+<script>
+  interface ServiceEntry {
+    slug: string;
+    name: string;
+    category: string;
+    kind: string;
+    exposure: string;
+    description: string;
+    scmNames: string[];
+  }
+
+  interface VulnerabilityEntry {
+    id: string;
+    recordType: "cve" | "security-advisory";
+    serviceSlug: string;
+    title: string;
+    disclosed: string | null;
+    severity: string;
+    impact: string;
+    cvss: number | null;
+    vector: string | null;
+    cwe: string[];
+    bugClass: string;
+    impactExplanation: string;
+    publiclyDisclosed: boolean;
+    exploited: boolean;
+    zeroDayStatus: string;
+    affectedProducts: string[];
+    fixedBuilds: string[];
+    kbArticles: Array<{ id: string; url: string; fixedBuild: string | null }>;
+    poc: {
+      status: string;
+      url: string | null;
+      repository: string | null;
+      starsAtSnapshot?: number | null;
+    };
+    sources: {
+      msrc: string;
+      cve: string | null;
+      kev: string | null;
+      pocIndex: string | null;
+    };
+    kev: {
+      dateAdded: string;
+      requiredAction: string;
+      dueDate: string;
+      ransomwareUse: string;
+    } | null;
+  }
+
+  interface CatalogPayload {
+    services: ServiceEntry[];
+    vulnerabilities: VulnerabilityEntry[];
+  }
+
+  const element = <K extends keyof HTMLElementTagNameMap>(
+    tag: K,
+    className?: string,
+    text?: string,
+  ) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+
+  const appendLink = (
+    parent: HTMLElement,
+    text: string,
+    href: string,
+    className?: string,
+  ) => {
+    const link = element("a", className, text);
+    link.href = href;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    parent.append(link);
+    return link;
+  };
+
+  const dateLabel = (value: string | null) =>
+    value
+      ? new Intl.DateTimeFormat("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        }).format(new Date(`${value}T00:00:00Z`))
+      : "Unknown date";
+
+  const pocLabel = (status: string) =>
+    ({
+      "credible-reproducer": "Credible reproducer",
+      "verified-primary": "Primary PoC",
+      "indexed-unverified": "Indexed candidate — unverified",
+      "none-located": "No public PoC located",
+    })[status] ?? status;
+
+  const disclosureLabel = (status: string) =>
+    ({
+      "exploited-and-publicly-disclosed":
+        "Exploitation detected and public disclosure reported",
+      "exploitation-detected-timing-unconfirmed":
+        "Exploitation detected; pre-fix timing not established by this dataset",
+      "known-exploited-timing-unconfirmed":
+        "Known exploited; pre-fix timing not established by this dataset",
+      "public-before-or-at-fix":
+        "Publicly disclosed before or at the coordinated fix",
+      "not-reported": "No zero-day or public-disclosure signal reported",
+    })[status] ?? status;
+
+  const makeList = (items: string[], empty: string) => {
+    const wrapper = element("div", "service-atlas__compact-list");
+    if (!items.length) {
+      wrapper.append(element("p", undefined, empty));
+      return wrapper;
+    }
+    const list = element("ul");
+    items.forEach((item) => list.append(element("li", undefined, item)));
+    wrapper.append(list);
+    return wrapper;
+  };
+
+  document
+    .querySelectorAll<HTMLElement>("[data-service-atlas]")
+    .forEach((root) => {
+      const form = root.querySelector<HTMLFormElement>(
+        "[data-service-filters]",
+      );
+      const results = root.querySelector<HTMLElement>("[data-service-results]");
+      const status = root.querySelector<HTMLElement>("[data-service-status]");
+      const serviceSelect = root.querySelector<HTMLSelectElement>(
+        "[data-service-select]",
+      );
+      const pageSizeSelect =
+        root.querySelector<HTMLSelectElement>("[data-page-size]");
+      const previous =
+        root.querySelector<HTMLButtonElement>("[data-page-prev]");
+      const next = root.querySelector<HTMLButtonElement>("[data-page-next]");
+      const pageLabel = root.querySelector<HTMLElement>("[data-page-label]");
+      if (
+        !form ||
+        !results ||
+        !status ||
+        !serviceSelect ||
+        !pageSizeSelect ||
+        !previous ||
+        !next ||
+        !pageLabel
+      )
+        return;
+
+      let catalog: CatalogPayload | null = null;
+      let filtered: VulnerabilityEntry[] = [];
+      let page = 1;
+      const serviceMap = new Map<string, ServiceEntry>();
+      const searchIndex = new Map<string, string>();
+
+      const renderRecord = (entry: VulnerabilityEntry) => {
+        const service = serviceMap.get(entry.serviceSlug);
+        const article = element("article", "service-atlas__record");
+        article.id = entry.id.toLowerCase();
+
+        const header = element("header");
+        const identity = element("div", "service-atlas__identity");
+        appendLink(
+          identity,
+          entry.id,
+          entry.sources.msrc,
+          "service-atlas__cve",
+        );
+        identity.append(
+          element(
+            "span",
+            `service-atlas__badge service-atlas__badge--${entry.severity.toLowerCase()}`,
+            entry.severity,
+          ),
+        );
+        if (entry.exploited)
+          identity.append(
+            element(
+              "span",
+              "service-atlas__badge service-atlas__badge--danger",
+              "Known exploited",
+            ),
+          );
+        else if (entry.publiclyDisclosed)
+          identity.append(
+            element("span", "service-atlas__badge", "Publicly disclosed"),
+          );
+        header.append(identity);
+        header.append(element("h3", undefined, entry.title));
+        const metadata = element("p", "service-atlas__record-meta");
+        metadata.textContent = `${service?.name ?? entry.serviceSlug} · ${dateLabel(entry.disclosed)} · ${entry.impact}${entry.cvss === null ? "" : ` · CVSS ${entry.cvss}`}`;
+        header.append(metadata);
+        article.append(header);
+
+        const analysis = element("div", "service-atlas__analysis");
+        const cause = element("section");
+        cause.append(
+          element("h4", undefined, "Bug / root-cause classification"),
+        );
+        cause.append(element("p", undefined, entry.bugClass));
+        if (entry.cwe.length)
+          cause.append(element("small", undefined, entry.cwe.join(" · ")));
+        const impact = element("section");
+        impact.append(element("h4", undefined, "Security impact"));
+        impact.append(element("p", undefined, entry.impactExplanation));
+        analysis.append(cause, impact);
+        article.append(analysis);
+
+        const details = element("details", "service-atlas__record-details");
+        const summary = element(
+          "summary",
+          undefined,
+          "Affected versions, fixed builds, PoC, and evidence",
+        );
+        details.append(summary);
+        const grid = element("div", "service-atlas__detail-grid");
+
+        const versions = element("section");
+        versions.append(
+          element(
+            "h4",
+            undefined,
+            `Affected product matrix (${entry.affectedProducts.length})`,
+          ),
+        );
+        versions.append(
+          makeList(
+            entry.affectedProducts,
+            "MSRC did not publish a Windows product matrix for this record.",
+          ),
+        );
+        grid.append(versions);
+
+        const fixes = element("section");
+        fixes.append(
+          element(
+            "h4",
+            undefined,
+            `Fixed builds & KBs (${entry.kbArticles.length})`,
+          ),
+        );
+        if (entry.kbArticles.length) {
+          const list = element("ul", "service-atlas__link-list");
+          entry.kbArticles.forEach((kb) => {
+            const item = element("li");
+            appendLink(item, kb.id, kb.url);
+            if (kb.fixedBuild)
+              item.append(document.createTextNode(` — ${kb.fixedBuild}`));
+            list.append(item);
+          });
+          fixes.append(list);
+        } else {
+          fixes.append(
+            element(
+              "p",
+              undefined,
+              "No fixed-build entry is present in the current MSRC product matrix.",
+            ),
+          );
+        }
+        grid.append(fixes);
+
+        const poc = element("section", "service-atlas__poc");
+        poc.append(element("h4", undefined, "Public PoC status"));
+        const pocStatus = element("p");
+        if (entry.poc.url)
+          appendLink(pocStatus, pocLabel(entry.poc.status), entry.poc.url);
+        else pocStatus.textContent = pocLabel(entry.poc.status);
+        poc.append(pocStatus);
+        if (entry.poc.status === "indexed-unverified") {
+          poc.append(
+            element(
+              "small",
+              undefined,
+              "Unverified community lead. Inspect source and run only in a disposable, isolated lab; public PoC repositories can be incomplete or malicious.",
+            ),
+          );
+        } else if (entry.poc.status === "none-located") {
+          poc.append(
+            element(
+              "small",
+              undefined,
+              "This is a discovery result at snapshot time, not proof that exploit code does not exist.",
+            ),
+          );
+        }
+        grid.append(poc);
+
+        const evidence = element("section");
+        evidence.append(element("h4", undefined, "Evidence links"));
+        evidence.append(
+          element(
+            "p",
+            undefined,
+            `Disclosure / zero-day state: ${disclosureLabel(entry.zeroDayStatus)}.`,
+          ),
+        );
+        const links = element("div", "service-atlas__evidence-links");
+        appendLink(links, "MSRC", entry.sources.msrc);
+        if (entry.sources.cve)
+          appendLink(links, "CVE record", entry.sources.cve);
+        if (entry.sources.kev) appendLink(links, "CISA KEV", entry.sources.kev);
+        if (entry.sources.pocIndex)
+          appendLink(links, "PoC index record", entry.sources.pocIndex);
+        evidence.append(links);
+        if (entry.kev)
+          evidence.append(
+            element(
+              "p",
+              undefined,
+              `CISA added ${entry.id} on ${entry.kev.dateAdded}; remediation due ${entry.kev.dueDate}. ${entry.kev.requiredAction}`,
+            ),
+          );
+        grid.append(evidence);
+        details.append(grid);
+        article.append(details);
+        return article;
+      };
+
+      const render = () => {
+        const pageSize = Number(pageSizeSelect.value);
+        const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+        page = Math.min(Math.max(1, page), pageCount);
+        const start = (page - 1) * pageSize;
+        const pageItems = filtered.slice(start, start + pageSize);
+        results.replaceChildren(...pageItems.map(renderRecord));
+        results.setAttribute("aria-busy", "false");
+        if (!pageItems.length)
+          results.append(
+            element(
+              "p",
+              "service-atlas__empty",
+              "No records match every active filter.",
+            ),
+          );
+        status.textContent = `${filtered.length.toLocaleString()} matching records${filtered.length ? ` · showing ${start + 1}–${Math.min(start + pageSize, filtered.length)}` : ""}`;
+        pageLabel.textContent = `Page ${page} of ${pageCount}`;
+        previous.disabled = page <= 1;
+        next.disabled = page >= pageCount;
+      };
+
+      const applyFilters = () => {
+        if (!catalog) return;
+        const data = new FormData(form);
+        const query = String(data.get("query") ?? "")
+          .trim()
+          .toLowerCase();
+        const terms = query.split(/\s+/).filter(Boolean);
+        const serviceSlug = String(data.get("service") ?? "");
+        const category = String(data.get("category") ?? "");
+        const impact = String(data.get("impact") ?? "");
+        const evidence = String(data.get("evidence") ?? "");
+        const poc = String(data.get("poc") ?? "");
+        const severity = String(data.get("severity") ?? "");
+        filtered = catalog.vulnerabilities.filter((entry) => {
+          const service = serviceMap.get(entry.serviceSlug);
+          const searchable = searchIndex.get(entry.id) ?? "";
+          const evidenceMatch =
+            !evidence ||
+            (evidence === "exploited" && entry.exploited) ||
+            (evidence === "public" && entry.publiclyDisclosed) ||
+            (evidence === "not-known" &&
+              !entry.exploited &&
+              !entry.publiclyDisclosed);
+          return (
+            terms.every((term) => searchable.includes(term)) &&
+            (!serviceSlug || entry.serviceSlug === serviceSlug) &&
+            (!category || service?.category === category) &&
+            (!impact || entry.impact === impact) &&
+            evidenceMatch &&
+            (!poc || entry.poc.status === poc) &&
+            (!severity || entry.severity === severity)
+          );
+        });
+        page = 1;
+        render();
+      };
+
+      const load = async () => {
+        try {
+          const response = await fetch(
+            root.dataset.datasetUrl ??
+              "/data/windows-service-vulnerabilities.json",
+          );
+          if (!response.ok)
+            throw new Error(`${response.status} ${response.statusText}`);
+          catalog = (await response.json()) as CatalogPayload;
+          catalog.services.forEach((entry) =>
+            serviceMap.set(entry.slug, entry),
+          );
+          catalog.vulnerabilities.forEach((entry) => {
+            const service = serviceMap.get(entry.serviceSlug);
+            searchIndex.set(
+              entry.id,
+              [
+                entry.id,
+                entry.title,
+                entry.disclosed,
+                entry.bugClass,
+                entry.impact,
+                entry.zeroDayStatus,
+                entry.cwe.join(" "),
+                entry.affectedProducts.join(" "),
+                entry.fixedBuilds.join(" "),
+                entry.kbArticles
+                  .map((kb) => `${kb.id} ${kb.fixedBuild ?? ""}`)
+                  .join(" "),
+                service?.name,
+                service?.category,
+                service?.scmNames.join(" "),
+              ]
+                .join(" ")
+                .toLowerCase(),
+            );
+          });
+          const requested = new URLSearchParams(window.location.search);
+          const query = requested.get("q");
+          const service = requested.get("service");
+          if (query) {
+            const input = form.elements.namedItem(
+              "query",
+            ) as HTMLInputElement | null;
+            if (input) input.value = query;
+          }
+          if (service && serviceMap.has(service)) serviceSelect.value = service;
+          applyFilters();
+        } catch (error) {
+          results.setAttribute("aria-busy", "false");
+          results.replaceChildren(
+            element(
+              "p",
+              "service-atlas__empty",
+              "The catalog dataset could not be loaded. Use the JSON endpoint or try again.",
+            ),
+          );
+          status.textContent = "Dataset unavailable";
+          root.dataset.loadError =
+            error instanceof Error ? error.message : "unknown";
+        }
+      };
+
+      form.addEventListener("input", applyFilters);
+      form.addEventListener("reset", () => window.setTimeout(applyFilters));
+      pageSizeSelect.addEventListener("change", () => {
+        page = 1;
+        render();
+      });
+      previous.addEventListener("click", () => {
+        page -= 1;
+        render();
+        root
+          .querySelector("#explorer-heading")
+          ?.scrollIntoView({ behavior: "smooth" });
+      });
+      next.addEventListener("click", () => {
+        page += 1;
+        render();
+        root
+          .querySelector("#explorer-heading")
+          ?.scrollIntoView({ behavior: "smooth" });
+      });
+      root
+        .querySelectorAll<HTMLButtonElement>("[data-service-pick]")
+        .forEach((button) => {
+          button.addEventListener("click", () => {
+            serviceSelect.value = button.dataset.servicePick ?? "";
+            applyFilters();
+            root
+              .querySelector("#vulnerability-explorer")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+      void load();
+    });
+</script>
+
+<style>
+  .service-atlas {
+    display: grid;
+    gap: var(--space-3xl);
+  }
+  .service-atlas__hero {
+    display: grid;
+    gap: var(--space-md);
+    max-width: var(--container-wide);
+  }
+  .service-atlas__hero h1,
+  .service-atlas__hero p,
+  .service-atlas__section-heading h2,
+  .service-atlas__section-heading p,
+  .service-atlas__scope h2,
+  .service-atlas__scope p,
+  .service-atlas__method-grid p,
+  .service-atlas__record h3,
+  .service-atlas__record p,
+  .service-atlas__record h4 {
+    margin: 0;
+  }
+  .service-atlas__hero h1 {
+    max-width: 17ch;
+    font-size: clamp(var(--text-4xl), 7vw, var(--text-5xl));
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+  }
+  .service-atlas__eyebrow {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+  .service-atlas__lede {
+    max-width: 72ch;
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+  .service-atlas__hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+  .service-atlas__hero-actions a {
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+  .service-atlas__hero-actions a:first-child {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .service-atlas__hero-actions a:hover {
+    box-shadow: var(--shadow-sm);
+  }
+  .service-atlas__metrics {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+  }
+  .service-atlas__metrics article {
+    display: grid;
+    gap: var(--space-xs);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+  }
+  .service-atlas__metrics strong {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xl);
+  }
+  .service-atlas__metrics span,
+  .service-atlas__service span,
+  .service-atlas__service small {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+  .service-atlas__scope,
+  .service-atlas__section-heading {
+    display: grid;
+    grid-template-columns: minmax(15rem, 0.7fr) minmax(0, 1.3fr);
+    gap: var(--space-xl);
+  }
+  .service-atlas__scope {
+    padding: var(--space-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
+    background: var(--color-bg-secondary);
+  }
+  .service-atlas__scope > div,
+  .service-atlas__method,
+  .service-atlas__inventory,
+  .service-atlas__explorer {
+    display: grid;
+    gap: var(--space-lg);
+  }
+  .service-atlas__scope p,
+  .service-atlas__section-heading > p {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+  .service-atlas__section-heading {
+    align-items: end;
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .service-atlas__section-heading > div {
+    display: grid;
+    gap: var(--space-xs);
+  }
+  .service-atlas__method-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .service-atlas__method-grid li {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+  }
+  .service-atlas__method-grid span {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .service-atlas__method-grid p {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+  .service-atlas__sources,
+  .service-atlas__evidence-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+  .service-atlas__sources a,
+  .service-atlas__evidence-links a {
+    padding: var(--spacing-2) var(--spacing-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+  .service-atlas__service-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+  }
+  .service-atlas__inventory-browser {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-secondary);
+  }
+  .service-atlas__inventory-browser summary {
+    padding: var(--space-md) var(--space-lg);
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+  }
+  .service-atlas__inventory-browser[open] {
+    padding: 0 var(--space-sm) var(--space-sm);
+  }
+  .service-atlas__inventory-browser[open] summary {
+    margin-inline: calc(var(--space-sm) * -1);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .service-atlas__service {
+    display: grid;
+    gap: var(--space-xs);
+    min-width: 0;
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    color: var(--color-text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .service-atlas__service:hover {
+    border-color: var(--color-text-secondary);
+    background: var(--color-bg-secondary);
+  }
+  .service-atlas__service strong {
+    line-height: var(--leading-tight);
+  }
+  .service-atlas__service b {
+    margin-top: var(--space-xs);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .service-atlas__filters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-secondary);
+  }
+  .service-atlas__filters label,
+  .service-atlas__result-bar label {
+    display: grid;
+    align-content: end;
+    gap: var(--space-xs);
+    min-width: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+  }
+  .service-atlas__search {
+    grid-column: span 2;
+  }
+  .service-atlas__filters input,
+  .service-atlas__filters select,
+  .service-atlas__result-bar select,
+  .service-atlas__filters button,
+  .service-atlas__pagination button {
+    width: 100%;
+    min-height: var(--spacing-12);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    padding: var(--spacing-2) var(--spacing-3);
+    font: inherit;
+  }
+  .service-atlas__filters button,
+  .service-atlas__pagination button {
+    align-self: end;
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+  }
+  .service-atlas__filters button:hover,
+  .service-atlas__pagination button:hover:not(:disabled) {
+    background: var(--secondary);
+  }
+  .service-atlas__filters input:focus-visible,
+  .service-atlas__filters select:focus-visible,
+  .service-atlas__filters button:focus-visible,
+  .service-atlas__service:focus-visible,
+  .service-atlas__pagination button:focus-visible,
+  .service-atlas a:focus-visible,
+  .service-atlas summary:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .service-atlas__result-bar {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+  .service-atlas__result-bar p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+  .service-atlas__results {
+    display: grid;
+    gap: var(--space-md);
+  }
+  .service-atlas__record {
+    display: grid;
+    gap: var(--space-lg);
+    min-width: 0;
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+    scroll-margin-top: var(--spacing-20);
+  }
+  .service-atlas__record--preview {
+    opacity: 0.76;
+  }
+  .service-atlas__record header,
+  .service-atlas__record section {
+    display: grid;
+    gap: var(--space-xs);
+  }
+  .service-atlas__identity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  .service-atlas__cve {
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-weight: var(--font-weight-semibold);
+    text-underline-offset: var(--spacing-1);
+  }
+  .service-atlas__badge {
+    padding: var(--spacing-1) var(--spacing-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .service-atlas__badge--critical,
+  .service-atlas__badge--danger {
+    border-color: color-mix(
+      in srgb,
+      var(--destructive) 55%,
+      var(--color-border)
+    );
+    color: var(--destructive);
+  }
+  .service-atlas__badge--important {
+    border-color: color-mix(in srgb, var(--warning) 55%, var(--color-border));
+  }
+  .service-atlas__record h3 {
+    font-size: var(--text-xl);
+    line-height: var(--leading-tight);
+  }
+  .service-atlas__record-meta,
+  .service-atlas__record small,
+  .service-atlas__record-details p,
+  .service-atlas__record-details li {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+  .service-atlas__analysis,
+  .service-atlas__detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+  .service-atlas__analysis section,
+  .service-atlas__detail-grid section {
+    align-content: start;
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-secondary);
+  }
+  .service-atlas__record h4 {
+    font-size: var(--text-sm);
+  }
+  .service-atlas__record-details {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-md);
+  }
+  .service-atlas__record-details summary {
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+  }
+  .service-atlas__detail-grid {
+    margin-top: var(--space-md);
+  }
+  .service-atlas__compact-list ul,
+  .service-atlas__link-list {
+    display: grid;
+    gap: var(--space-xs);
+    margin: 0;
+    padding-left: var(--space-lg);
+  }
+  .service-atlas__more {
+    margin-top: var(--space-sm) !important;
+    font-style: italic;
+  }
+  .service-atlas__poc small {
+    padding: var(--space-sm);
+    border-left: 2px solid var(--warning);
+  }
+  .service-atlas__pagination {
+    display: grid;
+    grid-template-columns: minmax(7rem, 1fr) auto minmax(7rem, 1fr);
+    align-items: center;
+    gap: var(--space-md);
+    max-width: 30rem;
+    margin-inline: auto;
+  }
+  .service-atlas__pagination span {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-align: center;
+  }
+  .service-atlas__pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .service-atlas__empty,
+  .service-atlas__noscript {
+    padding: var(--space-xl);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-xl);
+    color: var(--color-text-secondary);
+    text-align: center;
+  }
+  @media (max-width: 64rem) {
+    .service-atlas__metrics,
+    .service-atlas__method-grid,
+    .service-atlas__service-grid,
+    .service-atlas__filters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 48rem) {
+    .service-atlas__scope,
+    .service-atlas__section-heading,
+    .service-atlas__analysis,
+    .service-atlas__detail-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-md);
+    }
+  }
+  @media (max-width: 36rem) {
+    .service-atlas__metrics,
+    .service-atlas__method-grid,
+    .service-atlas__service-grid,
+    .service-atlas__filters {
+      grid-template-columns: 1fr;
+    }
+    .service-atlas__search {
+      grid-column: auto;
+    }
+    .service-atlas__result-bar {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .service-atlas * {
+      scroll-behavior: auto;
+    }
+  }
+</style>

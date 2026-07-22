@@ -109,21 +109,53 @@
       "name": "Input",
       "tier": "component",
       "path": "src/components/ui/form/Input/Input.astro",
-      "props": ["id", "name", "label", "type", "placeholder", "value", "helperText", "errorText", "required", "class"],
+      "props": [
+        "id",
+        "name",
+        "label",
+        "type",
+        "placeholder",
+        "value",
+        "helperText",
+        "errorText",
+        "required",
+        "class"
+      ],
       "i18nAware": false
     },
     {
       "name": "Select",
       "tier": "component",
       "path": "src/components/ui/form/Select/Select.astro",
-      "props": ["id", "name", "label", "options", "value", "helperText", "errorText", "required", "class"],
+      "props": [
+        "id",
+        "name",
+        "label",
+        "options",
+        "value",
+        "helperText",
+        "errorText",
+        "required",
+        "class"
+      ],
       "i18nAware": false
     },
     {
       "name": "Textarea",
       "tier": "component",
       "path": "src/components/ui/form/Textarea/Textarea.astro",
-      "props": ["id", "name", "label", "rows", "placeholder", "value", "helperText", "errorText", "required", "class"],
+      "props": [
+        "id",
+        "name",
+        "label",
+        "rows",
+        "placeholder",
+        "value",
+        "helperText",
+        "errorText",
+        "required",
+        "class"
+      ],
       "i18nAware": false
     },
     {
@@ -249,7 +281,14 @@
       "name": "TableOfContents",
       "tier": "component",
       "path": "src/components/blog/TableOfContents.astro",
-      "props": ["headings", "layout", "maxDepth", "minHeadings", "title", "locale"],
+      "props": [
+        "headings",
+        "layout",
+        "maxDepth",
+        "minHeadings",
+        "title",
+        "locale"
+      ],
       "i18nAware": true
     },
     {
@@ -265,7 +304,16 @@
       "name": "Hero",
       "tier": "section",
       "path": "src/components/hero/Hero.astro",
-      "props": ["variant", "size", "eyebrow", "headline", "subheadline", "primaryCta", "secondaryCta", "locale"],
+      "props": [
+        "variant",
+        "size",
+        "eyebrow",
+        "headline",
+        "subheadline",
+        "primaryCta",
+        "secondaryCta",
+        "locale"
+      ],
       "i18nAware": true
     },
     {
@@ -308,7 +356,16 @@
       "name": "CTA",
       "tier": "section",
       "path": "src/components/ui/marketing/CTA/CTA.astro",
-      "props": ["eyebrow", "title", "content", "primaryText", "primaryHref", "secondaryText", "secondaryHref", "centered"],
+      "props": [
+        "eyebrow",
+        "title",
+        "content",
+        "primaryText",
+        "primaryHref",
+        "secondaryText",
+        "secondaryHref",
+        "centered"
+      ],
       "i18nAware": true
     },
     {
@@ -373,20 +430,90 @@
       "path": "src/components/sections/WindowsSecurityConcepts.astro",
       "props": [],
       "i18nAware": false
+    },
+    {
+      "name": "WindowsServiceAtlas",
+      "tier": "section",
+      "path": "src/components/sections/WindowsServiceAtlas.astro",
+      "props": ["datasetUrl"],
+      "i18nAware": false
     }
   ],
   "pages": [
-    { "name": "Post index", "path": "src/pages/index.astro", "locales": ["en"] },
-    { "name": "Post detail", "path": "src/pages/blog/[slug].astro", "locales": ["en"] },
-    { "name": "Windows security handbook", "path": "src/pages/windows-security-concepts.astro", "locales": ["en"] },
-    { "name": "Localized Windows security handbook", "path": "src/pages/[locale]/windows-security-concepts.astro", "locales": [] },
-    { "name": "Windows security concept", "path": "src/pages/windows-security-concepts/[slug].astro", "locales": ["en"] },
-    { "name": "Localized Windows security concept", "path": "src/pages/[locale]/windows-security-concepts/[slug].astro", "locales": [] },
-    { "name": "Windows security topic shelf", "path": "src/pages/windows-security-concepts/topics/[group].astro", "locales": ["en"] },
-    { "name": "Localized Windows security topic shelf", "path": "src/pages/[locale]/windows-security-concepts/topics/[group].astro", "locales": [] },
-    { "name": "Windows API and flags cheatsheet", "path": "src/pages/windows-api-cheatsheet.astro", "locales": ["en"] },
-    { "name": "Localized Windows API and flags cheatsheet", "path": "src/pages/[locale]/windows-api-cheatsheet.astro", "locales": [] },
-    { "name": "Windows security case studies", "path": "src/pages/windows-security-case-studies.astro", "locales": ["en"] },
-    { "name": "Localized Windows security case studies", "path": "src/pages/[locale]/windows-security-case-studies.astro", "locales": [] }
+    {
+      "name": "Post index",
+      "path": "src/pages/index.astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Post detail",
+      "path": "src/pages/blog/[slug].astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Windows security handbook",
+      "path": "src/pages/windows-security-concepts.astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Localized Windows security handbook",
+      "path": "src/pages/[locale]/windows-security-concepts.astro",
+      "locales": []
+    },
+    {
+      "name": "Windows security concept",
+      "path": "src/pages/windows-security-concepts/[slug].astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Localized Windows security concept",
+      "path": "src/pages/[locale]/windows-security-concepts/[slug].astro",
+      "locales": []
+    },
+    {
+      "name": "Windows security topic shelf",
+      "path": "src/pages/windows-security-concepts/topics/[group].astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Localized Windows security topic shelf",
+      "path": "src/pages/[locale]/windows-security-concepts/topics/[group].astro",
+      "locales": []
+    },
+    {
+      "name": "Windows API and flags cheatsheet",
+      "path": "src/pages/windows-api-cheatsheet.astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Localized Windows API and flags cheatsheet",
+      "path": "src/pages/[locale]/windows-api-cheatsheet.astro",
+      "locales": []
+    },
+    {
+      "name": "Windows security case studies",
+      "path": "src/pages/windows-security-case-studies.astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Localized Windows security case studies",
+      "path": "src/pages/[locale]/windows-security-case-studies.astro",
+      "locales": []
+    },
+    {
+      "name": "Windows service vulnerability atlas",
+      "path": "src/pages/windows-service-vulnerabilities.astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Localized Windows service vulnerability atlas",
+      "path": "src/pages/[locale]/windows-service-vulnerabilities.astro",
+      "locales": []
+    },
+    {
+      "name": "Windows service vulnerability JSON",
+      "path": "src/pages/data/windows-service-vulnerabilities.json.ts",
+      "locales": ["en"]
+    }
   ]
 }
