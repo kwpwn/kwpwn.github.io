@@ -193,7 +193,7 @@ const allPosts = await getCollection("blog");
 
   /* Comfortable reading measure for long-form content. */
   .blog-layout__article {
-    max-width: 72ch;
+    max-width: 68ch;
   }
 
   .blog-layout__article--wide {
@@ -209,8 +209,8 @@ const allPosts = await getCollection("blog");
     border-radius: var(--radius-full);
     color: var(--color-text-primary);
     text-decoration: none;
-    font-weight: 600;
-    font-size: 0.9375rem;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-sm);
     transition:
       border-color 0.15s ease,
       background 0.15s ease;

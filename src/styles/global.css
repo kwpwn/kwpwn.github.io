@@ -20,33 +20,21 @@
 @import "./tokens/spacing.css";
 
 /* ─── 3. Fontsource variable font imports (self-hosted) ─── */
-@import "@fontsource-variable/manrope";
-@import "@fontsource-variable/outfit";
+@import "@fontsource-variable/source-sans-3";
 @import "@fontsource-variable/jetbrains-mono";
 
 /* ─── 4. Metric-adjusted fallback @font-face rules ─── */
 
 /* Prevents layout shift (CLS) by matching the metric of the target font using Arial as base */
 
-/* Outfit Fallback — metric-adjusted Arial for headings */
+/* Source Sans 3 fallback — metric-adjusted Arial for body and headings */
 @font-face {
-  font-family: "Outfit Fallback";
+  font-family: "Source Sans 3 Fallback";
   src: local("Arial");
-  ascent-override: 103%;
-  descent-override: 20%;
+  ascent-override: 98%;
+  descent-override: 23%;
   line-gap-override: 0%;
-  size-adjust: 107%;
-  font-display: swap;
-}
-
-/* Manrope Fallback — metric-adjusted Arial for body */
-@font-face {
-  font-family: "Manrope Fallback";
-  src: local("Arial");
-  ascent-override: 101%;
-  descent-override: 20%;
-  line-gap-override: 0%;
-  size-adjust: 105%;
+  size-adjust: 101%;
   font-display: swap;
 }
 
@@ -195,8 +183,9 @@ h6 {
 /* Prose (markdown) */
 .prose {
   color: var(--foreground);
-  max-width: 65ch;
-  line-height: var(--leading-relaxed);
+  max-width: 68ch;
+  font-size: var(--text-reading);
+  line-height: var(--leading-reading);
 }
 
 .prose h1,
@@ -207,19 +196,85 @@ h6 {
 .prose h6 {
   font-family: var(--font-heading);
   font-weight: var(--font-weight-semibold);
-  margin-top: 2em;
-  margin-bottom: 0.75em;
+  margin-top: 2.25em;
+  margin-bottom: 0.65em;
+  letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
+  scroll-margin-top: 6rem;
+}
+
+.prose h2 {
+  padding-top: 0.35em;
+  border-top: 1px solid var(--border);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-snug);
+}
+
+.prose h3 {
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+}
+
+.prose h4,
+.prose h5,
+.prose h6 {
+  font-size: var(--text-lg);
+  line-height: var(--leading-snug);
 }
 
 .prose p {
-  margin-top: 1.25em;
-  margin-bottom: 1.25em;
+  margin-top: 1.1em;
+  margin-bottom: 1.1em;
+}
+
+.prose ul,
+.prose ol {
+  margin-block: 1.1em;
+  padding-left: 1.35em;
+}
+
+.prose li {
+  margin-block: 0.35em;
+  padding-left: 0.15em;
+}
+
+.prose li::marker {
+  color: var(--muted-foreground);
+}
+
+.prose blockquote {
+  margin: 1.5em 0;
+  padding: 0.2em 0 0.2em var(--space-lg);
+  border-left: 2px solid var(--border);
+  color: var(--muted-foreground);
+}
+
+.prose table {
+  width: 100%;
+  margin-block: 1.5em;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.prose th,
+.prose td {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  font-weight: var(--font-weight-semibold);
+  background: var(--muted);
 }
 
 .prose a {
   color: var(--primary);
   text-decoration: underline;
   text-underline-offset: 2px;
+  overflow-wrap: anywhere;
 }
 
 .prose a:hover {

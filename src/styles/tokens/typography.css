@@ -1,16 +1,18 @@
 /**
- * Typography tokens — Font families, fluid type scale, heading weights
- * Fontsource variable fonts: Manrope (body), Outfit (headings), JetBrains Mono (code)
+ * Typography tokens — Font families, fluid type scale, heading weights.
+ * Source Sans 3 gives long technical articles one calm reading texture.
  */
 
 :root {
   /* === Font families === */
   --font-sans:
-    "Manrope Variable", "Manrope Fallback", system-ui, -apple-system,
-    blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
+    "Source Sans 3 Variable", "Source Sans 3 Fallback", system-ui,
+    -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue",
+    arial, sans-serif;
   --font-heading:
-    "Outfit Variable", "Outfit Fallback", system-ui, -apple-system,
-    blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
+    "Source Sans 3 Variable", "Source Sans 3 Fallback", system-ui,
+    -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue",
+    arial, sans-serif;
   --font-mono:
     "JetBrains Mono Variable", "JetBrains Mono Fallback", ui-monospace,
     sfmono-regular, "SF Mono", menlo, consolas, "Liberation Mono", monospace;
@@ -27,6 +29,7 @@
   --text-3xl: clamp(1.875rem, 1.5rem + 1.875vw, 2.5rem); /* 30-40px  */
   --text-4xl: clamp(2.25rem, 1.75rem + 2.5vw, 3rem); /* 36-48px  */
   --text-5xl: clamp(3rem, 2.25rem + 3.75vw, 4rem); /* 48-64px  */
+  --text-reading: clamp(1.0625rem, 1.015rem + 0.22vw, 1.1875rem);
 
   /* === Heading weights === */
   --font-weight-light: 300;
@@ -41,6 +44,7 @@
   --leading-snug: 1.375;
   --leading-normal: 1.5;
   --leading-relaxed: 1.625;
+  --leading-reading: 1.72;
   --leading-loose: 2;
 
   /* === Letter spacing === */

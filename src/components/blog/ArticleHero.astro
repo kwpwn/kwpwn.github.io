@@ -64,9 +64,16 @@ const dateLabel = publishDate.toLocaleDateString("en-US", {
     <TagList tags={post.data.tags ?? []} locale={locale} />
   </div>
 
-  <figure class="article-hero__media">
-    <BlogImageSVG slug={post.data.svgSlug ?? post.id} title={post.data.title} />
-  </figure>
+  {
+    !topic && (
+      <figure class="article-hero__media">
+        <BlogImageSVG
+          slug={post.data.svgSlug ?? post.id}
+          title={post.data.title}
+        />
+      </figure>
+    )
+  }
 </header>
 
 <style>
@@ -110,17 +117,18 @@ const dateLabel = publishDate.toLocaleDateString("en-US", {
 
   .article-hero h1 {
     margin: 0;
-    font-size: clamp(2.25rem, 5vw, 3.75rem);
-    line-height: 1.05;
-    letter-spacing: -0.025em;
+    max-width: 20ch;
+    font-size: var(--text-3xl);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
     text-wrap: balance;
   }
 
   .article-hero__description {
     margin: 0;
     color: var(--color-text-secondary);
-    font-size: clamp(1.0625rem, 2vw, 1.25rem);
-    line-height: 1.6;
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
     max-width: 42rem;
     text-wrap: pretty;
   }
@@ -131,7 +139,7 @@ const dateLabel = publishDate.toLocaleDateString("en-US", {
     flex-wrap: wrap;
     gap: var(--space-xs);
     color: var(--color-text-secondary);
-    font-size: 0.9375rem;
+    font-size: var(--text-sm);
   }
 
   .article-hero__author {

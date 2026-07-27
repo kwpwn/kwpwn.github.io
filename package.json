@@ -32,6 +32,7 @@
     "validate:services": "node scripts/validate-windows-service-catalog.mjs",
     "validate:service-routes": "node scripts/validate-windows-service-routes.mjs",
     "sync:services": "node scripts/sync-windows-service-vulnerabilities.mjs",
+    "generate:topics": "node scripts/generate-yunolay-lessons.mjs --refresh",
     "validate:handbook": "node scripts/validate-handbook.mjs",
     "validate:secrets": "node scripts/validate-secrets.cjs"
   },
@@ -41,8 +42,7 @@
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.3",
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
-    "@fontsource-variable/manrope": "^5.2.8",
-    "@fontsource-variable/outfit": "^5.2.8",
+    "@fontsource-variable/source-sans-3": "^5.3.0",
     "@iconify-json/lucide": "^1.2.117",
     "@iconify-json/simple-icons": "^1.2.90",
     "@tailwindcss/vite": "^4.3.2",

@@ -1,0 +1,311 @@
+---
+title: "Synchronization Primitives and Dispatcher Objects"
+description: "A mechanism-first, version-aware study of Synchronization Primitives and Dispatcher Objects, with trust boundaries, evidence collection, a safe guided lab, telemetry, hardening, and reproducible case analysis."
+locale: "en"
+publishDate: 2026-07-28
+updatedAt: 2026-07-28
+draft: false
+featured: false
+tags:
+  - "Windows Internals"
+  - "processes execution"
+  - "Research Notes"
+author: "Kwpwn"
+toc: true
+wide: false
+topic: "windows-internals"
+track: "processes-execution"
+seriesOrder: 6
+topicPlacements:
+  - topic: "windows-internals"
+    track: "processes-execution"
+    order: 6
+difficulty: "Intermediate"
+prerequisites:
+  - "Basic Windows processes, threads, tokens, and handles"
+  - "A disposable VM with matching public symbols"
+learningObjectives:
+  - "Explain Synchronization Primitives and Dispatcher Objects as a sequence of state transitions and trust boundaries"
+  - "Collect version-aware evidence and distinguish fact, observation, inference, and unknown"
+  - "Design a safe positive control, negative control, detection plan, and hardening check"
+labEnvironment: "Use a disposable Windows debugging VM with matching Microsoft public symbols. Begin with user-mode inspection and documented APIs. Kernel debugger commands are read-only and should never be run against a production system. Record the exact OS build before interpreting undocumented structures."
+---
+
+This lesson builds a mechanism-first model of Windows. Public contracts, observable implementation behavior, and version-specific internal fields are kept separate. Structures and debugger output are evidence for a particular build, not timeless ABI promises.
+
+The subject here is **Synchronization Primitives and Dispatcher Objects**. The goal is not to memorize a named
+technique or an undocumented field. The goal is to be able to explain the
+mechanism, establish its preconditions, collect version-aware evidence, and
+recognize when an apparently similar observation is actually a different
+case. In the curriculum this page is placed as windows-internals lesson 06 in `processes-execution`.
+
+## Concept in one sentence
+
+Dispatcher objects such as events, mutexes, semaphores, timers, threads, and processes expose signaled state and wait semantics. This definition is deliberately operational: it names
+state that can be inspected and avoids treating a product, utility, or
+structure name as an explanation.
+
+## Questions this lesson answers
+
+- Which manager owns the object or state, how is it created and referenced, where is the user-to-kernel or subsystem boundary, and which facts change across Windows builds?
+- Which statement is a documented contract, which is a lab observation, and
+  which remains an inference?
+- What is the smallest safe experiment that distinguishes the leading
+  hypothesis from a plausible alternative?
+- Which OS build, architecture, policy, identity, and lifecycle conditions
+  must accompany the result?
+
+These questions form a reusable reading lens. They also prevent a common
+failure mode in security notes: copying a command that produces an interesting
+line without explaining why the line matters or what would make it irrelevant.
+
+## System model
+
+The mechanism can be decomposed into four connected claims:
+
+1. **State:** Dispatcher objects such as events, mutexes, semaphores, timers, threads, and processes expose signaled state and wait semantics.
+2. **Boundary:** spin locks and push locks solve different IRQL and scheduling problems and must not be mixed casually.
+3. **Constraint:** alertable waits permit APC delivery while wait-any and wait-all have different satisfaction rules.
+4. **Evidence:** deadlock analysis records lock order, ownership, recursion, wait blocks, IRQL, APC disablement, timeouts, and object lifetime.
+
+Read those claims from left to right as a state transition, then from right to
+left as an evidence plan. If the final effect is claimed, there must be
+evidence for the constraint and boundary that made the transition possible.
+If a prerequisite cannot be observed, label it unknown. Do not silently
+promote it to true.
+
+## Lifecycle and ownership
+
+Every Windows security mechanism has an owner and a lifecycle. Identify the
+component that creates the relevant state, the object or record that retains
+it, the identity allowed to modify it, the consumer that reads it, and the
+event that retires or invalidates it. This is more precise than a flat list of
+APIs because APIs are entry points into a state machine, not the state machine
+itself.
+
+For **Synchronization Primitives and Dispatcher Objects**, build the lifecycle around the four claims above. Mark
+asynchronous boundaries explicitly. A service, worker thread, scheduled
+callback, provider host, loader, or kernel deferred routine may consume data
+long after the originating call returned. That time gap changes both object
+lifetime and the telemetry needed to reconstruct causality.
+
+Ownership is equally important. A handle is not the object; a process ID is
+not the process object; a filename is not the mapped image; a registry path is
+not proof that a specific view was read. Record references and identities at
+the boundary where the security decision or state transition actually occurs.
+
+## Trust-boundary map
+
+| Dimension | Record explicitly | Why it changes the result |
+| --- | --- | --- |
+| Actor | SID, groups, privileges, integrity, process and thread context | Account names hide deny-only groups, filtering, and impersonation |
+| Controlled input | Exact object, bytes, value, path, message, or policy | Similar-looking locations may have different owners and consumers |
+| Consumer | Image, service or manager, token, bitness, and session | The consumer determines authority and parsing behavior |
+| Trigger | Call, boot phase, logon, timer, connection, load, or restart | Writable state without a reachable trigger is not a complete chain |
+| Result | New state, access decision, event, mapping, or execution context | The result must be measurable without assuming the conclusion |
+| Negative control | One removed prerequisite and the expected changed outcome | It distinguishes causality from coincidence |
+
+This table should be completed before a lab is run. Empty cells are useful:
+they expose exactly what research is still required.
+
+## Version and configuration dimensions
+
+Windows internals and security behavior are versioned. Record edition,
+architecture, build number, cumulative update, boot security state, relevant
+policy source, and whether the observation came from a native or WoW64
+process. A blog post, proof of concept, or structure browser may describe a
+different build. Treat its offsets, defaults, and reachable paths as
+hypotheses until reproduced.
+
+Configuration has provenance. Local policy, domain policy, mobile-device
+management, installer state, service configuration, and runtime calls can
+produce the same visible value through different authorities. Preserve both
+the effective setting and, where available, its policy source. A reliable
+write-up should say “observed on build X with policy Y” rather than “Windows
+always does Z.”
+
+## Evidence-first workflow
+
+1. **Freeze context.** Record time, build, architecture, current token,
+   relevant policy, and specimen or object identity.
+2. **State one claim.** Write a falsifiable sentence using the actor, controlled
+   input, consumer, trigger, and result.
+3. **Collect the least-invasive evidence.** Prefer documented queries, ACL
+   inspection, event collection, symbols, and offline parsing.
+4. **Run a benign positive control.** Confirm the sensor and interpretation can
+   observe a known safe event.
+5. **Run a negative control.** Remove one prerequisite or query a clearly
+   unaffected object and predict the changed result.
+6. **Correlate independent sources.** A configuration record plus runtime
+   telemetry is stronger than either alone.
+7. **Classify confidence.** Separate fact, observation, inference, and unknown.
+8. **Reset and repeat.** Reproduction after snapshot restore detects hidden
+   state and timing assumptions.
+
+The workflow intentionally delays high-impact activity. Most incorrect
+findings can be rejected through reachability, identity, ACL, build, or policy
+evidence without attempting an exploit or executing an unknown sample.
+
+## Safe guided lab
+
+Use a disposable Windows debugging VM with matching Microsoft public symbols. Begin with user-mode inspection and documented APIs. Kernel debugger commands are read-only and should never be run against a production system. Record the exact OS build before interpreting undocumented structures.
+
+Create a case directory outside synchronized folders. Save the baseline
+commands and redirect their output to timestamped text files if you need an
+audit trail:
+
+```powershell
+# Establish version and symbol context before interpreting fields
+Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion, OsBuildNumber
+Get-CimInstance Win32_OperatingSystem | Select-Object Version, BuildNumber
+# In WinDbg: verify symbols, then use read-only inspection
+.symfix
+.reload /f
+vertarget
+```
+
+Write the hypothesis before collecting topic-specific evidence:
+
+```json
+{
+  "build": "edition, architecture, build, cumulative update",
+  "public_contract": "documented API, WDK contract, or specification",
+  "observation": "debugger or trace result with symbol provenance",
+  "inference": "mechanism inferred from the observation",
+  "version_risk": "field, policy, or path likely to change"
+}
+```
+
+For this lesson, populate the `controlled_object` or `observation` fields
+with the exact item described in the System model. Then perform two read-only
+passes: the first from the intended low-privileged or analysis context, and the
+second against a test object you created with a deliberately different
+configuration. Do not use a production service, another user's credential
+material, a live C2 endpoint, or an unsigned kernel component.
+
+### Topic-specific inspection probe
+
+The following probe is deliberately read-only. Replace placeholders only with
+an object, process, file, trace, or VM that belongs to the lab. Some commands
+require an elevated debugging console to *inspect* kernel or system state;
+elevation for observation does not prove that a standard user could reach the
+same state transition.
+
+```text
+!locks
+!handle 0 3
+!thread <waiting-thread>
+!deadlock
+```
+
+Interpret each line through the trust-boundary table. Capture the complete
+output, command context, exit status, and time. A command that is unavailable
+on a particular edition or build is itself a version note, not permission to
+substitute an unrelated conclusion.
+
+Use this compact decision record after each pass:
+
+```text
+Claim:
+Observed fact:
+Supporting source:
+Alternative explanation:
+Negative control:
+Result of negative control:
+Windows build and policy:
+Confidence: confirmed | supported | tentative | rejected
+```
+
+The lab is complete when the negative control changes the predicted evidence,
+not when a tool prints a dramatic label.
+
+## Worked case study
+
+Assume an analyst reports **Synchronization Primitives and Dispatcher Objects** after observing only the first visible
+artifact. The review team does not accept the label immediately. It reconstructs
+the four mechanism claims, identifies the owning component, and asks whether
+the observed actor can reach the relevant transition on the recorded build.
+
+The first pass confirms the artifact but leaves consumer identity and trigger
+unknown. The team therefore marks the case *tentative*. A second pass captures
+runtime telemetry while a benign test object follows the documented path. This
+establishes the expected consumer, timing, and result. Finally, the team removes
+one prerequisite—permission, policy, input, provider, mapping, or trigger,
+depending on the mechanism—and repeats the test. The predicted event or state
+transition disappears.
+
+That sequence supports causality. If the result had remained unchanged, the
+original model would be rejected or revised. The important lesson is that a
+case study is not valuable because it names a famous technique. It is valuable
+because another reader can reproduce the claim, observe its limits, and tell
+which part of the chain failed.
+
+## Telemetry and detection strategy
+
+Detection should follow invariant state transitions instead of copying one
+command line. Build a matrix with one row for each step in the mechanism and
+columns for configuration evidence, process or thread evidence, object or
+memory evidence, and external collection. Record sensor prerequisites and
+retention. A missing row then means “coverage unknown” rather than “activity
+did not happen.”
+
+Prefer joined signals: an unusual writer plus a sensitive object; a privileged
+consumer plus lower-privileged input; a protection change plus an anomalous
+thread start; a provider action plus a repository change; or a network message
+plus correlated task execution. Joins reduce dependence on superficial names
+that can change while the underlying mechanism remains.
+
+Hardening should break the earliest practical edge in the chain. Remove
+unnecessary reachability, narrow object permissions, enforce code or caller
+identity, disable unused components, strengthen protocol authentication, and
+retain telemetry outside the authority of the component being monitored.
+Validate the control with the same positive and negative tests used to
+establish the original model.
+
+## Common analytical failures
+
+- Treating a scanner, catalog, debugger extension, or framework label as proof.
+- Quoting a structure offset or default without recording the Windows build.
+- Confusing a writable object with a privileged consumer that will read it.
+- Confusing a process primary token with a thread impersonation token.
+- Treating missing telemetry as absence without a sensor-health control.
+- Running from an administrator console and attributing the result to a
+  standard user.
+- Presenting an isolated API call without object lifetime, cleanup, or error
+  behavior.
+- Reproducing only the positive case and therefore failing to establish
+  causality.
+
+These failures are useful review prompts. A strong article makes each one hard
+to commit because its evidence ledger exposes the missing link.
+
+## Review checklist
+
+- [ ] I can define the concept without using a product or exploit name.
+- [ ] I can name the manager, owner, object, actor, consumer, trigger, and result.
+- [ ] I recorded build, architecture, policy, identity, and time.
+- [ ] I separated a documented contract from an observation and an inference.
+- [ ] I used a benign positive control and a meaningful negative control.
+- [ ] I know which sensor gaps could hide the expected transition.
+- [ ] I can state at least one configuration where the conclusion no longer holds.
+- [ ] My notes contain enough provenance for another reader to reproduce them.
+
+## Source coverage
+
+This local lesson consolidates the following Yunolay source material into a
+single mechanism-first document. Consolidation avoids duplicate pages while
+preserving every source URL in the reference ledger.
+
+- [Synchronization Primitives and Dispatcher Objects](https://yunolay.com/synchronization-primitives-and-dispatcher-objects/)
+
+## References
+
+1. https://yunolay.com/synchronization-primitives-and-dispatcher-objects/
+2. https://learn.microsoft.com/windows-hardware/drivers/
+3. https://learn.microsoft.com/windows-hardware/drivers/debugger/
+4. https://learn.microsoft.com/windows/win32/sysinfo/windows-system-information
+5. https://learn.microsoft.com/sysinternals/
+6. https://github.com/winsiderss/systeminformer/tree/master/phnt
+7. https://ntdoc.m417z.com/
+8. https://www.vergiliusproject.com/
+9. https://github.com/reactos/reactos

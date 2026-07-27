@@ -1,0 +1,646 @@
+[
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "lolbas-living-off-the-land",
+    "title": "Living off the Land: Abusing LOLBAS Binaries on Windows",
+    "url": "https://yunolay.com/lolbas-living-off-the-land/",
+    "localSlug": "lolbins-trust-boundaries-and-telemetry"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "sebackup-serestore-privilege",
+    "title": "Abusing SeBackupPrivilege and SeRestorePrivilege for Windows Privilege Escalation",
+    "url": "https://yunolay.com/sebackup-serestore-privilege/",
+    "localSlug": "backup-restore-privileges-lab"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "winpeas-enumeration",
+    "title": "Practical Windows Enumeration with winPEAS",
+    "url": "https://yunolay.com/winpeas-enumeration/",
+    "localSlug": "windows-privesc-enumeration-evidence-workflow"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "windows-event-log-forensics",
+    "title": "Windows Event Logs and Forensic Artifacts: Tracking and Tampering",
+    "url": "https://yunolay.com/windows-event-log-forensics/",
+    "localSlug": "windows-event-logs-evidence-and-tamper-signals"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "printnightmare",
+    "title": "PrintNightmare: Abusing the Windows Print Spooler for Privilege Escalation and RCE",
+    "url": "https://yunolay.com/printnightmare/",
+    "localSlug": "print-spooler-boundaries-and-printnightmare"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "named-pipe-impersonation",
+    "title": "Named Pipe Impersonation: How Windows getsystem Really Works",
+    "url": "https://yunolay.com/named-pipe-impersonation/",
+    "localSlug": "named-pipe-impersonation-security-context"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "wmi-lateral-persistence",
+    "title": "Lateral Movement and Persistence with WMI",
+    "url": "https://yunolay.com/wmi-lateral-persistence/",
+    "localSlug": "wmi-lateral-movement-persistence-telemetry"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "powershell-obfuscation-bypass",
+    "title": "PowerShell Obfuscation and Execution Policy Bypass",
+    "url": "https://yunolay.com/powershell-obfuscation-bypass/",
+    "localSlug": "powershell-language-modes-logging-and-obfuscation"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "amsi-defender-bypass",
+    "title": "AMSI and Windows Defender Bypass: A Practical Primer",
+    "url": "https://yunolay.com/amsi-defender-bypass/",
+    "localSlug": "amsi-defender-scanning-boundaries-hardening"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "registry-autoruns-abuse",
+    "title": "Abusing Registry Autoruns for Windows Persistence and Privilege Escalation",
+    "url": "https://yunolay.com/registry-autoruns-abuse/",
+    "localSlug": "registry-autoruns-imagepath-permission-boundaries"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "scheduled-tasks-abuse",
+    "title": "Abusing Scheduled Tasks for Windows Persistence and Privilege Escalation",
+    "url": "https://yunolay.com/scheduled-tasks-abuse/",
+    "localSlug": "scheduled-tasks-startup-folders-privilege-boundaries"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "dpapi-credential-manager",
+    "title": "Looting Windows Secrets: Attacking DPAPI and Credential Manager",
+    "url": "https://yunolay.com/dpapi-credential-manager/",
+    "localSlug": "dpapi-credential-manager-protection-boundaries"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "lsass-memory-dump",
+    "title": "Dumping LSASS Memory: Techniques and Detection Evasion",
+    "url": "https://yunolay.com/lsass-memory-dump/",
+    "localSlug": "lsass-credential-material-ppl-credential-guard"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "mimikatz-credential-theft",
+    "title": "Practical Credential Theft with Mimikatz",
+    "url": "https://yunolay.com/mimikatz-credential-theft/",
+    "localSlug": "lsass-credential-material-ppl-credential-guard"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "uac-bypass",
+    "title": "UAC Bypass Techniques: A Practical Overview of Auto-Elevation Abuse",
+    "url": "https://yunolay.com/uac-bypass/",
+    "localSlug": "uac-auto-elevation-boundary-model"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "always-install-elevated",
+    "title": "Abusing AlwaysInstallElevated for Windows Privilege Escalation",
+    "url": "https://yunolay.com/always-install-elevated/",
+    "localSlug": "alwaysinstallelevated-policy-boundary"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "dll-hijacking",
+    "title": "DLL Hijacking: Privilege Escalation and Persistence on Windows",
+    "url": "https://yunolay.com/dll-hijacking/",
+    "localSlug": "dll-search-order-privileged-sink"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "weak-service-permissions",
+    "title": "Weak Service Permissions: Privilege Escalation via SERVICE_CHANGE_CONFIG on Windows",
+    "url": "https://yunolay.com/weak-service-permissions/",
+    "localSlug": "weak-service-dacls-and-binary-path-control"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "unquoted-service-path",
+    "title": "Privilege Escalation via Unquoted Service Paths on Windows",
+    "url": "https://yunolay.com/unquoted-service-path/",
+    "localSlug": "unquoted-service-path-reachability"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "windows-token-impersonation-potato",
+    "title": "Abusing Windows Token Privileges: The Potato Attack Family",
+    "url": "https://yunolay.com/windows-token-impersonation-potato/",
+    "localSlug": "token-impersonation-potato-family-boundaries"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "petitpotam-coercion",
+    "title": "PetitPotam and Coercion Attacks: Forcing Authentication and Relaying to AD CS",
+    "url": "https://yunolay.com/petitpotam-coercion/",
+    "localSlug": "authentication-coercion-petitpotam-relay-boundaries"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "seimpersonateprivilege-abuse-the-potato-family",
+    "title": "SeImpersonatePrivilege Abuse: The Potato Family",
+    "url": "https://yunolay.com/seimpersonateprivilege-abuse-the-potato-family/",
+    "localSlug": "token-impersonation-potato-family-boundaries"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "unquoted-service-path-exploitation-on-windows",
+    "title": "Unquoted Service Path Exploitation on Windows",
+    "url": "https://yunolay.com/unquoted-service-path-exploitation-on-windows/",
+    "localSlug": "unquoted-service-path-reachability"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "weak-service-permissions-and-binary-path-hijacking",
+    "title": "Weak Service Permissions and Binary Path Hijacking",
+    "url": "https://yunolay.com/weak-service-permissions-and-binary-path-hijacking/",
+    "localSlug": "weak-service-dacls-and-binary-path-control"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "alwaysinstallelevated-msi-privilege-escalation",
+    "title": "AlwaysInstallElevated: MSI Privilege Escalation",
+    "url": "https://yunolay.com/alwaysinstallelevated-msi-privilege-escalation/",
+    "localSlug": "alwaysinstallelevated-policy-boundary"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "uac-bypass-techniques-via-auto-elevating-binaries",
+    "title": "UAC Bypass Techniques via Auto-Elevating Binaries",
+    "url": "https://yunolay.com/uac-bypass-techniques-via-auto-elevating-binaries/",
+    "localSlug": "uac-auto-elevation-boundary-model"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "token-impersonation-and-stealing-on-windows",
+    "title": "Token Impersonation and Stealing on Windows",
+    "url": "https://yunolay.com/token-impersonation-and-stealing-on-windows/",
+    "localSlug": "token-impersonation-potato-family-boundaries"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "dll-hijacking-and-search-order-abuse-on-windows",
+    "title": "DLL Hijacking and Search-Order Abuse on Windows",
+    "url": "https://yunolay.com/dll-hijacking-and-search-order-abuse-on-windows/",
+    "localSlug": "dll-search-order-privileged-sink"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "stored-credentials-hunting-dpapi-registry-and-files",
+    "title": "Stored Credentials Hunting: DPAPI, Registry, and Files",
+    "url": "https://yunolay.com/stored-credentials-hunting-dpapi-registry-and-files/",
+    "localSlug": "dpapi-credential-manager-protection-boundaries"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "scheduled-task-and-startup-folder-privilege-escalation",
+    "title": "Scheduled Task and Startup Folder Privilege Escalation",
+    "url": "https://yunolay.com/scheduled-task-and-startup-folder-privilege-escalation/",
+    "localSlug": "scheduled-tasks-startup-folders-privilege-boundaries"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "insecure-registry-autoruns-and-service-imagepath-writes",
+    "title": "Insecure Registry Autoruns and Service ImagePath Writes",
+    "url": "https://yunolay.com/insecure-registry-autoruns-and-service-imagepath-writes/",
+    "localSlug": "registry-autoruns-imagepath-permission-boundaries"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "named-pipe-impersonation-for-local-privilege-escalation",
+    "title": "Named Pipe Impersonation for Local Privilege Escalation",
+    "url": "https://yunolay.com/named-pipe-impersonation-for-local-privilege-escalation/",
+    "localSlug": "named-pipe-impersonation-security-context"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "print-spooler-and-printnightmare-local-escalation",
+    "title": "Print Spooler and PrintNightmare Local Escalation",
+    "url": "https://yunolay.com/print-spooler-and-printnightmare-local-escalation/",
+    "localSlug": "print-spooler-boundaries-and-printnightmare"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "abusing-windows-backup-and-restore-privileges",
+    "title": "Abusing Windows Backup and Restore Privileges",
+    "url": "https://yunolay.com/abusing-windows-backup-and-restore-privileges/",
+    "localSlug": "backup-restore-privileges-lab"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "windows-subsystem-for-linux-wsl-as-an-attack-surface",
+    "title": "Windows Subsystem for Linux (WSL) as an Attack Surface",
+    "url": "https://yunolay.com/windows-subsystem-for-linux-wsl-as-an-attack-surface/",
+    "localSlug": "wsl-security-boundaries-and-telemetry"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "application-control-with-applocker-and-wdac-design-and-gaps",
+    "title": "Application Control with AppLocker and WDAC: Design and Gaps",
+    "url": "https://yunolay.com/application-control-with-applocker-and-wdac-design-and-gaps/",
+    "localSlug": "applocker-wdac-policy-design-gaps"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "windows-firewall-and-wfp-tampering-risks-and-detection",
+    "title": "Windows Firewall and WFP Tampering: Risks and Detection",
+    "url": "https://yunolay.com/windows-firewall-and-wfp-tampering-risks-and-detection/",
+    "localSlug": "windows-firewall-wfp-policy-telemetry"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "windows-access-tokens-deep-dive-integrity-levels-and-privileges",
+    "title": "Windows Access Tokens Deep Dive: Integrity Levels and Privileges",
+    "url": "https://yunolay.com/windows-access-tokens-deep-dive-integrity-levels-and-privileges/",
+    "localSlug": "access-tokens-sids-integrity-privileges"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "com-hijacking-for-persistence-and-privilege-escalation",
+    "title": "COM Hijacking for Persistence and Privilege Escalation",
+    "url": "https://yunolay.com/com-hijacking-for-persistence-and-privilege-escalation/",
+    "localSlug": "com-activation-hijacking-boundaries-telemetry"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "credential-guard-and-lsa-protection-ppl-how-they-work",
+    "title": "Credential Guard and LSA Protection (PPL): How They Work",
+    "url": "https://yunolay.com/credential-guard-and-lsa-protection-ppl-how-they-work/",
+    "localSlug": "lsass-credential-material-ppl-credential-guard"
+  },
+  {
+    "topic": "windows-privesc",
+    "sourceSlug": "volume-shadow-copies-vss-for-credential-and-file-recovery",
+    "title": "Volume Shadow Copies (VSS) for Credential and File Recovery",
+    "url": "https://yunolay.com/volume-shadow-copies-vss-for-credential-and-file-recovery/",
+    "localSlug": "volume-shadow-copy-security-boundaries"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "malicious-office-documents",
+    "title": "Dissecting Malicious Office Documents: VBA Macros, Stomping, and IOC Extraction",
+    "url": "https://yunolay.com/malicious-office-documents/",
+    "localSlug": "malicious-office-documents-static-dynamic-triage"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "c2-frameworks-explained",
+    "title": "C2 Frameworks Explained: Cobalt Strike, Sliver, and Mythic",
+    "url": "https://yunolay.com/c2-frameworks-explained/",
+    "localSlug": "c2-framework-architecture-comparison"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "yara-rules-detection",
+    "title": "Writing Effective YARA Detection Rules",
+    "url": "https://yunolay.com/yara-rules-detection/",
+    "localSlug": "yara-rule-engineering-test-quality"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "process-injection-techniques",
+    "title": "Process Injection Internals: DLL Injection, Reflective Loading, and Process Hollowing",
+    "url": "https://yunolay.com/process-injection-techniques/",
+    "localSlug": "process-injection-state-transitions-detection"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "windows-shellcode-analysis",
+    "title": "Windows Shellcode: Writing and Analyzing Position-Independent Payloads",
+    "url": "https://yunolay.com/windows-shellcode-analysis/",
+    "localSlug": "windows-shellcode-position-independent-analysis"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "unpacking-packed-malware",
+    "title": "Unpacking Packed Malware: From UPX to Custom Packers",
+    "url": "https://yunolay.com/unpacking-packed-malware/",
+    "localSlug": "packed-malware-unpacking-anti-debugging"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "dynamic-malware-analysis-sandbox",
+    "title": "Dynamic Malware Analysis in a Sandbox: A Practical Behavioral Workflow",
+    "url": "https://yunolay.com/dynamic-malware-analysis-sandbox/",
+    "localSlug": "dynamic-malware-analysis-evidence-workflow"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "static-analysis-pe-files",
+    "title": "Static Analysis of Windows PE Files: Headers, Imports, Strings, and capa",
+    "url": "https://yunolay.com/static-analysis-pe-files/",
+    "localSlug": "pe-static-triage-bounds-checked"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "malware-analysis-lab-setup",
+    "title": "Building a Malware Analysis Lab with REMnux and FLARE-VM",
+    "url": "https://yunolay.com/malware-analysis-lab-setup/",
+    "localSlug": "reproducible-windows-malware-analysis-lab"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "abusing-bits-jobs-for-download-and-persistence",
+    "title": "Abusing BITS Jobs for Download and Persistence",
+    "url": "https://yunolay.com/abusing-bits-jobs-for-download-and-persistence/",
+    "localSlug": "bits-jobs-transfer-persistence-telemetry"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "com-hijacking-for-persistence-and-privilege-escalation",
+    "title": "COM Hijacking for Persistence and Privilege Escalation",
+    "url": "https://yunolay.com/com-hijacking-for-persistence-and-privilege-escalation/",
+    "localSlug": "com-activation-hijacking-boundaries-telemetry"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "linux-persistence-systemd-timers-udev-rules-and-pam-modules",
+    "title": "Linux Persistence: systemd Timers, udev Rules, and PAM Modules",
+    "url": "https://yunolay.com/linux-persistence-systemd-timers-udev-rules-and-pam-modules/",
+    "localSlug": "linux-persistence-systemd-udev-pam-analysis"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "anti-debugging-and-unpacking-malware-samples",
+    "title": "Anti-Debugging and Unpacking Malware Samples",
+    "url": "https://yunolay.com/anti-debugging-and-unpacking-malware-samples/",
+    "localSlug": "packed-malware-unpacking-anti-debugging"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "shellcode-loaders-and-common-evasion-patterns",
+    "title": "Shellcode Loaders and Common Evasion Patterns",
+    "url": "https://yunolay.com/shellcode-loaders-and-common-evasion-patterns/",
+    "localSlug": "shellcode-loader-memory-protection-telemetry"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "malleable-c2-profiles-and-network-signature-evasion",
+    "title": "Malleable C2 Profiles and Network Signature Evasion",
+    "url": "https://yunolay.com/malleable-c2-profiles-and-network-signature-evasion/",
+    "localSlug": "malleable-c2-profiles-protocol-telemetry"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "persistence-techniques-on-windows-run-keys-to-wmi",
+    "title": "Persistence Techniques on Windows: Run Keys to WMI",
+    "url": "https://yunolay.com/persistence-techniques-on-windows-run-keys-to-wmi/",
+    "localSlug": "windows-persistence-run-keys-services-wmi"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "beacon-object-files-and-in-memory-tradecraft",
+    "title": "Beacon Object Files and In-Memory Tradecraft",
+    "url": "https://yunolay.com/beacon-object-files-and-in-memory-tradecraft/",
+    "localSlug": "beacon-object-files-coff-loader-analysis"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "amsi-bypass-techniques-and-defensive-hardening",
+    "title": "AMSI Bypass Techniques and Defensive Hardening",
+    "url": "https://yunolay.com/amsi-bypass-techniques-and-defensive-hardening/",
+    "localSlug": "amsi-defender-scanning-boundaries-hardening"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "c2-frameworks-compared-cobalt-strike-sliver-and-mythic",
+    "title": "C2 Frameworks Compared: Cobalt Strike, Sliver, and Mythic",
+    "url": "https://yunolay.com/c2-frameworks-compared-cobalt-strike-sliver-and-mythic/",
+    "localSlug": "c2-framework-architecture-comparison"
+  },
+  {
+    "topic": "malware-c2",
+    "sourceSlug": "living-off-the-land-binaries-lolbins-for-evasion",
+    "title": "Living-off-the-Land Binaries (LOLBins) for Evasion",
+    "url": "https://yunolay.com/living-off-the-land-binaries-lolbins-for-evasion/",
+    "localSlug": "lolbins-trust-boundaries-and-telemetry"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "windows-virtual-memory-page-tables-ptes-working-sets",
+    "title": "Windows Virtual Memory: Page Tables, PTEs, and Working Sets",
+    "url": "https://yunolay.com/windows-virtual-memory-page-tables-ptes-working-sets/",
+    "localSlug": "windows-virtual-memory-page-tables-vads-working-sets"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "windows-object-manager-and-handle-tables",
+    "title": "The Windows Object Manager and Handle Tables",
+    "url": "https://yunolay.com/windows-object-manager-and-handle-tables/",
+    "localSlug": "object-manager-names-handles-security"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "windows-access-tokens-sids-and-dacls",
+    "title": "Windows Security Internals: Access Tokens, SIDs, and DACLs",
+    "url": "https://yunolay.com/windows-access-tokens-sids-and-dacls/",
+    "localSlug": "access-tokens-sids-integrity-privileges"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "windows-services-and-the-service-control-manager",
+    "title": "Windows Services and the Service Control Manager",
+    "url": "https://yunolay.com/windows-services-and-the-service-control-manager/",
+    "localSlug": "service-control-manager-services-svchost"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "event-tracing-for-windows-etw-internals",
+    "title": "Event Tracing for Windows (ETW) Internals",
+    "url": "https://yunolay.com/event-tracing-for-windows-etw-internals/",
+    "localSlug": "etw-providers-sessions-consumers-internals"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "windows-registry-internals-hives-cells-configuration-manager",
+    "title": "Windows Registry Internals: Hives, Cells, and the Configuration Manager",
+    "url": "https://yunolay.com/windows-registry-internals-hives-cells-configuration-manager/",
+    "localSlug": "registry-hives-cells-configuration-manager"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "system-calls-user-to-kernel-transition",
+    "title": "System Calls and the User-to-Kernel Transition",
+    "url": "https://yunolay.com/system-calls-user-to-kernel-transition/",
+    "localSlug": "system-calls-previousmode-wow64"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "io-manager-device-stacks-and-irps",
+    "title": "The Windows I/O Manager, Device Stacks, and IRPs",
+    "url": "https://yunolay.com/io-manager-device-stacks-and-irps/",
+    "localSlug": "io-manager-irp-ioctl-buffering"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "windows-driver-model-wdm-kmdf-driver-objects",
+    "title": "The Windows Driver Model: WDM, KMDF, and Driver Objects",
+    "url": "https://yunolay.com/windows-driver-model-wdm-kmdf-driver-objects/",
+    "localSlug": "windows-driver-model-wdm-kmdf-driver-objects"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "windows-dll-loader-and-pe-file-format",
+    "title": "The Windows DLL Loader and the PE File Format",
+    "url": "https://yunolay.com/windows-dll-loader-and-pe-file-format/",
+    "localSlug": "windows-loader-pe-imports-relocations-tls"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "interrupts-irqls-dpcs-and-apcs",
+    "title": "Interrupts, IRQLs, DPCs, and APCs",
+    "url": "https://yunolay.com/interrupts-irqls-dpcs-and-apcs/",
+    "localSlug": "irql-interrupts-dpcs-apcs"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "structured-vectored-exception-handling-internals",
+    "title": "Structured and Vectored Exception Handling Internals",
+    "url": "https://yunolay.com/structured-vectored-exception-handling-internals/",
+    "localSlug": "seh-veh-unwind-dispatch"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "alpc-advanced-local-procedure-call-internals",
+    "title": "ALPC: Advanced Local Procedure Call Internals",
+    "url": "https://yunolay.com/alpc-advanced-local-procedure-call-internals/",
+    "localSlug": "alpc-ports-messages-impersonation"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "wow64-running-32-bit-processes-on-64-bit-windows",
+    "title": "WoW64: Running 32-bit Processes on 64-bit Windows",
+    "url": "https://yunolay.com/wow64-running-32-bit-processes-on-64-bit-windows/",
+    "localSlug": "wow64-thunking-redirection-dual-ntdll"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "kernel-pool-internals-allocators-and-structure",
+    "title": "Kernel Pool Internals: Allocators and Structure",
+    "url": "https://yunolay.com/kernel-pool-internals-allocators-and-structure/",
+    "localSlug": "kernel-pool-allocators-tags-segment-heap"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "windows-boot-process-uefi-to-session-manager",
+    "title": "The Windows Boot Process: From UEFI to the Session Manager",
+    "url": "https://yunolay.com/windows-boot-process-uefi-to-session-manager/",
+    "localSlug": "windows-boot-chain-uefi-winload-smss"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "processes-and-the-eprocess-structure",
+    "title": "Processes and the EPROCESS Structure",
+    "url": "https://yunolay.com/processes-and-the-eprocess-structure/",
+    "localSlug": "eprocess-process-lifetime-address-space"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "threads-kthread-and-the-windows-scheduler",
+    "title": "Threads, KTHREAD, and the Windows Scheduler",
+    "url": "https://yunolay.com/threads-kthread-and-the-windows-scheduler/",
+    "localSlug": "ethread-kthread-scheduler-context-switch"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "windows-heap-internals-nt-heap-segment-heap",
+    "title": "Windows Heap Internals: The NT Heap and Segment Heap",
+    "url": "https://yunolay.com/windows-heap-internals-nt-heap-segment-heap/",
+    "localSlug": "windows-heaps-nt-heap-segment-heap"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "modern-windows-kernel-protections-patchguard-dse-hvci",
+    "title": "Modern Windows Kernel Protections: PatchGuard, DSE, and HVCI",
+    "url": "https://yunolay.com/modern-windows-kernel-protections-patchguard-dse-hvci/",
+    "localSlug": "kernel-protections-patchguard-dse-hvci"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "windows-cache-manager",
+    "title": "The Windows Cache Manager",
+    "url": "https://yunolay.com/windows-cache-manager/",
+    "localSlug": "windows-cache-manager-fast-io-coherency"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "filter-manager-and-minifilter-drivers",
+    "title": "The Filter Manager and Minifilter Drivers",
+    "url": "https://yunolay.com/filter-manager-and-minifilter-drivers/",
+    "localSlug": "filter-manager-minifilter-altitudes-callbacks"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "section-objects-and-memory-mapped-files",
+    "title": "Section Objects and Memory-Mapped Files",
+    "url": "https://yunolay.com/section-objects-and-memory-mapped-files/",
+    "localSlug": "section-objects-mapped-files-copy-on-write"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "wmi-internals-providers-cim-repository-eventing",
+    "title": "WMI Internals: Providers, the CIM Repository, and Eventing",
+    "url": "https://yunolay.com/wmi-internals-providers-cim-repository-eventing/",
+    "localSlug": "wmi-internals-providers-repository-eventing"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "lsa-internals-authentication-logon-sessions-credential-guard",
+    "title": "LSA Internals: Authentication, Logon Sessions, and Credential Guard",
+    "url": "https://yunolay.com/lsa-internals-authentication-logon-sessions-credential-guard/",
+    "localSlug": "lsa-authentication-logon-sessions-credential-guard"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "job-objects-and-server-silos",
+    "title": "Job Objects and Server Silos",
+    "url": "https://yunolay.com/job-objects-and-server-silos/",
+    "localSlug": "job-objects-silos-containers"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "teb-and-peb-deep-dive",
+    "title": "TEB and PEB: A Deep Dive",
+    "url": "https://yunolay.com/teb-and-peb-deep-dive/",
+    "localSlug": "peb-teb-loader-thread-state"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "windows-thread-pools",
+    "title": "Windows Thread Pools",
+    "url": "https://yunolay.com/windows-thread-pools/",
+    "localSlug": "windows-thread-pools-worker-factories"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "synchronization-primitives-and-dispatcher-objects",
+    "title": "Synchronization Primitives and Dispatcher Objects",
+    "url": "https://yunolay.com/synchronization-primitives-and-dispatcher-objects/",
+    "localSlug": "dispatcher-objects-synchronization-irql"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "kuser-shared-data-shared-user-data-page",
+    "title": "KUSER_SHARED_DATA and the Shared User Data Page",
+    "url": "https://yunolay.com/kuser-shared-data-shared-user-data-page/",
+    "localSlug": "kuser-shared-data-time-version-mitigations"
+  },
+  {
+    "topic": "windows-internals",
+    "sourceSlug": "win32k-gui-subsystem-user-gdi-kernel-attack-surface",
+    "title": "The win32k GUI Subsystem: USER, GDI, and the Kernel Attack Surface",
+    "url": "https://yunolay.com/win32k-gui-subsystem-user-gdi-kernel-attack-surface/",
+    "localSlug": "win32k-user-gdi-sessions-attack-surface"
+  }
+]

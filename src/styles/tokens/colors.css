@@ -1,20 +1,19 @@
 /**
  * Color tokens — Semantic design tokens for light and dark modes
- * Monochrome OKLCH palette (neutral, AstroDeck-style):
- *   near-black foreground on white in light mode, inverted in dark mode.
- * Chroma is 0 for surfaces/primary so the UI stays calm and never goes
- * "off-system"; functional status colors keep just enough chroma to read.
+ * Low-chroma warm-neutral OKLCH palette:
+ *   paper-like light surfaces and a soft charcoal dark mode for long reading.
+ * Functional status colors keep enough chroma to communicate state.
  * These map to Tailwind via @theme block in global.css.
  */
 
 :root {
   /* === Core surfaces === */
-  --background: oklch(1 0 0deg);
-  --foreground: oklch(0.145 0 0deg);
-  --card: oklch(1 0 0deg);
-  --card-foreground: oklch(0.145 0 0deg);
-  --popover: oklch(1 0 0deg);
-  --popover-foreground: oklch(0.145 0 0deg);
+  --background: oklch(0.985 0.004 85deg);
+  --foreground: oklch(0.22 0.008 70deg);
+  --card: oklch(0.995 0.003 85deg);
+  --card-foreground: oklch(0.22 0.008 70deg);
+  --popover: oklch(0.995 0.003 85deg);
+  --popover-foreground: oklch(0.22 0.008 70deg);
 
   /* === Primary — neutral (near-black) === */
   --primary: oklch(0.205 0 0deg);
@@ -34,13 +33,13 @@
   --accent-hover: oklch(0.94 0 0deg);
 
   /* === Muted === */
-  --muted: oklch(0.97 0 0deg);
+  --muted: oklch(0.955 0.006 82deg);
 
   /* 0.50 keeps secondary text >= WCAG AA (>=4.5:1) on both white and muted bg */
-  --muted-foreground: oklch(0.5 0 0deg);
+  --muted-foreground: oklch(0.46 0.008 70deg);
 
   /* === Border & Ring === */
-  --border: oklch(0.922 0 0deg);
+  --border: oklch(0.89 0.008 78deg);
   --ring: oklch(0.45 0 0deg);
   --ring-offset: oklch(1 0 0deg);
 
@@ -62,40 +61,40 @@
 
 .dark {
   /* === Core surfaces === */
-  --background: oklch(0.145 0 0deg);
-  --foreground: oklch(0.985 0 0deg);
-  --card: oklch(0.205 0 0deg);
-  --card-foreground: oklch(0.985 0 0deg);
-  --popover: oklch(0.205 0 0deg);
-  --popover-foreground: oklch(0.985 0 0deg);
+  --background: oklch(0.205 0.008 70deg);
+  --foreground: oklch(0.925 0.006 82deg);
+  --card: oklch(0.235 0.008 70deg);
+  --card-foreground: oklch(0.925 0.006 82deg);
+  --popover: oklch(0.235 0.008 70deg);
+  --popover-foreground: oklch(0.925 0.006 82deg);
 
   /* === Primary — neutral (near-white) === */
-  --primary: oklch(0.985 0 0deg);
-  --primary-foreground: oklch(0.205 0 0deg);
-  --primary-hover: oklch(0.9 0 0deg);
-  --primary-active: oklch(0.82 0 0deg);
-  --primary-muted: oklch(0.269 0 0deg);
+  --primary: oklch(0.925 0.006 82deg);
+  --primary-foreground: oklch(0.22 0.008 70deg);
+  --primary-hover: oklch(0.86 0.006 82deg);
+  --primary-active: oklch(0.78 0.006 82deg);
+  --primary-muted: oklch(0.285 0.008 70deg);
 
   /* === Secondary === */
-  --secondary: oklch(0.269 0 0deg);
-  --secondary-foreground: oklch(0.985 0 0deg);
-  --secondary-hover: oklch(0.32 0 0deg);
+  --secondary: oklch(0.285 0.008 70deg);
+  --secondary-foreground: oklch(0.925 0.006 82deg);
+  --secondary-hover: oklch(0.33 0.008 70deg);
 
   /* === Accent === */
-  --accent: oklch(0.269 0 0deg);
-  --accent-foreground: oklch(0.985 0 0deg);
-  --accent-hover: oklch(0.32 0 0deg);
+  --accent: oklch(0.285 0.008 70deg);
+  --accent-foreground: oklch(0.925 0.006 82deg);
+  --accent-hover: oklch(0.33 0.008 70deg);
 
   /* === Muted === */
-  --muted: oklch(0.269 0 0deg);
+  --muted: oklch(0.275 0.008 70deg);
 
   /* 0.74 keeps secondary text >= WCAG AA (>=4.5:1) on dark muted bg */
-  --muted-foreground: oklch(0.74 0 0deg);
+  --muted-foreground: oklch(0.72 0.006 82deg);
 
   /* === Border & Ring === */
-  --border: oklch(0.32 0 0deg);
-  --ring: oklch(0.6 0 0deg);
-  --ring-offset: oklch(0.145 0 0deg);
+  --border: oklch(0.35 0.008 70deg);
+  --ring: oklch(0.68 0.006 82deg);
+  --ring-offset: oklch(0.205 0.008 70deg);
 
   /* === Semantic (functional status — kept chromatic) === */
   --destructive: oklch(0.704 0.191 22.216deg);

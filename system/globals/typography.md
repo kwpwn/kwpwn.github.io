@@ -6,8 +6,8 @@ Tokens in `src/styles/tokens/typography.css`, mapped to Tailwind in `global.css`
 
 | Token | Family | Use |
 | --- | --- | --- |
-| `--font-sans` | Manrope Variable | body text |
-| `--font-heading` | Outfit Variable | headings |
+| `--font-sans` | Source Sans 3 Variable | body text |
+| `--font-heading` | Source Sans 3 Variable | headings |
 | `--font-mono` | JetBrains Mono Variable | code |
 
 Fonts are **self-hosted** via Fontsource (no CDN). Metric-adjusted fallback
@@ -27,12 +27,13 @@ Heading aliases: `--heading-h1`…`--heading-h6` map to the scale.
 
 - Weights: `--font-weight-{light,normal,medium,semibold,bold,extrabold}`.
 - Headings default to `--font-weight-semibold`, `--leading-tight`.
-- Body uses `--leading-normal`; long-form prose uses `--leading-relaxed`.
+- Body uses `--leading-normal`; long-form prose uses `--text-reading` at
+  17–19px with `--leading-reading` (1.72).
 - Letter-spacing tokens: `--tracking-tight` for large headings, default elsewhere.
 
 ## Rules
 
 - Use heading elements semantically (one `h1` per page; never skip levels).
-- Prose/long-form content is capped to a readable measure (~65–72ch).
+- Prose/long-form content is capped to a readable measure (~68ch).
 - Prefer the scale tokens over arbitrary font sizes.
 - Section eyebrows: uppercase, `--text-xs`, tracked, `--muted-foreground` or `--primary`.

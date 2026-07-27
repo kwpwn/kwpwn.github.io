@@ -90,9 +90,17 @@ const hasGuide =
     margin-block: calc(var(--space-xl) * -1) var(--space-xl);
   }
 
-  :global(.article-guide__card .ui-card__body) {
+  :global(.article-guide__card.ui-card .ui-card__body) {
     display: grid;
     gap: var(--space-lg);
+    padding: var(--space-xl) 0;
+  }
+
+  :global(.article-guide .article-guide__card.ui-card) {
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+    background: transparent;
   }
 
   .article-guide__head,

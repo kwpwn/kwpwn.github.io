@@ -13,8 +13,12 @@ tags:
 author: "kwpwn"
 toc: true
 topic: "windows-privesc"
-track: "analysis"
-seriesOrder: 3
+track: "credentials-recovery"
+seriesOrder: 18
+topicPlacements:
+  - topic: "windows-privesc"
+    track: "credentials-recovery"
+    order: 18
 difficulty: "Intermediate"
 prerequisites:
   - "Access-token privileges and DACLs"
@@ -282,4 +286,5 @@ detection joins identity, unusual target, process lineage, timing, and operation
 - Microsoft Learn, [CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
 - Microsoft Learn, [BackupRead](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-backupread) and [BackupWrite](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-backupwrite).
 - Yunolay, [Abusing SeBackupPrivilege and SeRestorePrivilege for Windows Privilege Escalation](https://yunolay.com/sebackup-serestore-privilege/), used as the practical topic lead; this lesson intentionally substitutes a harmless protected file for credential material.
+- Yunolay, [Abusing Windows Backup and Restore Privileges](https://yunolay.com/abusing-windows-backup-and-restore-privileges/), retained in the source ledger because the curriculum consolidates the overlapping treatment into this single mechanism-first lesson.
 - Yunolay, [Vulnlab Baby Walkthrough](https://yunolay.com/vulnlab-baby-walkthrough-by-yunolay/), the earlier case study that motivated including backup and restore privileges in this path.

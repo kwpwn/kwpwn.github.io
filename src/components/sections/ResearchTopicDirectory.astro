@@ -18,12 +18,18 @@ const topicEntries = RESEARCH_TOPICS.map((topic) => ({
   topic,
   posts: getResearchTopicPosts(allPosts, topic.id),
 }));
-const topicPosts = topicEntries
-  .flatMap(({ posts }) => posts)
-  .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime());
+const topicPosts = [
+  ...new Map(
+    topicEntries.flatMap(({ posts }) => posts).map((post) => [post.id, post]),
+  ).values(),
+].sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime());
 const lessonCount = topicPosts.length;
 const trackCount = RESEARCH_TOPICS.reduce(
   (total, topic) => total + topic.tracks.length,
+  0,
+);
+const sourceCount = RESEARCH_TOPICS.reduce(
+  (total, topic) => total + topic.sourceBaselineCount,
   0,
 );
 ---
@@ -59,8 +65,8 @@ const trackCount = RESEARCH_TOPICS.reduce(
 
         <dl class="research-directory__summary" aria-label="Library summary">
           <div>
-            <dt>Major topics</dt>
-            <dd>{RESEARCH_TOPICS.length}</dd>
+            <dt>Source articles covered</dt>
+            <dd>{sourceCount}</dd>
           </div>
           <div>
             <dt>Learning lanes</dt>
@@ -112,7 +118,8 @@ const trackCount = RESEARCH_TOPICS.reduce(
               <div class="research-topic-card__footer">
                 <p>
                   <strong>{posts.length}</strong>{" "}
-                  {posts.length === 1 ? "lesson" : "lessons"}
+                  {posts.length === 1 ? "lesson" : "lessons"} for{" "}
+                  {topic.sourceBaselineCount} source articles
                 </p>
                 <span>
                   Open topic <span aria-hidden="true">&rarr;</span>
@@ -271,8 +278,8 @@ const trackCount = RESEARCH_TOPICS.reduce(
   .research-directory__intro h1 {
     max-width: 15ch;
     margin: var(--space-md) 0 0;
-    font-size: var(--text-5xl);
-    line-height: var(--leading-none);
+    font-size: var(--text-4xl);
+    line-height: var(--leading-tight);
     letter-spacing: var(--tracking-tight);
     text-wrap: balance;
   }

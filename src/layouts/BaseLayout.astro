@@ -7,10 +7,9 @@ import Analytics from "../components/layout/Analytics.astro";
 import { SITE_CONFIG, type Locale } from "../lib/site-config";
 import { t } from "../i18n/ui";
 import "../styles/global.css";
-// Preload the Latin subset of the heading + body variable fonts so the real
-// fonts are ready before first paint — eliminates the swap reflow (CLS).
-import outfitLatin from "@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2?url";
-import manropeLatin from "@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url";
+// Body and headings share one calm reading face, so a single Latin preload
+// covers the primary page typography and avoids duplicate font requests.
+import sourceSansLatin from "@fontsource-variable/source-sans-3/files/source-sans-3-latin-wght-normal.woff2?url";
 
 export interface Props {
   title: string;
@@ -61,14 +60,7 @@ function defaultOgImage(routePath: string) {
     <!-- Preload primary fonts (Latin) to prevent layout shift from font swap -->
     <link
       rel="preload"
-      href={outfitLatin}
-      as="font"
-      type="font/woff2"
-      crossorigin="anonymous"
-    />
-    <link
-      rel="preload"
-      href={manropeLatin}
+      href={sourceSansLatin}
       as="font"
       type="font/woff2"
       crossorigin="anonymous"

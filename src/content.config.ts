@@ -4,6 +4,36 @@ import { glob } from "astro/loaders";
 // Add locale codes here (e.g. ["en", "id"]) when introducing new languages.
 const localeSchema = z.enum(["en"]);
 
+const researchTopicSchema = z.enum([
+  "windows-privesc",
+  "malware-c2",
+  "windows-internals",
+]);
+
+const researchTrackSchema = z.enum([
+  "foundations",
+  "discovery-evidence",
+  "service-boundaries",
+  "execution-persistence",
+  "token-ipc",
+  "credentials-recovery",
+  "policy-controls",
+  "lateral-boundaries",
+  "static-analysis",
+  "dynamic-analysis",
+  "memory-execution",
+  "c2-operations",
+  "detection-engineering",
+  "boot-architecture",
+  "processes-execution",
+  "memory-manager",
+  "security-objects",
+  "io-drivers",
+  "ipc-services",
+  "telemetry-runtime",
+  "kernel-platform",
+]);
+
 const blog = defineCollection({
   loader: glob({
     pattern: "**/*.{md,mdx}",
@@ -33,20 +63,18 @@ const blog = defineCollection({
     format: z.enum(["article", "interactive-atlas"]).default("article"),
     svgSlug: z.string().optional(),
     translationKey: z.string().optional(),
-    topic: z
-      .enum(["windows-privesc", "malware-c2", "windows-internals"])
-      .optional(),
-    track: z
-      .enum([
-        "foundations",
-        "privilege-boundaries",
-        "execution",
-        "analysis",
-        "telemetry",
-        "kernel-boundaries",
-      ])
-      .optional(),
+    topic: researchTopicSchema.optional(),
+    track: researchTrackSchema.optional(),
     seriesOrder: z.number().int().positive().optional(),
+    topicPlacements: z
+      .array(
+        z.object({
+          topic: researchTopicSchema,
+          track: researchTrackSchema,
+          order: z.number().int().positive(),
+        }),
+      )
+      .default([]),
     difficulty: z.enum(["Foundation", "Intermediate", "Advanced"]).optional(),
     prerequisites: z.array(z.string()).default([]),
     learningObjectives: z.array(z.string()).default([]),
