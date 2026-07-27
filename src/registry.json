@@ -194,6 +194,13 @@
       "i18nAware": true
     },
     {
+      "name": "ArticleGuide",
+      "tier": "component",
+      "path": "src/components/blog/ArticleGuide.astro",
+      "props": ["post"],
+      "i18nAware": false
+    },
+    {
       "name": "RelatedPosts",
       "tier": "component",
       "path": "src/components/blog/RelatedPosts.astro",
@@ -465,6 +472,20 @@
       "path": "src/components/sections/PublishedBlogDirectory.astro",
       "props": ["locale"],
       "i18nAware": true
+    },
+    {
+      "name": "ResearchTopicDirectory",
+      "tier": "section",
+      "path": "src/components/sections/ResearchTopicDirectory.astro",
+      "props": ["locale"],
+      "i18nAware": true
+    },
+    {
+      "name": "ResearchTopicPage",
+      "tier": "section",
+      "path": "src/components/sections/ResearchTopicPage.astro",
+      "props": ["topicId", "locale"],
+      "i18nAware": true
     }
   ],
   "pages": [
@@ -477,6 +498,26 @@
       "name": "Post detail",
       "path": "src/pages/blog/[slug].astro",
       "locales": ["en"]
+    },
+    {
+      "name": "Research topic directory",
+      "path": "src/pages/topics.astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Localized research topic directory",
+      "path": "src/pages/[locale]/topics.astro",
+      "locales": []
+    },
+    {
+      "name": "Research topic learning path",
+      "path": "src/pages/topics/[topic].astro",
+      "locales": ["en"]
+    },
+    {
+      "name": "Localized research topic learning path",
+      "path": "src/pages/[locale]/topics/[topic].astro",
+      "locales": []
     },
     {
       "name": "Windows security handbook",

@@ -5,6 +5,8 @@ import BlogImageSVG from "./BlogImageSVG.astro";
 import { type Locale } from "../../lib/site-config";
 import { t } from "../../i18n/ui";
 import { getBlogReadingStats } from "../../lib/blog-presentation";
+import { getResearchTopic } from "../../lib/research-topics";
+import { Badge } from "../ui";
 
 export interface Props {
   post: CollectionEntry<"blog">;
@@ -14,6 +16,7 @@ export interface Props {
 const { post, locale = post.data.locale } = Astro.props as Props;
 const publishDate = new Date(post.data.publishDate);
 const reading = getBlogReadingStats(post.body ?? "", post.data.format);
+const topic = post.data.topic ? getResearchTopic(post.data.topic) : undefined;
 const dateLabel = publishDate.toLocaleDateString("en-US", {
   year: "numeric",
   month: "long",
@@ -23,6 +26,21 @@ const dateLabel = publishDate.toLocaleDateString("en-US", {
 
 <header class="article-hero">
   <div class="article-hero__content">
+    {
+      topic && (
+        <div class="article-hero__classification">
+          <a href={`/topics/${topic.id}/`}>{topic.shortTitle}</a>
+          {post.data.difficulty && (
+            <Badge variant="outline" size="sm">
+              {post.data.difficulty}
+            </Badge>
+          )}
+          {post.data.seriesOrder && (
+            <span>Lesson {String(post.data.seriesOrder).padStart(2, "0")}</span>
+          )}
+        </div>
+      )
+    }
     <h1>{post.data.title}</h1>
     <p class="article-hero__description">{post.data.description}</p>
 
@@ -62,6 +80,32 @@ const dateLabel = publishDate.toLocaleDateString("en-US", {
     display: grid;
     gap: var(--space-md);
     max-width: 52rem;
+  }
+
+  .article-hero__classification {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .article-hero__classification a {
+    color: var(--foreground);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+
+  .article-hero__classification a:hover {
+    text-decoration: underline;
+    text-underline-offset: var(--space-xs);
+  }
+
+  .article-hero__classification a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 
   .article-hero h1 {

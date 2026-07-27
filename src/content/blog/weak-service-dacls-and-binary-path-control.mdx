@@ -1,0 +1,314 @@
+---
+title: "Weak Service DACLs and Binary-Path Control"
+description: "How to audit Windows service objects, distinguish service permissions from file permissions, and prove or reject a LocalSystem execution chain."
+locale: "en"
+publishDate: 2026-07-27
+draft: false
+featured: true
+tags:
+  - windows privesc
+  - windows services
+  - DACL
+  - local system
+author: "kwpwn"
+toc: true
+topic: "windows-privesc"
+track: "privilege-boundaries"
+seriesOrder: 2
+difficulty: "Intermediate"
+prerequisites:
+  - "Windows access tokens and security descriptors"
+  - "The actor-control-consumer-sink model from lesson 01"
+learningObjectives:
+  - "Differentiate the service object DACL, registry configuration DACL, and executable path ACL"
+  - "Interpret SERVICE_CHANGE_CONFIG, WRITE_DAC, WRITE_OWNER, START, and STOP as separate capabilities"
+  - "Validate a service escalation chain with safe read-only evidence and negative controls"
+labEnvironment: "Use a disposable VM. Provision any test service from an elevated console, then perform the audit from a standard-user console. Do not alter production services or replace vendor binaries."
+---
+
+A Windows service exposes at least three different security surfaces:
+
+1. the **service object** managed by the Service Control Manager;
+2. configuration stored under
+   `HKLM\SYSTEM\CurrentControlSet\Services\<Name>`;
+3. the executable, DLLs, and directories named by that configuration.
+
+They are related, but their permissions are not interchangeable. A user may be
+able to query a service object while being unable to read its registry key. A
+file can be writable even when the service DACL is correct. A service DACL can
+grant configuration change while the binary directory remains locked down.
+
+Good auditing keeps these layers separate until it builds the final chain.
+
+## The service object and its rights
+
+The Service Control Manager creates a securable service object for each
+installed service. `OpenService` requests an access mask, and Windows checks that
+mask against the service object's security descriptor.
+
+The rights with the highest escalation relevance are:
+
+| Right                   | Meaning                       | Why it matters                                              |
+| ----------------------- | ----------------------------- | ----------------------------------------------------------- |
+| `SERVICE_CHANGE_CONFIG` | Change service configuration  | Can change the executable path and account-related settings |
+| `WRITE_DAC`             | Rewrite the service DACL      | Can grant the actor a dangerous service-specific right      |
+| `WRITE_OWNER`           | Change owner                  | May enable a later DACL rewrite, subject to ownership rules |
+| `SERVICE_START`         | Start the service             | Makes a changed configuration immediately reachable         |
+| `SERVICE_STOP`          | Stop the service              | May be needed before a clean restart                        |
+| `DELETE`                | Mark the service for deletion | Disruptive, but not by itself code execution                |
+
+`GENERIC_WRITE` on a service maps to standard write rights plus
+`SERVICE_CHANGE_CONFIG`. Do not display only the generic name; show the mapped
+rights so the security consequence is obvious.
+
+Microsoft explicitly warns that granting `SERVICE_CHANGE_CONFIG` to untrusted
+users can allow code to run under LocalSystem. That statement establishes the
+importance of the right, but a host-specific finding still needs reachability
+and context evidence.
+
+## Read the configuration before judging it
+
+Use built-in commands for a first pass:
+
+```powershell
+$name = "KwpwnLabService"
+
+sc.exe qc $name
+sc.exe qfailure $name
+sc.exe sdshow $name
+sc.exe queryex $name
+```
+
+Record:
+
+- `BINARY_PATH_NAME`;
+- `SERVICE_START_NAME`;
+- start type and current state;
+- dependencies;
+- failure actions;
+- the process ID if running;
+- the service-object SDDL.
+
+SDDL is compact evidence, but it is easy to misread. An ACE contains an allow or
+deny type, flags, a rights field, and a trustee SID. Resolve the SID and map the
+rights for a service object. Do not assume that a two-letter token means the
+same access mask for files and services.
+
+PowerShell can collect a stable evidence bundle:
+
+```powershell
+$name = "KwpwnLabService"
+$service = Get-CimInstance Win32_Service -Filter "Name='$name'"
+$registryPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$name"
+
+[pscustomobject]@{
+    Name        = $service.Name
+    State       = $service.State
+    StartMode   = $service.StartMode
+    StartName   = $service.StartName
+    PathName    = $service.PathName
+    ProcessId   = $service.ProcessId
+    RegistryAcl = (Get-Acl $registryPath).Sddl
+    ServiceSddl = (sc.exe sdshow $name | Select-Object -Last 1)
+}
+```
+
+`Win32_Service` is useful for inventory, but the service-object SDDL still comes
+from the SCM. The registry ACL shown above protects the configuration key, not
+the live service object.
+
+## Parse the descriptor through the API
+
+The following C++ fragment requests only the documented read-control right and
+converts the descriptor to SDDL. It is an inspection primitive, not a
+configuration-changing tool.
+
+```cpp
+#include <windows.h>
+#include <sddl.h>
+#include <winsvc.h>
+#include <iostream>
+#include <vector>
+
+int wmain(int argc, wchar_t** argv) {
+    if (argc != 2) return 2;
+
+    SC_HANDLE scm = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
+    if (!scm) return 3;
+
+    SC_HANDLE service =
+        OpenServiceW(scm, argv[1], READ_CONTROL | SERVICE_QUERY_CONFIG);
+    if (!service) {
+        std::wcerr << L"OpenService failed: " << GetLastError() << L"\n";
+        CloseServiceHandle(scm);
+        return 4;
+    }
+
+    DWORD needed = 0;
+    QueryServiceObjectSecurity(
+        service, DACL_SECURITY_INFORMATION, nullptr, 0, &needed);
+
+    std::vector<BYTE> bytes(needed);
+    if (!QueryServiceObjectSecurity(
+            service,
+            DACL_SECURITY_INFORMATION,
+            reinterpret_cast<PSECURITY_DESCRIPTOR>(bytes.data()),
+            needed,
+            &needed)) {
+        return 5;
+    }
+
+    LPWSTR sddl = nullptr;
+    if (ConvertSecurityDescriptorToStringSecurityDescriptorW(
+            reinterpret_cast<PSECURITY_DESCRIPTOR>(bytes.data()),
+            SDDL_REVISION_1,
+            DACL_SECURITY_INFORMATION,
+            &sddl,
+            nullptr)) {
+        std::wcout << sddl << L"\n";
+        LocalFree(sddl);
+    }
+
+    CloseServiceHandle(service);
+    CloseServiceHandle(scm);
+}
+```
+
+Compile with the Windows SDK libraries `Advapi32.lib` and `Kernel32.lib`. A
+production auditor should parse ACEs and map generic rights rather than
+substring-matching SDDL.
+
+## Test the exact access request
+
+The strongest permission proof is whether the current token can open the object
+requesting the exact right.
+
+For example, a checker can call:
+
+```cpp
+SC_HANDLE service =
+    OpenServiceW(scm, name, SERVICE_CHANGE_CONFIG);
+
+if (service) {
+    std::wcout << L"Granted SERVICE_CHANGE_CONFIG\n";
+    CloseServiceHandle(service);
+} else {
+    std::wcout << L"Denied, error " << GetLastError() << L"\n";
+}
+```
+
+This performs no change. It answers a narrow question: would the access check
+grant this token a handle containing `SERVICE_CHANGE_CONFIG`?
+
+Repeat with `SERVICE_START` and `SERVICE_STOP` separately. A tool that requests
+`SERVICE_ALL_ACCESS` can generate a false negative because the token might hold
+the one risky right but not every administrative right.
+
+## Inspect the image path as Windows will use it
+
+Take the configured path apart:
+
+- Is the executable path quoted?
+- Which portion is the image path and which portion is an argument?
+- Does the path contain environment variables?
+- Is the executable a service host such as `svchost.exe`, with the real module
+  named elsewhere?
+- Are parent directories writable by the actor?
+- Is the file itself replaceable?
+- Does the service load a plugin or service DLL from another location?
+
+Use `Get-Acl` for triage, then verify the effective action:
+
+```powershell
+$candidate = "C:\Program Files\Kwpwn Lab\service.exe"
+$parent = Split-Path -Parent $candidate
+
+Get-Acl $candidate | Format-List Owner, Sddl
+Get-Acl $parent    | Format-List Owner, Sddl
+
+# Harmless write test in a directory created for the lab.
+$probe = Join-Path $parent "permission-probe.txt"
+try {
+    [IO.File]::WriteAllText($probe, "permission proof")
+    "Write succeeded"
+} finally {
+    Remove-Item -LiteralPath $probe -ErrorAction SilentlyContinue
+}
+```
+
+Never conduct a write probe in a production application directory. An effective
+access API or a cloned ACL in a disposable directory is safer.
+
+## Reachability is a separate capability
+
+Suppose the standard user can change configuration but cannot start or stop the
+service. The chain may still be reachable through:
+
+- automatic start at boot;
+- a service trigger;
+- failure recovery;
+- an administrator's routine action;
+- a dependent service operation.
+
+Each is a precondition, not a guarantee. Record the expected trigger and observe
+it. If the only trigger is “an administrator might reboot someday,” describe
+the finding as delayed or user-assisted.
+
+Also inspect service protections. Some Windows services are protected, hosted,
+or governed by additional policy. A permissive-looking DACL does not override
+every platform protection.
+
+## A safe validation pattern
+
+Do not validate with an interactive shell or a new administrator. In a lab:
+
+1. create a dedicated service whose executable writes a fixed marker containing
+   its user SID and integrity level;
+2. capture its baseline configuration and DACL;
+3. grant only the single right under test to the standard user;
+4. prove that the standard user can request that right and cannot request an
+   unrelated right;
+5. trigger the service through the intended path;
+6. inspect the marker and process telemetry;
+7. restore the original DACL and confirm the same request is denied.
+
+The negative control proves the result depends on the risky ACE rather than an
+administrator token, inherited group, or lab mistake.
+
+## Common false positives
+
+- The scanner checks the executable but ignores that the service uses a
+  different `ServiceDll`.
+- A directory appears writable because the audit ran elevated.
+- The actor can change the display name but not the binary path.
+- The actor can stop but not start the service.
+- An allow ACE is neutralized by a matching deny ACE.
+- The service account is a restricted virtual account, not LocalSystem.
+- The path is writable, but the service never reaches it on the tested build.
+- A hosted service shares a process whose module configuration follows different
+  rules.
+
+## Remediation and regression checks
+
+Remove the narrowest dangerous ACE from the service object, registry key, file,
+or parent directory. Preserve query rights needed by monitoring tools. Quote
+image paths, but remember that quoting does not fix a writable executable or
+weak service DACL.
+
+After remediation:
+
+1. request the formerly granted access mask and expect access denied;
+2. start the service through its normal operational path;
+3. confirm health monitoring and updates still work;
+4. compare the new SDDL with the approved baseline;
+5. monitor for future installer changes that reintroduce the ACE.
+
+## References
+
+- Microsoft Learn, [Service Security and Access Rights](https://learn.microsoft.com/en-us/windows/win32/services/service-security-and-access-rights).
+- Microsoft Learn, [QueryServiceObjectSecurity](https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-queryserviceobjectsecurity).
+- Microsoft Learn, [ChangeServiceConfigW](https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-changeserviceconfigw).
+- Microsoft Learn, [Security Descriptor String Format](https://learn.microsoft.com/en-us/windows/win32/secauthz/security-descriptor-string-format).
+- MITRE ATT&CK, [T1574.011 — Services Registry Permissions Weakness](https://attack.mitre.org/techniques/T1574/011/).
+- Yunolay, [Weak Service Permissions and Binary Path Hijacking](https://yunolay.com/weak-service-permissions-and-binary-path-hijacking/), used as a topic lead; permission semantics in this lesson are grounded in the Microsoft API documentation.
+- Yunolay, [Weak Service Permissions: Privilege Escalation via SERVICE_CHANGE_CONFIG](https://yunolay.com/weak-service-permissions/), a related practical overview.

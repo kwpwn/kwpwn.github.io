@@ -1,0 +1,207 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { getResearchTopic } from "../../lib/research-topics";
+import { Badge, Card } from "../ui";
+
+export interface Props {
+  post: CollectionEntry<"blog">;
+}
+
+const { post } = Astro.props as Props;
+const topic = post.data.topic ? getResearchTopic(post.data.topic) : undefined;
+const track = topic?.tracks.find(
+  (candidate) => candidate.id === post.data.track,
+);
+const hasGuide =
+  topic &&
+  (post.data.learningObjectives.length > 0 ||
+    post.data.prerequisites.length > 0 ||
+    post.data.labEnvironment);
+---
+
+{
+  hasGuide && topic && (
+    <aside class="article-guide" aria-labelledby="article-guide-title">
+      <Card class="article-guide__card">
+        <div class="article-guide__head">
+          <div>
+            <p class="article-guide__eyebrow">Before you begin</p>
+            <h2 id="article-guide-title">Reading guide</h2>
+          </div>
+          <div
+            class="article-guide__badges"
+            aria-label="Article classification"
+          >
+            {post.data.difficulty && (
+              <Badge variant="outline" size="sm">
+                {post.data.difficulty}
+              </Badge>
+            )}
+            {track && (
+              <Badge variant="secondary" size="sm">
+                {track.label}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        <div class="article-guide__grid">
+          {post.data.learningObjectives.length > 0 && (
+            <section>
+              <h3>You will learn to</h3>
+              <ul>
+                {post.data.learningObjectives.map((objective: string) => (
+                  <li>{objective}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {post.data.prerequisites.length > 0 && (
+            <section>
+              <h3>Prerequisites</h3>
+              <ul>
+                {post.data.prerequisites.map((prerequisite: string) => (
+                  <li>{prerequisite}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {post.data.labEnvironment && (
+            <section class="article-guide__lab">
+              <h3>Safe lab boundary</h3>
+              <p>{post.data.labEnvironment}</p>
+            </section>
+          )}
+        </div>
+
+        <p class="article-guide__topic">
+          Part of the{" "}
+          <a href={`/topics/${topic.id}/`}>{topic.title} learning path</a>.
+        </p>
+      </Card>
+    </aside>
+  )
+}
+
+<style>
+  .article-guide {
+    margin-block: calc(var(--space-xl) * -1) var(--space-xl);
+  }
+
+  :global(.article-guide__card .ui-card__body) {
+    display: grid;
+    gap: var(--space-lg);
+  }
+
+  .article-guide__head,
+  .article-guide__badges {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .article-guide__head {
+    justify-content: space-between;
+  }
+
+  .article-guide__badges {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .article-guide__eyebrow,
+  .article-guide__head h2,
+  .article-guide__grid h3,
+  .article-guide__grid p,
+  .article-guide__topic {
+    margin: 0;
+  }
+
+  .article-guide__eyebrow {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .article-guide__head h2 {
+    margin-top: var(--space-xs);
+    font-size: var(--text-2xl);
+  }
+
+  .article-guide__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-lg);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--border);
+  }
+
+  .article-guide__grid section {
+    min-width: 0;
+  }
+
+  .article-guide__grid h3 {
+    font-size: var(--text-sm);
+  }
+
+  .article-guide__grid ul {
+    display: grid;
+    gap: var(--space-xs);
+    margin: var(--space-sm) 0 0;
+    padding-left: var(--space-lg);
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .article-guide__lab {
+    grid-column: 1 / -1;
+    padding: var(--space-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--muted);
+  }
+
+  .article-guide__lab p {
+    margin-top: var(--space-xs);
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .article-guide__topic {
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+  }
+
+  .article-guide__topic a {
+    color: var(--foreground);
+    font-weight: var(--font-weight-semibold);
+    text-underline-offset: var(--space-xs);
+  }
+
+  @media (max-width: 48rem) {
+    .article-guide__head {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .article-guide__badges {
+      justify-content: flex-start;
+    }
+
+    .article-guide__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .article-guide__lab {
+      grid-column: auto;
+    }
+  }
+</style>

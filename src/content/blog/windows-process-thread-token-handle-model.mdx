@@ -1,0 +1,307 @@
+---
+title: "Processes, Threads, Tokens, and Handles as One Windows Model"
+description: "Connect the four abstractions that explain most Windows behavior: a process owns resources, a thread executes, a token supplies security context, and a handle references an object."
+locale: "en"
+publishDate: 2026-07-27
+draft: false
+featured: true
+tags:
+  - windows internals
+  - processes
+  - threads
+  - access tokens
+  - handles
+author: "kwpwn"
+toc: true
+topic: "windows-internals"
+track: "foundations"
+seriesOrder: 1
+difficulty: "Foundation"
+prerequisites:
+  - "Basic C or C++ syntax"
+  - "Familiarity with processes in Task Manager"
+learningObjectives:
+  - "Explain why a process is a resource and security container while a thread is the schedulable unit"
+  - "Trace primary and impersonation token selection for an access attempt"
+  - "Keep object identity, process IDs, handles, and kernel pointers distinct"
+labEnvironment: "Compile and run the sample as a normal user. It inspects only its own process, thread, token, event object, and handle values."
+---
+
+Four Windows terms explain a surprising amount of operating-system behavior:
+
+- a **process** is a container for an address space and resources;
+- a **thread** is an execution context the scheduler can run;
+- a **token** describes the security context used for authorization;
+- a **handle** is a process-relative reference to a kernel-managed object.
+
+They are often learned separately. The useful model is their relationship.
+
+## One request through all four abstractions
+
+Imagine code calling `CreateFileW`.
+
+1. A thread executes the user-mode instructions.
+2. The thread belongs to a process whose address space contains the code and
+   buffers.
+3. Windows selects the thread's impersonation token if one is active; otherwise
+   it uses the process primary token.
+4. The I/O and security subsystems evaluate the requested access.
+5. On success, the process receives a handle-table entry referring to a file
+   object with a granted access mask.
+6. Later calls present that handle instead of repeating the path lookup.
+
+The path names an object during open. The handle identifies the opened object
+for later operations.
+
+## Process: ownership and isolation boundary
+
+A process commonly owns:
+
+- a private virtual address space;
+- a handle table;
+- a primary access token;
+- one or more threads;
+- loaded images and mapped sections;
+- environment and process parameters;
+- accounting, job, mitigation, and scheduling metadata.
+
+The process itself does not execute instructions. Its threads do. Suspending one
+thread does not necessarily suspend the process; other threads can continue.
+
+In kernel debugging, public symbols expose executive process structures, but
+their field layout is build-sensitive. Use symbols for the target build rather
+than copying offsets from a blog or another machine.
+
+## Thread: execution and temporary identity
+
+A thread owns execution-specific state:
+
+- register context;
+- user and kernel stacks;
+- scheduling priority and affinity;
+- wait state;
+- thread-local storage and TEB in user mode;
+- optional impersonation token;
+- pending APC-related state.
+
+The scheduler selects threads, not processes, for execution.
+
+Impersonation is why “which process owns this request?” can be the wrong security
+question. A server process may run under one primary token while a particular
+thread impersonates a client. Authorization can therefore differ between two
+threads in the same process.
+
+## Token: security context, not a password
+
+An access token contains identity and authorization information, including:
+
+- user SID;
+- group SIDs and attributes;
+- privileges and their enabled state;
+- token type;
+- impersonation level for impersonation tokens;
+- integrity level;
+- logon-session information;
+- default owner, group, and DACL for new objects.
+
+A primary token is associated with a process. An impersonation token can be
+associated with a thread. Windows does not store a plaintext password in the
+token.
+
+For an access decision, reason in this order:
+
+```text
+current thread
+  ├─ impersonating? yes → thread token
+  └─ no                → process primary token
+                              ↓
+                     access check / privilege check
+```
+
+## Handle: reference plus granted access
+
+A handle value is meaningful in a handle-table context. The same numeric value
+in two processes can refer to different objects. A process ID is not a process
+handle, and a handle is not a kernel pointer.
+
+When an object is opened, the caller requests an access mask. On success, the
+handle records granted access. A later operation checks the handle's granted
+mask. The caller does not automatically gain new rights because the target
+DACL changes after the handle was opened.
+
+Handle inheritance, duplication, and transfer are deliberate operations:
+
+- `DuplicateHandle` can create a handle in another process;
+- inheritance can copy selected handles into a child at process creation;
+- IPC protocols sometimes transfer handles through brokered mechanisms;
+- kernel drivers must validate user-supplied handles before converting them to
+  object pointers.
+
+## A safe program that connects the model
+
+```cpp
+#include <windows.h>
+#include <iostream>
+
+DWORD WINAPI Worker(void* parameter) {
+    HANDLE eventHandle = static_cast<HANDLE>(parameter);
+    std::wcout << L"worker tid=" << GetCurrentThreadId() << L"\n";
+    SetEvent(eventHandle);
+    return 0;
+}
+
+int wmain() {
+    std::wcout << L"pid=" << GetCurrentProcessId()
+               << L" main tid=" << GetCurrentThreadId() << L"\n";
+
+    HANDLE token = nullptr;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
+        std::wcerr << L"OpenProcessToken failed: " << GetLastError() << L"\n";
+        return 1;
+    }
+
+    TOKEN_TYPE type{};
+    DWORD returned = 0;
+    if (GetTokenInformation(
+            token, TokenType, &type, sizeof(type), &returned)) {
+        std::wcout << L"process token type="
+                   << (type == TokenPrimary ? L"primary" : L"impersonation")
+                   << L"\n";
+    }
+
+    HANDLE eventHandle = CreateEventW(
+        nullptr,   // default security descriptor
+        TRUE,      // manual reset
+        FALSE,     // initially nonsignaled
+        L"Local\\KwpwnInternalsDemo");
+    if (!eventHandle) return 2;
+
+    HANDLE threadHandle =
+        CreateThread(nullptr, 0, Worker, eventHandle, 0, nullptr);
+    if (!threadHandle) return 3;
+
+    std::wcout << L"token handle=" << token
+               << L" event handle=" << eventHandle
+               << L" thread handle=" << threadHandle << L"\n";
+
+    WaitForSingleObject(eventHandle, INFINITE);
+    WaitForSingleObject(threadHandle, INFINITE);
+
+    CloseHandle(threadHandle);
+    CloseHandle(eventHandle);
+    CloseHandle(token);
+}
+```
+
+What this program demonstrates:
+
+- one process has two threads;
+- both threads share the process address space and handle table;
+- the process has a primary token;
+- a named event is an object referred to through a handle;
+- the worker uses the same event handle value because it is in the same process;
+- closing the thread handle does not itself terminate the thread;
+- every successful handle open has a matching `CloseHandle`.
+
+The program uses `CreateThread` to make the Win32 relationship visible. In modern
+C++, prefer RAII wrappers and `std::thread` or `std::jthread` when Win32-specific
+thread creation features are unnecessary.
+
+## Inspect the current token
+
+Use:
+
+```powershell
+whoami /user
+whoami /groups
+whoami /priv
+whoami /all
+```
+
+Then inspect process and thread IDs:
+
+```powershell
+Get-Process -Id $PID |
+    Select-Object Id, ProcessName, HandleCount, Threads, Path
+```
+
+`HandleCount` is a count, not the handle table. `Threads` is a snapshot and can
+change while displayed.
+
+Process Explorer and Process Monitor can correlate image, user, integrity,
+handles, threads, and activity. WinObj focuses on named object namespaces. Save
+tool versions and symbols when observations matter to a report.
+
+## Kernel-debugger view
+
+In an authorized kernel-debugging VM:
+
+```text
+!process 0 0
+!process <process-address> 7
+!thread <thread-address>
+!token <token-address>
+!handle 0 3 <process-address>
+```
+
+Use addresses from the current target and symbols. Do not assume an `_EPROCESS`
+or `_ETHREAD` offset from a different build.
+
+Ask relationship questions:
+
+- Which process owns this handle table?
+- Which thread issued the request?
+- Is the thread impersonating?
+- Which token did the access check use?
+- What access was granted to the handle?
+- Which references keep the object alive?
+
+## IDs, handles, and pointers
+
+| Value          | Scope                        | Stability                                      |
+| -------------- | ---------------------------- | ---------------------------------------------- |
+| PID/TID        | System identifier namespace  | Reused after lifetime ends                     |
+| User handle    | Usually process handle table | Valid until close/duplication/lifetime event   |
+| Kernel handle  | Kernel handle-table context  | Not directly usable as ordinary user handle    |
+| Object pointer | Kernel virtual address       | Requires a valid reference; build/run-specific |
+| Object name    | Object-manager namespace     | Optional and may be session-relative           |
+
+An incident report should say which kind of value it records.
+
+## Lifetime mistakes
+
+Common mistakes include:
+
+- using a handle after `CloseHandle`;
+- leaking a handle on an error path;
+- assuming closing a thread handle stops the thread;
+- passing a process-relative handle to code in another process;
+- retaining a kernel object pointer without a reference;
+- confusing PID reuse with continuity of one process;
+- inspecting the process token while the relevant thread is impersonating.
+
+RAII wrappers help user-mode handle lifetime. Kernel code must pair reference and
+dereference operations according to the API contract.
+
+## Security-research payoff
+
+This one model supports many later topics:
+
+- privilege escalation: which token crosses which object boundary?
+- process injection: which process handle rights were granted?
+- sandboxing: which token restrictions and job constraints apply?
+- driver bugs: did the driver validate a user handle and caller mode?
+- object lifetime: which pointer or handle kept the target alive?
+- malware analysis: which process made the network connection, and which thread
+  performed the action?
+
+## References
+
+- Microsoft Learn, [Processes and Threads](https://learn.microsoft.com/en-us/windows/win32/procthread/processes-and-threads).
+- Microsoft Learn, [Access Tokens](https://learn.microsoft.com/en-us/windows/win32/secauthz/access-tokens).
+- Microsoft Learn, [Object Handles](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/object-handles).
+- Microsoft Learn, [Creating Threads](https://learn.microsoft.com/en-us/windows/win32/procthread/creating-threads).
+- Microsoft Sysinternals, [Process Explorer](https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer).
+- Yunolay, [Processes and the EPROCESS Structure](https://yunolay.com/processes-and-the-eprocess-structure/), used as the process-side topic lead.
+- Yunolay, [Threads, KTHREAD, and the Windows Scheduler](https://yunolay.com/threads-kthread-and-the-windows-scheduler/), a related thread-focused overview.
+- Yunolay, [Windows Security Internals: Access Tokens, SIDs, and DACLs](https://yunolay.com/windows-access-tokens-sids-and-dacls/), a related token overview.

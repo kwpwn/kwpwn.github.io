@@ -1,0 +1,28 @@
+---
+import ResearchTopicPage from "../../components/sections/ResearchTopicPage.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  getResearchTopic,
+  RESEARCH_TOPICS,
+  type ResearchTopicId,
+} from "../../lib/research-topics";
+
+export function getStaticPaths() {
+  return RESEARCH_TOPICS.map((topic) => ({
+    params: { topic: topic.id },
+  }));
+}
+
+const topicId = Astro.params.topic as ResearchTopicId;
+const topic = getResearchTopic(topicId);
+const locale = "en" as const;
+---
+
+<BaseLayout
+  title={topic.title}
+  description={topic.description}
+  locale={locale}
+  path={`/topics/${topic.id}/`}
+>
+  <ResearchTopicPage topicId={topicId} locale={locale} />
+</BaseLayout>

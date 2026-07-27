@@ -1,0 +1,353 @@
+---
+title: "I/O Manager, IRPs, IOCTLs, and Buffering Methods"
+description: "Trace DeviceIoControl into a driver stack, decode an IOCTL, compare all four transfer methods, and design a bounds-checked dispatch contract."
+locale: "en"
+publishDate: 2026-07-27
+draft: false
+featured: false
+tags:
+  - windows internals
+  - IO manager
+  - IRP
+  - IOCTL
+  - driver security
+author: "kwpwn"
+toc: true
+topic: "windows-internals"
+track: "execution"
+seriesOrder: 4
+difficulty: "Advanced"
+prerequisites:
+  - "Processes, handles, and access masks"
+  - "Basic Windows driver terminology"
+learningObjectives:
+  - "Trace a DeviceIoControl request through a device stack and IRP stack locations"
+  - "Decode device type, access, function, and transfer method from an IOCTL"
+  - "Select and validate the correct buffer representation for each transfer method"
+labEnvironment: "The decoder runs entirely in user mode. Driver pseudocode is for review and education; do not load an unsigned or experimental driver outside an isolated kernel-debugging VM."
+---
+
+Windows I/O is a message path connecting a caller to one or more drivers. The
+I/O Manager packages requests into I/O request packets (IRPs), routes them
+through device stacks, and coordinates completion.
+
+For security research, four questions matter:
+
+1. who can open the device?
+2. which IOCTL can the caller send?
+3. where does each input and output buffer live?
+4. which driver validates and completes the request?
+
+## From user call to driver dispatch
+
+A simplified private-IOCTL path is:
+
+```text
+user thread
+  → CreateFile("\\\\.\\KwpwnLab")
+  → handle with granted access to device
+  → DeviceIoControl(handle, code, input, ..., output, ...)
+  → I/O Manager creates IRP_MJ_DEVICE_CONTROL
+  → current IO_STACK_LOCATION contains IOCTL and lengths
+  → target dispatch routine validates and handles request
+  → lower driver(s), if forwarded
+  → IoCompleteRequest
+  → status and output length returned to user mode
+```
+
+The file handle is an authorization boundary. The IOCTL definition also carries
+access bits that the I/O Manager compares with the access granted to the handle
+for ordinary user requests.
+
+## Device stacks and stack locations
+
+A device stack can contain:
+
+- bus or physical device objects;
+- function driver device objects;
+- lower and upper filter device objects.
+
+An IRP contains an array of I/O stack locations. Each participating driver sees
+its current location, may set the next location, attach completion context, and
+pass the request downward.
+
+Do not assume the first driver shown in a device tree is the one that interprets
+the private IOCTL. Trace dispatch and forwarding.
+
+Completion can unwind upward. A completion routine may inspect or modify status
+and output, retain an IRP under documented rules, or perform cleanup. The first
+dispatch return is not always the final result.
+
+## Decode the IOCTL
+
+The standard `CTL_CODE` layout includes:
+
+```text
+31            16 15  14 13            2 1     0
++---------------+------+---------------+-------+
+|  Device Type  |Access|   Function    |Method |
++---------------+------+---------------+-------+
+```
+
+A user-mode decoder:
+
+```cpp
+#include <windows.h>
+#include <iostream>
+
+struct IoctlFields {
+    unsigned deviceType;
+    unsigned access;
+    unsigned function;
+    unsigned method;
+};
+
+constexpr IoctlFields DecodeIoctl(DWORD code) {
+    return {
+        (code >> 16) & 0xFFFFu,
+        (code >> 14) & 0x3u,
+        (code >> 2) & 0xFFFu,
+        code & 0x3u,
+    };
+}
+
+int wmain(int argc, wchar_t** argv) {
+    if (argc != 2) {
+        std::wcerr << L"usage: ioctl-decode 0x222004\n";
+        return 2;
+    }
+
+    wchar_t* end = nullptr;
+    const DWORD code = wcstoul(argv[1], &end, 0);
+    if (!end || *end != L'\0') return 3;
+
+    const IoctlFields fields = DecodeIoctl(code);
+    std::wcout << L"deviceType=0x" << std::hex << fields.deviceType
+               << L" access=" << fields.access
+               << L" function=0x" << fields.function
+               << L" method=" << fields.method << L"\n";
+}
+```
+
+Access values correspond to any access, read, write, or read/write according to
+the IOCTL definition. “Any access” is dangerous for a security-sensitive
+operation because a caller with a minimally opened handle can reach it.
+
+The function field identifies an operation within the device-type contract. It
+does not reveal input structure or security meaning by itself.
+
+## The four transfer methods
+
+### METHOD_BUFFERED
+
+The I/O Manager allocates a system buffer sized for the larger input or output
+requirement, copies input into it, and later copies output back.
+
+Driver view:
+
+```text
+Irp->AssociatedIrp.SystemBuffer
+InputBufferLength
+OutputBufferLength
+```
+
+The same system buffer represents both directions. A driver must not write more
+than the output length even if the allocated buffer is larger because the input
+length was larger.
+
+### METHOD_IN_DIRECT
+
+The first, usually small control buffer is in `SystemBuffer`. The second buffer
+is described by an MDL. For the direct buffer, the I/O Manager verifies read
+access from the caller's perspective.
+
+The “IN” name describes access intent for the direct buffer, not the overall
+IOCTL direction.
+
+### METHOD_OUT_DIRECT
+
+The first buffer remains in `SystemBuffer`; an MDL describes the second buffer,
+with write access checked for output use.
+
+Both direct methods lock pages and let the driver obtain a system mapping under
+the relevant API contract. Length and mapping failure still require validation.
+
+### METHOD_NEITHER
+
+The I/O Manager supplies raw user virtual addresses without validating or
+mapping them:
+
+```text
+Type3InputBuffer
+Irp->UserBuffer
+InputBufferLength
+OutputBufferLength
+```
+
+The driver owns capture, probing, exception handling, requestor-context, and
+lifetime safety. The user can change or unmap memory while an asynchronous
+operation is pending. `METHOD_NEITHER` is therefore a common review focus.
+
+## A bounds-checked buffered contract
+
+Define versioned request and response structures:
+
+```cpp
+struct QueryRequestV1 {
+    ULONG Size;
+    ULONG Version;
+    ULONG Selector;
+};
+
+struct QueryResponseV1 {
+    ULONG Size;
+    ULONG Version;
+    ULONG Value;
+};
+```
+
+Conceptual dispatch logic:
+
+```cpp
+NTSTATUS HandleQuery(PIRP irp, PIO_STACK_LOCATION stack) {
+    const ULONG inputLength =
+        stack->Parameters.DeviceIoControl.InputBufferLength;
+    const ULONG outputLength =
+        stack->Parameters.DeviceIoControl.OutputBufferLength;
+
+    if (inputLength < sizeof(QueryRequestV1) ||
+        outputLength < sizeof(QueryResponseV1) ||
+        irp->AssociatedIrp.SystemBuffer == nullptr) {
+        return Complete(irp, STATUS_BUFFER_TOO_SMALL, 0);
+    }
+
+    const auto* request = static_cast<const QueryRequestV1*>(
+        irp->AssociatedIrp.SystemBuffer);
+    if (request->Size != sizeof(QueryRequestV1) ||
+        request->Version != 1) {
+        return Complete(irp, STATUS_INVALID_PARAMETER, 0);
+    }
+
+    if (request->Selector > kMaximumSelector) {
+        return Complete(irp, STATUS_INVALID_PARAMETER, 0);
+    }
+
+    auto* response = static_cast<QueryResponseV1*>(
+        irp->AssociatedIrp.SystemBuffer);
+    *response = {
+        sizeof(QueryResponseV1),
+        1,
+        LookupSafeValue(request->Selector),
+    };
+    return Complete(irp, STATUS_SUCCESS, sizeof(QueryResponseV1));
+}
+```
+
+Security properties:
+
+- validates both input and output length;
+- validates embedded size and version;
+- validates selector range;
+- initializes the whole response;
+- reports exactly the bytes initialized;
+- returns zero output on failure;
+- performs no arithmetic on unchecked offsets.
+
+The `Complete` helper must set `IoStatus.Status`,
+`IoStatus.Information`, and complete exactly once.
+
+## Integer and variable-length validation
+
+For a request containing offset and length:
+
+```cpp
+bool RangeWithin(ULONG total, ULONG offset, ULONG length) {
+    return offset <= total && length <= total - offset;
+}
+```
+
+Validate by subtraction after checking `offset <= total`. Avoid
+`offset + length <= total`, which can overflow.
+
+For arrays:
+
+```text
+count <= (available_bytes / element_size)
+```
+
+Also cap counts for time and allocation behavior.
+
+## Access is enforced at several layers
+
+### Device security
+
+The device object's security descriptor controls who can open it. A permissive
+device DACL makes every reachable IOCTL more important.
+
+### Desired access at open
+
+The client requests `GENERIC_READ`, `GENERIC_WRITE`, or other rights in
+`CreateFile`. The granted handle access limits operations.
+
+### IOCTL access bits
+
+The access bits in `CTL_CODE` can require read, write, both, or any access.
+Choose the minimum meaningful requirement.
+
+### Driver authorization
+
+For sensitive operations, the driver may need a caller-aware authorization
+decision beyond the generic device open. Preserve requestor identity and avoid
+performing user-directed file or registry work as an unchecked kernel deputy.
+
+## Pending, cancellation, and lifetime
+
+An asynchronous driver may mark an IRP pending and complete later. Then:
+
+- input data must remain valid for the required lifetime;
+- cancellation and completion must be synchronized;
+- an IRP must complete exactly once;
+- referenced objects must remain referenced;
+- remove-lock or framework lifetime rules must be followed;
+- user buffers cannot be assumed stable under `METHOD_NEITHER`.
+
+Race bugs often exist in the state transition between queued, canceled,
+dequeued, and completed states.
+
+## Audit workflow
+
+1. Identify symbolic link, device object, driver, and stack.
+2. Capture device security descriptor.
+3. Record the handle access a standard user can obtain.
+4. Enumerate IOCTL codes from dispatch, binaries, clients, or traces.
+5. Decode method and access bits.
+6. Recover per-IOCTL input/output structure and version gates.
+7. Trace buffer source, length checks, integer arithmetic, and object lifetime.
+8. Trace forwarding and completion.
+9. Test exact boundaries in a disposable VM: zero, one less than minimum,
+   minimum, maximum, overflow-adjacent, cancel/pending.
+10. Keep crashes and observations tied to build, driver version, and hash.
+
+## Common review findings
+
+- `FILE_ANY_ACCESS` on a privileged operation;
+- device DACL writable/openable by standard users;
+- `METHOD_NEITHER` pointer used outside requestor context;
+- input checked but output length ignored;
+- embedded length trusted;
+- user handle converted without type or access validation;
+- kernel file operation performed on behalf of user without an access check;
+- `IoStatus.Information` larger than initialized output;
+- IRP completed twice;
+- cancel routine races with worker completion;
+- object pointer used after dereference.
+
+## References
+
+- Microsoft Learn, [Windows Kernel-Mode I/O Manager](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/windows-kernel-mode-i-o-manager).
+- Microsoft Learn, [I/O Request Packets](https://learn.microsoft.com/en-us/windows-hardware/drivers/gettingstarted/i-o-request-packets).
+- Microsoft Learn, [IRP_MJ_DEVICE_CONTROL](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/irp-mj-device-control).
+- Microsoft Learn, [Defining I/O Control Codes](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/defining-i-o-control-codes).
+- Microsoft Learn, [Buffer Descriptions for I/O Control Codes](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/buffer-descriptions-for-i-o-control-codes).
+- Yunolay, [The Windows I/O Manager, Device Stacks, and IRPs](https://yunolay.com/io-manager-device-stacks-and-irps/), used as the topic lead and expanded here with access gates and bounds-checked contracts.
+- Yunolay, [The Windows Driver Model: WDM, KMDF, and Driver Objects](https://yunolay.com/windows-driver-model-wdm-kmdf-driver-objects/), a related driver-model overview.

@@ -8,6 +8,7 @@ import { resolveRoute } from "../i18n/routes";
 import { t } from "../i18n/ui";
 import { siteConfig } from "../config/site.config";
 import {
+  ArticleGuide,
   ArticleHero,
   RelatedPosts,
   ShareButtons,
@@ -90,38 +91,37 @@ const allPosts = await getCollection("blog");
 
   <article class="blog-layout container py-12">
     <ArticleHero post={post} locale={locale} />
+    <ArticleGuide post={post} />
 
     {
-      tocEnabled &&
-        siteConfig.articleFeatures.toc.layout === "inline" && (
-          <TableOfContents
-            headings={headings}
-            layout="inline"
-            maxDepth={siteConfig.articleFeatures.toc.maxDepth}
-            minHeadings={siteConfig.articleFeatures.toc.minHeadings}
-            title={t(locale, "blog.toc")}
-            locale={locale}
-          />
-        )
+      tocEnabled && siteConfig.articleFeatures.toc.layout === "inline" && (
+        <TableOfContents
+          headings={headings}
+          layout="inline"
+          maxDepth={siteConfig.articleFeatures.toc.maxDepth}
+          minHeadings={siteConfig.articleFeatures.toc.minHeadings}
+          title={t(locale, "blog.toc")}
+          locale={locale}
+        />
+      )
     }
 
     <div
       class={`blog-layout__content${tocEnabled && siteConfig.articleFeatures.toc.layout === "sidebar" ? " blog-layout__content--with-toc" : ""}`}
     >
       {
-        tocEnabled &&
-          siteConfig.articleFeatures.toc.layout === "sidebar" && (
-            <aside class="blog-layout__toc blog-layout__toc--sidebar">
-              <TableOfContents
-                headings={headings}
-                layout="sidebar"
-                maxDepth={siteConfig.articleFeatures.toc.maxDepth}
-                minHeadings={siteConfig.articleFeatures.toc.minHeadings}
-                title={t(locale, "blog.toc")}
-                locale={locale}
-              />
-            </aside>
-          )
+        tocEnabled && siteConfig.articleFeatures.toc.layout === "sidebar" && (
+          <aside class="blog-layout__toc blog-layout__toc--sidebar">
+            <TableOfContents
+              headings={headings}
+              layout="sidebar"
+              maxDepth={siteConfig.articleFeatures.toc.maxDepth}
+              minHeadings={siteConfig.articleFeatures.toc.minHeadings}
+              title={t(locale, "blog.toc")}
+              locale={locale}
+            />
+          </aside>
+        )
       }
 
       <div
@@ -142,10 +142,14 @@ const allPosts = await getCollection("blog");
 
     <RelatedPosts currentPost={post} allPosts={allPosts} locale={locale} />
 
-    <nav class="blog-layout__back">
-      <a href={resolveRoute(locale, "/")}>
+    <nav class="blog-layout__back" aria-label="Return to article collection">
+      <a
+        href={post.data.topic
+          ? resolveRoute(locale, `/topics/${post.data.topic}/`)
+          : resolveRoute(locale, "/")}
+      >
         <span aria-hidden="true">&larr;</span>
-        {t(locale, "blog.backToBlog")}
+        {post.data.topic ? "Back to the topic" : t(locale, "blog.backToBlog")}
       </a>
     </nav>
   </article>

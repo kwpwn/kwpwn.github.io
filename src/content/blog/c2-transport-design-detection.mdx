@@ -1,0 +1,302 @@
+---
+title: "C2 Transport Design and Detection: HTTP, DNS, and WebSocket"
+description: "Compare command-and-control transports by semantics, reliability, metadata, and detection opportunities using a harmless offline protocol simulator."
+locale: "en"
+publishDate: 2026-07-27
+draft: false
+featured: false
+tags:
+  - command and control
+  - HTTP
+  - DNS
+  - WebSocket
+  - detection engineering
+author: "kwpwn"
+toc: true
+topic: "malware-c2"
+track: "telemetry"
+seriesOrder: 4
+difficulty: "Intermediate"
+prerequisites:
+  - "Execution–tasking–telemetry model from lesson 01"
+  - "Basic client/server and DNS concepts"
+learningObjectives:
+  - "Separate transport semantics from task and execution semantics"
+  - "Compare HTTP, DNS, and WebSocket by capacity, state, retry, and observable metadata"
+  - "Derive detections from protocol invariants instead of copied signatures"
+labEnvironment: "The simulator in this lesson operates only on in-memory messages. It creates no implant, listener, shell, persistence, encryption, or network connection."
+---
+
+Command and control is a distributed-systems problem before it is a security
+product feature. Two endpoints exchange identity, work, acknowledgements,
+results, and errors over a transport that can duplicate, delay, reorder, or lose
+messages.
+
+Understanding those mechanics gives analysts durable detection ideas. A static
+URI or user-agent can change; the need to correlate a task with a result cannot.
+
+## A minimal protocol contract
+
+Define an envelope:
+
+```json
+{
+  "schema": 1,
+  "session_id": "lab-session-01",
+  "message_id": "msg-0007",
+  "kind": "task",
+  "correlation_id": "task-0003",
+  "sequence": 7,
+  "body": {
+    "verb": "emit-demo-marker"
+  }
+}
+```
+
+The transport carries bytes. The envelope provides:
+
+- version negotiation;
+- session identity;
+- message identity;
+- correlation;
+- ordering;
+- a message kind;
+- a bounded body.
+
+A real design also needs authentication and integrity. This lesson deliberately
+omits keys and deployment so the code remains an offline protocol exercise.
+
+## Offline delivery and duplicate simulation
+
+```python
+from dataclasses import dataclass
+from typing import Literal
+
+
+Kind = Literal["task", "result", "error", "ack"]
+
+
+@dataclass(frozen=True)
+class Envelope:
+    schema: int
+    session_id: str
+    message_id: str
+    kind: Kind
+    correlation_id: str
+    sequence: int
+    body: dict[str, str]
+
+
+class DemoReceiver:
+    def __init__(self) -> None:
+        self.last_sequence = -1
+        self.seen: set[str] = set()
+
+    def accept(self, message: Envelope) -> tuple[bool, str]:
+        if message.schema != 1:
+            return False, "unsupported schema"
+        if message.message_id in self.seen:
+            return False, "duplicate message"
+        if message.sequence <= self.last_sequence:
+            return False, "stale or reordered message"
+        if message.kind != "task":
+            return False, "unexpected kind"
+        if message.body.get("verb") not in {
+            "describe-platform",
+            "emit-demo-marker",
+        }:
+            return False, "unsupported demo verb"
+
+        self.seen.add(message.message_id)
+        self.last_sequence = message.sequence
+        return True, "accepted"
+
+
+receiver = DemoReceiver()
+task = Envelope(
+    schema=1,
+    session_id="lab-session-01",
+    message_id="msg-0007",
+    kind="task",
+    correlation_id="task-0003",
+    sequence=7,
+    body={"verb": "emit-demo-marker"},
+)
+
+print(receiver.accept(task))
+print(receiver.accept(task))  # deterministic duplicate rejection
+```
+
+This demonstrates protocol invariants without a network or command execution.
+During analysis, locate the equivalent state:
+
+- Where is the last sequence stored?
+- Does reconnect reset it?
+- Is the message ID random, monotonic, or derived?
+- Can a result be matched to its task?
+- How are duplicate responses handled?
+
+## HTTP request/response polling
+
+HTTP gives mature proxy support, status codes, headers, caching rules, and
+well-defined request/response semantics. A polling client commonly:
+
+1. sends registration or status;
+2. receives zero or more tasks;
+3. performs local work;
+4. posts results;
+5. repeats after a policy-defined interval.
+
+Analysts can observe:
+
+- method, authority, path, status;
+- connection reuse and HTTP version;
+- TLS handshake and certificate metadata;
+- header ordering and values where visible;
+- request and response sizes;
+- polling interval distribution;
+- process-to-connection attribution.
+
+Do not label every periodic HTTPS request as C2. Update clients, inventory
+agents, and health checks behave similarly. Combine network regularity with
+binary provenance, destination, host actions, and task/result size direction.
+
+HTTP failures also expose state. Does `429` cause backoff? Does `401` trigger
+registration? Are `5xx` responses retried? Which statuses cause session reset?
+
+## WebSocket sessions
+
+WebSocket begins with an HTTP upgrade and becomes a long-lived, full-duplex
+message channel. It can reduce repeated polling overhead and allow either side
+to send a frame.
+
+Observable properties include:
+
+- HTTP upgrade request and response;
+- connection duration;
+- client and server frame direction;
+- frame sizes and frequency;
+- ping/pong and close behavior;
+- reconnect timing;
+- host process and destination.
+
+Long-lived WebSockets are common in collaboration tools, dashboards, and
+developer services. A useful detector asks whether the process, destination,
+certificate, lifetime, and post-connection host activity fit the environment.
+
+Protocol analysis should test fragmentation, message boundaries, close codes,
+and reconnect. TCP segmentation is not the same as a WebSocket message boundary.
+
+## DNS transport
+
+DNS is a query/response protocol with resolvers, caching, label-length limits,
+record types, and recursive infrastructure between endpoint and authority.
+Those constraints make it very different from a direct byte stream.
+
+Analysts can examine:
+
+- query name length and label distribution;
+- subdomain uniqueness;
+- record types;
+- response codes and TTLs;
+- authoritative domains and resolver path;
+- query volume per host;
+- encoded-data characteristics;
+- process attribution where endpoint telemetry permits it.
+
+High-entropy subdomains are not automatically malicious. Content-addressed
+systems, anti-abuse tokens, tracking systems, and service discovery can generate
+unusual names. Correlate with frequency, domain age and ownership, endpoint
+process, and subsequent host behavior.
+
+Caching can suppress repeated queries. A protocol using DNS must account for
+duplicate, cached, truncated, and delayed answers. Those design constraints can
+become detection invariants.
+
+## Comparison
+
+| Property          | HTTP polling                         | WebSocket                       | DNS                                  |
+| ----------------- | ------------------------------------ | ------------------------------- | ------------------------------------ |
+| Interaction       | Request/response                     | Full duplex                     | Query/response                       |
+| Typical state     | Recreated or cookie/token-bound      | Long-lived connection           | Distributed through resolver/cache   |
+| Message capacity  | Relatively large                     | Relatively large frames         | Constrained by names and record data |
+| Common metadata   | URL, method, status, TLS, sizes      | Upgrade, frame timing, lifetime | names, types, TTL, response code     |
+| Failure questions | retry, status policy, proxy behavior | reconnect, frame loss, close    | cache, resolver, truncation, TTL     |
+| Benign prevalence | Very high                            | High                            | Universal                            |
+
+The table is not a stealth ranking. Environment context decides which behavior
+is expected.
+
+## Derive detections from invariants
+
+### Task–result asymmetry
+
+An inbound response may be small, followed by a host action and a larger
+outbound result. Correlate:
+
+```text
+network message
+  → process/file/registry action
+  → response sharing session or timing context
+```
+
+### Identity continuity
+
+A host that changes session identity on every request may be buggy, stateless,
+or deliberately rotating. A host that keeps one identity across changing IP
+addresses may reveal durable local state. Find where that identity is stored.
+
+### Retry shape
+
+Distinguish fixed application polling, exponential backoff, and immediate retry.
+Measure rather than describing timing as “regular.” Report median, dispersion,
+sample count, and capture gaps.
+
+### Cross-process split
+
+The network connection may belong to one process while another performs the
+action. Named pipes, shared sections, RPC, or inherited handles can connect
+them. Correlate IPC and process lineage before attributing behavior.
+
+## A safe analysis worksheet
+
+```text
+Transport:
+Protocol version:
+Session identity source:
+Message framing:
+Task identifier:
+Result correlation:
+Duplicate policy:
+Ordering policy:
+Retry/backoff:
+Maximum observed message:
+Parser error behavior:
+
+Network evidence:
+Host evidence:
+IPC evidence:
+Contradictory evidence:
+Collection gaps:
+```
+
+## Defensive controls
+
+- maintain process-aware DNS and network telemetry;
+- retain HTTP/TLS metadata consistent with privacy policy;
+- baseline long-lived connections by process and destination;
+- join network events with process, module, file, and registry events;
+- alert on protocol use by unexpected binaries rather than protocol alone;
+- preserve raw timestamps and sensor-loss counters;
+- validate detections against benign updaters, browsers, chat clients, and
+  management agents.
+
+## References
+
+- RFC Editor, [RFC 9110 — HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html).
+- RFC Editor, [RFC 6455 — The WebSocket Protocol](https://www.rfc-editor.org/rfc/rfc6455.html).
+- RFC Editor, [RFC 1035 — Domain Names: Implementation and Specification](https://www.rfc-editor.org/rfc/rfc1035.html).
+- MITRE ATT&CK, [T1071.001 — Web Protocols](https://attack.mitre.org/techniques/T1071/001/) and [T1071.004 — DNS](https://attack.mitre.org/techniques/T1071/004/).
+- Microsoft Sysinternals, [Sysmon](https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon).
+- Yunolay, [C2 Frameworks Compared: Cobalt Strike, Sliver, and Mythic](https://yunolay.com/c2-frameworks-compared-cobalt-strike-sliver-and-mythic/), used as the topic lead; this lesson focuses on protocol semantics and detection rather than framework operation.
+- Yunolay, [Malleable C2 Profiles and Network Signature Evasion](https://yunolay.com/malleable-c2-profiles-and-network-signature-evasion/), included for contrast; no evasion profile or deployable listener is reproduced here.

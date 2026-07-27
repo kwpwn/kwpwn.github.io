@@ -1,0 +1,347 @@
+---
+title: "Static PE Triage with a Bounds-Checked Mental Model"
+description: "Read a Windows PE file from disk layout to loader-relevant metadata, using a small defensive parser that rejects truncated and inconsistent inputs."
+locale: "en"
+publishDate: 2026-07-27
+draft: false
+featured: false
+tags:
+  - malware analysis
+  - PE format
+  - static analysis
+  - reverse engineering
+author: "kwpwn"
+toc: true
+topic: "malware-c2"
+track: "analysis"
+seriesOrder: 2
+difficulty: "Intermediate"
+prerequisites:
+  - "Hexadecimal numbers and little-endian integers"
+  - "Basic Python and file offsets"
+learningObjectives:
+  - "Navigate DOS, PE, COFF, optional, data-directory, and section-table structures"
+  - "Keep file offsets, RVAs, and virtual addresses distinct"
+  - "Extract loader-relevant metadata without trusting unvalidated lengths"
+labEnvironment: "Run the parser only against binaries you own or public malware-analysis samples obtained under your organization's handling policy. The parser never executes or loads the file."
+---
+
+Static triage answers two questions before execution:
+
+1. what does the file claim to be?
+2. which loader-visible structures support or contradict that claim?
+
+The Portable Executable format is not only a list of headers. It is a mapping
+contract between bytes on disk, relative virtual addresses, sections, and data
+directories. Malware, packers, protectors, corrupted downloads, and ordinary
+linkers can all produce unusual values, so every offset and size is untrusted
+input.
+
+## Keep the three address domains separate
+
+- **File offset**: byte position in the file.
+- **RVA**: address relative to the image base after mapping.
+- **VA**: image base plus RVA in a particular process.
+
+An import-table data directory contains an RVA and size. You cannot seek to the
+RVA directly in the file. First find the section whose virtual range contains
+the RVA, then translate:
+
+```text
+file_offset = section.PointerToRawData
+            + (rva - section.VirtualAddress)
+```
+
+Validate that the translated range stays inside both the section's raw data and
+the file.
+
+## The loader-facing structure
+
+A typical image contains:
+
+```text
+IMAGE_DOS_HEADER
+  e_lfanew ───────────────┐
+                         ▼
+                    "PE\0\0"
+                    IMAGE_FILE_HEADER
+                    IMAGE_OPTIONAL_HEADER
+                      data directories
+                    IMAGE_SECTION_HEADER[]
+                    section raw data
+```
+
+The “optional” header is required for image files. Its magic distinguishes PE32
+from PE32+. Do not infer architecture from the filename or directory.
+
+High-value initial fields include:
+
+| Structure        | Field                                | Triage use                     |
+| ---------------- | ------------------------------------ | ------------------------------ |
+| DOS header       | `e_lfanew`                           | Location of the PE signature   |
+| COFF header      | `Machine`                            | Target architecture            |
+| COFF header      | `NumberOfSections`                   | Section-table size             |
+| COFF header      | `TimeDateStamp`                      | Weak clue; easy to alter       |
+| Optional header  | `Magic`                              | PE32 versus PE32+              |
+| Optional header  | `AddressOfEntryPoint`                | Initial RVA                    |
+| Optional header  | `ImageBase`                          | Preferred mapping base         |
+| Optional header  | `SizeOfImage`                        | Mapped image reservation       |
+| Optional header  | `DllCharacteristics`                 | Mitigation-related flags       |
+| Data directories | import, export, resource, TLS, reloc | Capability and loader metadata |
+
+No single field proves maliciousness.
+
+## Separate parser facts from analyst interpretations
+
+A reliable triage note keeps three layers distinct:
+
+| Layer          | Example                                                   | Confidence rule                         |
+| -------------- | --------------------------------------------------------- | --------------------------------------- |
+| Parsed fact    | `AddressOfEntryPoint` is `0x2A10`                         | Reproducible from validated file bytes  |
+| Interpretation | The entry point lies in a writable and executable section | Derived from two or more parsed fields  |
+| Hypothesis     | The section may unpack code before transferring control   | Requires runtime observation to confirm |
+
+This separation prevents a suspicious-looking property from silently becoming a
+behavioral claim. It also makes tool disagreement diagnosable. If two PE viewers
+report different import counts, compare the exact directory RVA, declared size,
+section translation, and termination rule each tool used. Preserve the raw
+values in hexadecimal alongside the friendly interpretation.
+
+Before parsing deeper, establish basic consistency checks: the section table
+must fit inside the file; raw section ranges must not wrap; the entry-point RVA
+should map into the image; `SizeOfHeaders` and `SizeOfImage` should agree with
+alignment rules; and each data directory should either be absent or describe a
+range that can be explained. A failed consistency check is an observation, not
+permission for the parser to continue with an unsafe offset.
+
+## A small defensive header parser
+
+This parser prints architecture, optional-header kind, entry-point RVA, and
+section metadata. It deliberately stops before imports so the validation pattern
+is easy to inspect.
+
+```python
+from __future__ import annotations
+
+import argparse
+import struct
+from dataclasses import dataclass
+from pathlib import Path
+
+
+class ParseError(ValueError):
+    pass
+
+
+def require(data: bytes, offset: int, size: int, label: str) -> memoryview:
+    if offset < 0 or size < 0 or offset > len(data) - size:
+        raise ParseError(f"{label}: range {offset:#x}+{size:#x} is outside file")
+    return memoryview(data)[offset : offset + size]
+
+
+def u16(data: bytes, offset: int, label: str) -> int:
+    return struct.unpack_from("<H", require(data, offset, 2, label))[0]
+
+
+def u32(data: bytes, offset: int, label: str) -> int:
+    return struct.unpack_from("<I", require(data, offset, 4, label))[0]
+
+
+@dataclass(frozen=True)
+class Section:
+    name: str
+    virtual_size: int
+    virtual_address: int
+    raw_size: int
+    raw_offset: int
+    characteristics: int
+
+
+def parse(path: Path) -> None:
+    data = path.read_bytes()
+    require(data, 0, 0x40, "DOS header")
+
+    if data[:2] != b"MZ":
+        raise ParseError("missing MZ signature")
+
+    pe_offset = u32(data, 0x3C, "e_lfanew")
+    if bytes(require(data, pe_offset, 4, "PE signature")) != b"PE\\0\\0":
+        raise ParseError("missing PE signature")
+
+    coff = pe_offset + 4
+    machine = u16(data, coff, "Machine")
+    section_count = u16(data, coff + 2, "NumberOfSections")
+    optional_size = u16(data, coff + 16, "SizeOfOptionalHeader")
+
+    if section_count == 0 or section_count > 96:
+        raise ParseError(f"implausible section count: {section_count}")
+
+    optional = coff + 20
+    require(data, optional, optional_size, "optional header")
+    magic = u16(data, optional, "optional magic")
+    if magic not in (0x10B, 0x20B):
+        raise ParseError(f"unsupported optional-header magic: {magic:#x}")
+
+    entry_rva = u32(data, optional + 16, "AddressOfEntryPoint")
+    table = optional + optional_size
+    require(data, table, section_count * 40, "section table")
+
+    sections: list[Section] = []
+    for index in range(section_count):
+        base = table + index * 40
+        raw_name = bytes(require(data, base, 8, "section name"))
+        name = raw_name.split(b"\\0", 1)[0].decode("ascii", errors="replace")
+        section = Section(
+            name=name,
+            virtual_size=u32(data, base + 8, "VirtualSize"),
+            virtual_address=u32(data, base + 12, "VirtualAddress"),
+            raw_size=u32(data, base + 16, "SizeOfRawData"),
+            raw_offset=u32(data, base + 20, "PointerToRawData"),
+            characteristics=u32(data, base + 36, "Characteristics"),
+        )
+        if section.raw_size:
+            require(
+                data,
+                section.raw_offset,
+                section.raw_size,
+                f"raw data for {section.name}",
+            )
+        sections.append(section)
+
+    machine_name = {0x14C: "x86", 0x8664: "x64", 0xAA64: "ARM64"}.get(
+        machine, f"unknown-{machine:#x}"
+    )
+    print(f"machine={machine_name} kind={'PE32+' if magic == 0x20B else 'PE32'}")
+    print(f"entry_rva={entry_rva:#x} sections={section_count}")
+    for section in sections:
+        print(
+            f"{section.name:8} RVA={section.virtual_address:#010x} "
+            f"VSZ={section.virtual_size:#x} RAW={section.raw_offset:#x}+"
+            f"{section.raw_size:#x} CHARS={section.characteristics:#x}"
+        )
+
+
+if __name__ == "__main__":
+    cli = argparse.ArgumentParser()
+    cli.add_argument("image", type=Path)
+    args = cli.parse_args()
+    try:
+        parse(args.image)
+    except (OSError, ParseError) as error:
+        raise SystemExit(f"error: {error}")
+```
+
+The parser uses subtraction-safe bounds checks. The expression
+`offset > len(data) - size` avoids accepting an addition that could overflow in
+a fixed-width language.
+
+## Map an RVA safely
+
+Add a helper only after section validation:
+
+```python
+def rva_to_file_offset(
+    data: bytes, sections: list[Section], rva: int, size: int
+) -> int:
+    for section in sections:
+        span = max(section.virtual_size, section.raw_size)
+        start = section.virtual_address
+        if start <= rva and rva - start <= span:
+            delta = rva - start
+            if delta > section.raw_size or size > section.raw_size - delta:
+                raise ParseError("RVA exists virtually but not in section raw data")
+            offset = section.raw_offset + delta
+            require(data, offset, size, "translated RVA")
+            return offset
+    raise ParseError(f"RVA {rva:#x} is not covered by a section")
+```
+
+Virtual size and raw size can differ. A region zero-filled by the loader has no
+corresponding file bytes. That distinction matters when a data directory points
+near a section boundary.
+
+## Imports are hypotheses, not behavior
+
+Imports provide useful leads:
+
+- networking libraries suggest possible communication;
+- cryptographic APIs suggest hashing, encryption, verification, or ordinary TLS;
+- service APIs suggest service interaction;
+- process and memory APIs suggest debugging, instrumentation, or injection.
+
+Delay-loaded imports, dynamic `GetProcAddress`, API sets, statically linked code,
+and unused imports limit the conclusion. Phrase the result as:
+
+> The image declares an import of `CreateProcessW`.
+
+That is not the same as:
+
+> The sample created a process during this run.
+
+Dynamic evidence is needed for the second claim.
+
+## Sections and entropy
+
+Section names are conventions, not security boundaries. An executable section
+named `.text` is normal; an unknown name is not automatically malicious.
+
+Entropy can highlight compressed or encrypted data. It does not prove packing:
+media, compressed resources, certificates, and ordinary data can also be
+high-entropy. Compare:
+
+- section raw size versus virtual size;
+- executable and writable characteristics;
+- entry point location;
+- import count;
+- overlay size;
+- signature coverage;
+- runtime memory changes.
+
+The meaningful result is a pattern of mutually supporting observations.
+
+## Signatures and hashes
+
+Calculate at least SHA-256:
+
+```powershell
+Get-FileHash -Algorithm SHA256 .\sample.exe
+```
+
+Use Sigcheck for Authenticode and metadata:
+
+```powershell
+sigcheck.exe -a -h -i .\sample.exe
+```
+
+A valid signature proves that the signed bytes validate under the certificate
+chain and policy used for the check. It does not prove that the software is safe.
+An unsigned internal build is not automatically malicious.
+
+Record whether:
+
+- a signature exists;
+- verification succeeds;
+- the certificate chain and timestamp are valid;
+- the file hash matches a known release;
+- the signature covers the relevant content.
+
+## Triage workflow
+
+1. Preserve the original and record hash, size, source, and acquisition time.
+2. Parse signatures and bounds before trusting any offset.
+3. Identify architecture, subsystem, entry point, and section layout.
+4. Inspect imports, exports, resources, TLS, relocations, and debug metadata.
+5. Extract strings with encoding and location preserved.
+6. Form behavior hypotheses.
+7. Select dynamic sensors that can confirm or reject each hypothesis.
+8. Keep parser errors as evidence; malformed structure can be intentional or
+   accidental.
+
+## References
+
+- Microsoft Learn, [PE Format](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format).
+- Microsoft Learn, [ImageHlp Functions](https://learn.microsoft.com/en-us/windows/win32/debug/imagehlp-functions).
+- Microsoft Sysinternals, [Sigcheck](https://learn.microsoft.com/en-us/sysinternals/downloads/sigcheck).
+- Mandiant, [capa](https://github.com/mandiant/capa), the original open-source capability-identification project.
+- Yunolay, [Static Analysis of Windows PE Files: Headers, Imports, Strings, and capa](https://yunolay.com/static-analysis-pe-files/), used as the practical topic lead and expanded here with explicit bounds and RVA-validation rules.
+- Yunolay, [The Windows DLL Loader and the PE File Format](https://yunolay.com/windows-dll-loader-and-pe-file-format/), a related internals overview.

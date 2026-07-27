@@ -1,16 +1,18 @@
 ---
 import ResearchTopicDirectory from "../components/sections/ResearchTopicDirectory.astro";
-import { siteConfig } from "../config/site.config";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
 const locale = "en" as const;
+const title = "Windows Security Research Topics";
+const description =
+  "Choose a structured learning path for Windows privilege escalation, malware and C2 analysis, or Windows internals.";
 ---
 
 <BaseLayout
-  title={siteConfig.name}
-  description="A structured Windows security research library covering privilege escalation, malware and command-and-control analysis, and Windows internals."
+  title={title}
+  description={description}
   locale={locale}
-  path="/"
+  path="/topics/"
 >
   <ResearchTopicDirectory locale={locale} />
 </BaseLayout>

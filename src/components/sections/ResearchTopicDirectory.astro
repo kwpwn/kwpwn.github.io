@@ -1,0 +1,707 @@
+---
+import { getCollection, type CollectionEntry } from "astro:content";
+import { resolveRoute } from "../../i18n/routes";
+import {
+  getResearchTopicPosts,
+  RESEARCH_TOPICS,
+} from "../../lib/research-topics";
+import type { Locale } from "../../lib/site-config";
+import { Badge, Card, Container, Icon, Section } from "../ui";
+
+export interface Props {
+  locale?: Locale;
+}
+
+const { locale = "en" } = Astro.props as Props;
+const allPosts: CollectionEntry<"blog">[] = await getCollection("blog");
+const topicEntries = RESEARCH_TOPICS.map((topic) => ({
+  topic,
+  posts: getResearchTopicPosts(allPosts, topic.id),
+}));
+const topicPosts = topicEntries
+  .flatMap(({ posts }) => posts)
+  .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime());
+const lessonCount = topicPosts.length;
+const trackCount = RESEARCH_TOPICS.reduce(
+  (total, topic) => total + topic.tracks.length,
+  0,
+);
+---
+
+<Section spacing="xl" class="research-directory-section">
+  <Container size="xl">
+    <div class="research-directory">
+      <header class="research-directory__hero">
+        <div class="research-directory__intro">
+          <p class="research-directory__eyebrow">Windows research library</p>
+          <h1>Choose a topic. Follow a path. Prove every claim.</h1>
+          <p class="research-directory__lead">
+            Three focused learning tracks for Windows security research. Each
+            topic moves from a mental model to mechanics, a safe lab, observable
+            evidence, and primary references.
+          </p>
+          <div class="research-directory__actions">
+            <a
+              class="research-directory__primary"
+              href={resolveRoute(locale, "/topics/windows-privesc/")}
+            >
+              Start with Windows PrivEsc
+              <span aria-hidden="true">&rarr;</span>
+            </a>
+            <a
+              class="research-directory__secondary"
+              href={resolveRoute(locale, "/blogs/")}
+            >
+              Browse every article
+            </a>
+          </div>
+        </div>
+
+        <dl class="research-directory__summary" aria-label="Library summary">
+          <div>
+            <dt>Major topics</dt>
+            <dd>{RESEARCH_TOPICS.length}</dd>
+          </div>
+          <div>
+            <dt>Learning lanes</dt>
+            <dd>{trackCount}</dd>
+          </div>
+          <div>
+            <dt>Detailed lessons</dt>
+            <dd>{lessonCount}</dd>
+          </div>
+        </dl>
+      </header>
+
+      <nav class="research-directory__topics" aria-label="Research topics">
+        {
+          topicEntries.map(({ topic, posts }, index) => (
+            <Card hover class="research-topic-card">
+              <div class="research-topic-card__topline">
+                <span class="research-topic-card__number">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span class="research-topic-card__icon" aria-hidden="true">
+                  <Icon name={topic.icon} />
+                </span>
+              </div>
+
+              <div class="research-topic-card__body">
+                <div>
+                  <p class="research-topic-card__eyebrow">{topic.eyebrow}</p>
+                  <h2>
+                    <a href={resolveRoute(locale, `/topics/${topic.id}/`)}>
+                      {topic.title}
+                    </a>
+                  </h2>
+                </div>
+                <p class="research-topic-card__description">
+                  {topic.description}
+                </p>
+
+                <ul
+                  class="research-topic-card__tracks"
+                  aria-label={`${topic.title} learning lanes`}
+                >
+                  {topic.tracks.map((track) => (
+                    <li>{track.label}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div class="research-topic-card__footer">
+                <p>
+                  <strong>{posts.length}</strong>{" "}
+                  {posts.length === 1 ? "lesson" : "lessons"}
+                </p>
+                <span>
+                  Open topic <span aria-hidden="true">&rarr;</span>
+                </span>
+              </div>
+            </Card>
+          ))
+        }
+      </nav>
+
+      <section
+        class="research-directory__method"
+        aria-labelledby="method-title"
+      >
+        <header>
+          <p class="research-directory__eyebrow">How the library works</p>
+          <h2 id="method-title">One repeatable research loop</h2>
+          <p>
+            The same reasoning model applies whether you are auditing a service,
+            reversing a sample, or tracing an IRP.
+          </p>
+        </header>
+        <ol>
+          <li>
+            <span>01</span>
+            <div>
+              <h3>Model</h3>
+              <p>Name the objects, actors, state, and trust boundary.</p>
+            </div>
+          </li>
+          <li>
+            <span>02</span>
+            <div>
+              <h3>Observe</h3>
+              <p>Capture at least two independent sources of evidence.</p>
+            </div>
+          </li>
+          <li>
+            <span>03</span>
+            <div>
+              <h3>Test</h3>
+              <p>Use a disposable lab and include a negative control.</p>
+            </div>
+          </li>
+          <li>
+            <span>04</span>
+            <div>
+              <h3>Explain</h3>
+              <p>Separate documented fact, observation, and inference.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      {
+        topicPosts.length > 0 && (
+          <section
+            class="research-directory__latest"
+            aria-labelledby="latest-lessons-title"
+          >
+            <header>
+              <div>
+                <p class="research-directory__eyebrow">Start reading</p>
+                <h2 id="latest-lessons-title">Detailed lessons</h2>
+              </div>
+              <a href={resolveRoute(locale, "/blogs/")}>View all articles</a>
+            </header>
+
+            <ol class="research-directory__lesson-list">
+              {topicPosts.slice(0, 6).map((post) => {
+                const topic = RESEARCH_TOPICS.find(
+                  (candidate) => candidate.id === post.data.topic,
+                );
+                return (
+                  <li>
+                    <a href={resolveRoute(locale, `/blog/${post.id}/`)}>
+                      <span class="research-directory__lesson-order">
+                        {String(post.data.seriesOrder ?? 0).padStart(2, "0")}
+                      </span>
+                      <span class="research-directory__lesson-copy">
+                        <strong>{post.data.title}</strong>
+                        <small>
+                          {topic?.shortTitle}
+                          {post.data.difficulty
+                            ? ` · ${post.data.difficulty}`
+                            : ""}
+                        </small>
+                      </span>
+                      <Badge variant="outline" size="sm">
+                        Read
+                      </Badge>
+                    </a>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        )
+      }
+
+      <aside
+        class="research-directory__support"
+        aria-labelledby="support-title"
+      >
+        <div>
+          <p class="research-directory__eyebrow">Supporting references</p>
+          <h2 id="support-title">
+            Need a concept or a target-specific dossier?
+          </h2>
+          <p>
+            The handbook and service atlas remain separate reference layers, so
+            the topic paths stay readable while deeper data is one click away.
+          </p>
+        </div>
+        <div class="research-directory__support-links">
+          <a href={resolveRoute(locale, "/windows-security-concepts/")}>
+            Concept handbook <span aria-hidden="true">&rarr;</span>
+          </a>
+          <a href={resolveRoute(locale, "/windows-service-vulnerabilities/")}>
+            Service atlas <span aria-hidden="true">&rarr;</span>
+          </a>
+        </div>
+      </aside>
+    </div>
+  </Container>
+</Section>
+
+<style>
+  .research-directory {
+    display: grid;
+    gap: var(--space-3xl);
+  }
+
+  .research-directory__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr);
+    gap: var(--space-3xl);
+    align-items: end;
+    padding-bottom: var(--space-2xl);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .research-directory__intro {
+    max-width: 58rem;
+  }
+
+  .research-directory__eyebrow {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .research-directory__intro h1 {
+    max-width: 15ch;
+    margin: var(--space-md) 0 0;
+    font-size: var(--text-5xl);
+    line-height: var(--leading-none);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .research-directory__lead {
+    max-width: 58ch;
+    margin: var(--space-lg) 0 0;
+    color: var(--muted-foreground);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-directory__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-xl);
+  }
+
+  .research-directory__actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    min-height: 2.75rem;
+    padding-inline: var(--space-lg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .research-directory__primary {
+    border-color: var(--primary) !important;
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .research-directory__secondary {
+    color: var(--foreground);
+  }
+
+  .research-directory__actions a:hover {
+    border-color: var(--foreground);
+  }
+
+  .research-directory__secondary:hover {
+    background: var(--muted);
+  }
+
+  .research-directory__actions a:focus-visible,
+  .research-directory__latest a:focus-visible,
+  .research-directory__support a:focus-visible,
+  :global(.research-topic-card a:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .research-directory__summary {
+    display: grid;
+    margin: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .research-directory__summary div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    padding-block: var(--space-md);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .research-directory__summary dt {
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+  }
+
+  .research-directory__summary dd {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .research-directory__topics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-lg);
+  }
+
+  :global(.research-topic-card) {
+    min-width: 0;
+    height: 100%;
+  }
+
+  :global(.research-topic-card .ui-card__body) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    height: 100%;
+  }
+
+  .research-topic-card__topline,
+  .research-topic-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .research-topic-card__number {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .research-topic-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: var(--muted);
+  }
+
+  .research-topic-card__body {
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .research-topic-card__eyebrow,
+  .research-topic-card__description,
+  .research-topic-card__footer p {
+    margin: 0;
+  }
+
+  .research-topic-card__eyebrow {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+  }
+
+  .research-topic-card__body h2 {
+    margin: var(--space-xs) 0 0;
+    font-size: var(--text-2xl);
+    line-height: var(--leading-tight);
+  }
+
+  .research-topic-card__body h2 a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .research-topic-card__body h2 a::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+  }
+
+  :global(.research-topic-card) {
+    position: relative;
+  }
+
+  .research-topic-card__description {
+    color: var(--muted-foreground);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-topic-card__tracks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .research-topic-card__tracks li {
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+  }
+
+  .research-topic-card__footer {
+    margin-top: auto;
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+  }
+
+  .research-topic-card__footer strong {
+    color: var(--foreground);
+    font-family: var(--font-mono);
+  }
+
+  .research-directory__method {
+    display: grid;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    gap: var(--space-3xl);
+    padding-block: var(--space-2xl);
+    border-block: 1px solid var(--border);
+  }
+
+  .research-directory__method header h2,
+  .research-directory__latest h2,
+  .research-directory__support h2 {
+    margin: var(--space-sm) 0 0;
+    font-size: var(--text-3xl);
+  }
+
+  .research-directory__method header > p:last-child,
+  .research-directory__support > div > p:last-child {
+    margin: var(--space-md) 0 0;
+    color: var(--muted-foreground);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-directory__method ol {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-lg);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .research-directory__method li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+  }
+
+  .research-directory__method li > span {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .research-directory__method h3,
+  .research-directory__method li p {
+    margin: 0;
+  }
+
+  .research-directory__method h3 {
+    font-size: var(--text-lg);
+  }
+
+  .research-directory__method li p {
+    margin-top: var(--space-xs);
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-directory__latest {
+    display: grid;
+    gap: var(--space-xl);
+  }
+
+  .research-directory__latest > header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-lg);
+  }
+
+  .research-directory__latest > header > a {
+    color: var(--foreground);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-underline-offset: var(--space-xs);
+  }
+
+  .research-directory__lesson-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--border);
+    list-style: none;
+  }
+
+  .research-directory__lesson-list li {
+    min-width: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .research-directory__lesson-list li:nth-child(odd) {
+    border-right: 1px solid var(--border);
+  }
+
+  .research-directory__lesson-list a {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--space-md);
+    align-items: center;
+    min-height: 6.5rem;
+    padding: var(--space-md);
+    color: inherit;
+    text-decoration: none;
+    transition: background 0.2s ease;
+  }
+
+  .research-directory__lesson-list a:hover {
+    background: var(--muted);
+  }
+
+  .research-directory__lesson-order,
+  .research-directory__lesson-copy small {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .research-directory__lesson-copy {
+    display: grid;
+    gap: var(--space-xs);
+    min-width: 0;
+  }
+
+  .research-directory__lesson-copy strong {
+    line-height: var(--leading-snug);
+  }
+
+  .research-directory__support {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2xl);
+    align-items: end;
+    padding: var(--space-2xl);
+    border: 1px solid var(--surface-invert-border);
+    border-radius: var(--radius-2xl);
+    background: var(--surface-invert);
+    color: var(--surface-invert-foreground);
+  }
+
+  .research-directory__support .research-directory__eyebrow,
+  .research-directory__support > div > p:last-child {
+    color: color-mix(
+      in oklab,
+      var(--surface-invert-foreground) 72%,
+      transparent
+    );
+  }
+
+  .research-directory__support h2 {
+    color: var(--surface-invert-foreground);
+  }
+
+  .research-directory__support-links {
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .research-directory__support a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    min-width: 15rem;
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--surface-invert-border);
+    border-radius: var(--radius-lg);
+    color: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+
+  @media (max-width: 64rem) {
+    .research-directory__hero,
+    .research-directory__method,
+    .research-directory__support {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-xl);
+    }
+
+    .research-directory__topics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .research-directory {
+      gap: var(--space-2xl);
+    }
+
+    .research-directory__topics,
+    .research-directory__method ol,
+    .research-directory__lesson-list {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .research-directory__lesson-list li:nth-child(odd) {
+      border-right: 0;
+    }
+
+    .research-directory__latest > header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .research-directory__support {
+      padding: var(--space-lg);
+    }
+
+    .research-directory__support a {
+      min-width: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .research-directory__actions a,
+    .research-directory__lesson-list a {
+      transition: none;
+    }
+  }
+</style>

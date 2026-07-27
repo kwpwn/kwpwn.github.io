@@ -1,0 +1,268 @@
+---
+title: "Windows Privilege Escalation as a Trust-Boundary Problem"
+description: "A rigorous model for turning permissions, privileges, and writable resources into a provable Windows local privilege-escalation chain."
+locale: "en"
+publishDate: 2026-07-27
+draft: false
+featured: true
+tags:
+  - windows privesc
+  - access tokens
+  - access control
+  - methodology
+author: "kwpwn"
+toc: true
+topic: "windows-privesc"
+track: "foundations"
+seriesOrder: 1
+difficulty: "Foundation"
+prerequisites:
+  - "Comfort reading PowerShell output and Windows paths"
+  - "A basic distinction between a user account and a process"
+learningObjectives:
+  - "Model an escalation as actor, control, privileged consumer, sink, and resulting context"
+  - "Separate object permissions, token privileges, and integrity levels"
+  - "Reject false positives with reachability, precondition, and negative-control checks"
+labEnvironment: "Use a disposable Windows 11 virtual machine with one administrator account and one standard local user. The exercises only inspect the current token and resources you create yourself."
+---
+
+Windows privilege escalation is often taught as a checklist: enumerate services,
+look for an unquoted path, inspect token privileges, search for stored
+credentials, then run a tool. That is useful for breadth, but it produces a bad
+research habit: treating every unusual permission as a vulnerability.
+
+A stronger approach begins with a boundary question:
+
+> What can the current actor control that a more privileged component will
+> consume, and what security context exists at the moment of consumption?
+
+That sentence is the core of this learning path. It works for a weak service
+DACL, a writable DLL directory, a scheduled task action, a privileged file
+operation, a named-pipe impersonation flow, or a driver IOCTL.
+
+## The complete escalation chain
+
+A local escalation claim should identify every link below.
+
+| Link          | Question                                                 | Typical evidence                                                   |
+| ------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| Actor         | Which token performs the low-privileged action?          | `whoami /all`, process token, integrity level                      |
+| Control       | What exact right or primitive does the actor hold?       | DACL, privilege state, writable path, handle access mask           |
+| Consumer      | Which privileged component reads or acts on that input?  | service configuration, task definition, Procmon or ETW trace       |
+| Reachability  | Can the actor cause the consumer to reach the input now? | start right, reboot, trigger, timer, user action                   |
+| Sink          | What sensitive operation occurs?                         | image load, process creation, privileged file write, impersonation |
+| Context       | Which token and integrity level execute the sink?        | process owner, token inspection, event telemetry                   |
+| Preconditions | Which version, configuration, race, or policy must hold? | OS build, service start type, policy values, timing                |
+| Result        | What changed across the boundary?                        | controlled marker, access proof, before/after security descriptor  |
+
+If one link is unknown, the result is a hypothesis, not a complete finding.
+
+Consider a service binary that a standard user can replace. The writable file is
+only the **control**. You still need to show that the Service Control Manager can
+start the service, that the configured account is privileged, that the replaced
+path is the image actually loaded, and that the actor can trigger a start or a
+reboot. A disabled service with no reachable trigger may be bad hygiene without
+being an immediate escalation path.
+
+## Three mechanisms that people mix together
+
+### Object permissions
+
+Files, registry keys, services, processes, tokens, and many other Windows
+resources are securable objects. Their security descriptors contain an owner,
+an optional DACL that grants or denies access, and an optional SACL used for
+auditing and mandatory labels.
+
+An access request is not simply “is the user an administrator?” Windows compares
+the enabled SIDs in the caller's token with the target DACL, accounts for deny
+and allow ACEs, maps generic rights to object-specific rights, and returns a
+granted access mask. The meaning of a bit depends on the object type:
+`FILE_WRITE_DATA` matters for a file, while `SERVICE_CHANGE_CONFIG` matters for a
+service.
+
+A NULL DACL and an empty DACL are opposites. A NULL DACL grants full access; an
+empty DACL grants none. Always preserve that distinction when converting a
+descriptor to SDDL or displaying it in a tool.
+
+### Token privileges
+
+A privilege is a system-wide authorization capability stored in an access
+token. It is not an ACE and does not mean the holder automatically has every
+object right.
+
+Privileges have state. A token may contain `SeBackupPrivilege` but keep it
+disabled until a process calls `AdjustTokenPrivileges`. The call can also return
+success while the requested privilege was not assigned, so correct code checks
+`GetLastError()` for `ERROR_NOT_ALL_ASSIGNED`.
+
+The important research questions are:
+
+1. Is the privilege present in this token?
+2. Is it enabled?
+3. Does the target API honor it for this operation?
+4. Does the caller use the required option, such as backup semantics?
+5. What access remains subject to the target DACL?
+
+The dedicated backup-and-restore lesson applies this model.
+
+### Integrity levels
+
+Mandatory Integrity Control is an additional policy layer. A token and a
+securable object can carry integrity labels. The common desktop levels are Low,
+Medium, High, and System. The mandatory label can prohibit lower-integrity
+subjects from writing upward even when a discretionary permission appears
+permissive.
+
+Integrity is not an identity. Two Medium-integrity processes can have very
+different group SIDs and privileges. High integrity is not the same thing as
+LocalSystem. Record user SID, groups, privileges, elevation type, and integrity
+level separately.
+
+## Build a token snapshot
+
+Start with built-in output, then normalize the facts you care about.
+
+```powershell
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = [Security.Principal.WindowsPrincipal]::new($identity)
+
+[pscustomobject]@{
+    Name            = $identity.Name
+    UserSid         = $identity.User.Value
+    Authentication  = $identity.AuthenticationType
+    IsSystem        = $identity.IsSystem
+    IsAdministrator = $principal.IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator
+    )
+    Impersonation   = $identity.ImpersonationLevel
+}
+
+whoami /groups
+whoami /priv
+whoami /all
+```
+
+This is an inventory, not an exploitability verdict. Save it with the OS build:
+
+```powershell
+Get-ComputerInfo |
+    Select-Object WindowsProductName, WindowsVersion, OsBuildNumber
+```
+
+For a privileged consumer, capture the same facts from the consumer's process
+or from an event source that records its user and integrity. A chain is much
+easier to reason about when the low and high contexts are placed side by side.
+
+## Convert enumeration into a claim
+
+Suppose enumeration reports:
+
+```text
+BUILTIN\Users: SERVICE_CHANGE_CONFIG
+Service account: LocalSystem
+State: Stopped
+```
+
+A disciplined analysis now asks:
+
+1. **Control:** Can the current token actually open the service with
+   `SERVICE_CHANGE_CONFIG`, or did a scanner misread an inherited or deny ACE?
+2. **Sink:** Which configuration fields can be changed? The image path is
+   security-sensitive; the display name is not an execution sink.
+3. **Reachability:** Can the actor start the service? If not, is there a known
+   automatic trigger or required reboot?
+4. **Context:** Does the service really log on as LocalSystem on this host?
+5. **Reliability:** Will failure recovery, dependencies, quoting, or launch
+   protection prevent the path?
+6. **Validation:** Can a harmless marker prove execution without creating an
+   administrator or opening a shell?
+7. **Remediation:** Which ACE should be removed, and does the corrected DACL
+   break legitimate service management?
+
+The same questions work for DLL loading. “Directory is writable” proves control,
+but not that the privileged process requests a missing module by base name, that
+the directory occurs before the legitimate module, or that the privileged path
+is reachable.
+
+## Use negative controls
+
+A positive observation tells you that something happened. A negative control
+helps explain why.
+
+For a lab service, create two otherwise identical configurations:
+
+- the test service grants the standard user the risky service right;
+- the control service grants only query rights.
+
+Run the same open request against both. The test should succeed and the control
+should return access denied. Then remediate the test service and repeat. This
+three-state comparison is stronger than a screenshot from a permissions tool.
+
+Useful negative controls include:
+
+- a fully qualified DLL path beside a base-name load;
+- a non-writable directory beside a writable one;
+- a disabled token privilege beside an enabled one;
+- `METHOD_BUFFERED` input validation beside an intentionally rejected short
+  buffer;
+- an event capture with the trigger removed.
+
+## Evidence quality and wording
+
+Use precise claim labels while researching:
+
+- **Documented fact:** Microsoft documents that
+  `SERVICE_CHANGE_CONFIG` permits changing service configuration.
+- **Observation:** On build X, the standard user opened service Y requesting
+  that right and the handle was granted.
+- **Inference:** Because Y runs as LocalSystem and starts at boot, a controlled
+  image path would cross into a SYSTEM process on the next successful start.
+- **Validated result:** A benign marker created only by the lab image confirmed
+  execution under the expected token.
+
+Do not promote an inference to a fact because a public exploit has a similar
+name. Windows behavior is version- and configuration-sensitive, and security
+products can alter reachability.
+
+## A reusable report skeleton
+
+```text
+Title:
+Target and build:
+
+Actor:
+  User SID, groups, integrity, privileges
+
+Controlled input:
+  Object, exact granted right, proof of write/change
+
+Privileged consumer:
+  Component, trigger, execution identity
+
+Sensitive sink:
+  Load, create, write, impersonate, or reconfigure operation
+
+Preconditions:
+  Version, policy, timing, required service state
+
+Validation:
+  Benign marker, telemetry, negative control
+
+Impact:
+  Boundary crossed and resulting capability
+
+Remediation:
+  Narrowest permission/configuration change and regression check
+```
+
+This format prevents a long tool transcript from hiding the core argument.
+
+## References
+
+- Microsoft Learn, [Parts of the Access Control Model](https://learn.microsoft.com/en-us/windows/win32/secauthz/access-control-components).
+- Microsoft Learn, [Access Tokens](https://learn.microsoft.com/en-us/windows/win32/secauthz/access-tokens).
+- Microsoft Learn, [Access Control Lists](https://learn.microsoft.com/en-us/windows/win32/secauthz/access-control-lists).
+- Microsoft Learn, [Privilege Constants](https://learn.microsoft.com/en-us/windows/win32/secauthz/privilege-constants).
+- Microsoft Learn, [Security Identifiers](https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers).
+- Yunolay, [Windows Access Tokens Deep Dive: Integrity Levels and Privileges](https://yunolay.com/windows-access-tokens-deep-dive-integrity-levels-and-privileges/), used as topic inspiration and independently checked against the Microsoft references above.
+- Yunolay, [Windows Security Internals: Access Tokens, SIDs, and DACLs](https://yunolay.com/windows-access-tokens-sids-and-dacls/), a related overview.

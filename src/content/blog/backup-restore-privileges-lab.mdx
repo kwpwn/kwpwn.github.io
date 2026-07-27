@@ -1,0 +1,285 @@
+---
+title: "SeBackupPrivilege and SeRestorePrivilege Without the Myths"
+description: "A precise guide to backup and restore privilege semantics, token state, backup-aware APIs, and safe validation on a protected lab file."
+locale: "en"
+publishDate: 2026-07-27
+draft: false
+featured: false
+tags:
+  - windows privesc
+  - SeBackupPrivilege
+  - SeRestorePrivilege
+  - access tokens
+author: "kwpwn"
+toc: true
+topic: "windows-privesc"
+track: "analysis"
+seriesOrder: 3
+difficulty: "Intermediate"
+prerequisites:
+  - "Access-token privileges and DACLs"
+  - "Basic Win32 file-handle usage"
+learningObjectives:
+  - "Explain the exact read and write access that backup and restore privileges can grant"
+  - "Enable a present token privilege and correctly detect ERROR_NOT_ALL_ASSIGNED"
+  - "Validate the behavior against a protected lab object without touching credential stores"
+labEnvironment: "Use a disposable VM and a protected file created solely for this lesson. Do not read SAM, SECURITY, SYSTEM, NTDS, browser profiles, or another person's data."
+---
+
+`SeBackupPrivilege` and `SeRestorePrivilege` are frequently summarized as
+“bypass every file ACL.” That shorthand hides the details that matter during an
+audit.
+
+According to Microsoft's privilege definitions:
+
+- `SeBackupPrivilege` can grant read-oriented rights to files regardless of the
+  file DACL, including `READ_CONTROL`, `FILE_GENERIC_READ`, and traversal;
+- `SeRestorePrivilege` can grant write-oriented rights, including
+  `FILE_GENERIC_WRITE`, `WRITE_DAC`, `WRITE_OWNER`, add-file/add-subdirectory,
+  and delete;
+- unrelated requested access is still evaluated normally;
+- the privilege must be present in the token, enabled when required, and used
+  through an operation that recognizes backup or restore intent.
+
+This is powerful, but it is not “all access everywhere.”
+
+## Presence, state, and use are different
+
+Run:
+
+```powershell
+whoami /priv
+```
+
+The output can show a privilege as:
+
+- absent — it is not part of the token;
+- present but disabled — the process may try to enable it;
+- enabled — an API can consider it for the relevant operation.
+
+`AdjustTokenPrivileges` cannot add a privilege that is absent from the token. It
+only changes attributes for privileges already assigned. The function's Boolean
+return value reports whether the function itself ran; it can return nonzero and
+still set `ERROR_NOT_ALL_ASSIGNED`.
+
+Correct code checks both.
+
+## A reusable privilege-enabling helper
+
+```cpp
+#include <windows.h>
+#include <iostream>
+
+bool EnablePrivilege(const wchar_t* privilegeName) {
+    HANDLE token = nullptr;
+    if (!OpenProcessToken(
+            GetCurrentProcess(),
+            TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+            &token)) {
+        return false;
+    }
+
+    LUID luid{};
+    if (!LookupPrivilegeValueW(nullptr, privilegeName, &luid)) {
+        CloseHandle(token);
+        return false;
+    }
+
+    TOKEN_PRIVILEGES update{};
+    update.PrivilegeCount = 1;
+    update.Privileges[0].Luid = luid;
+    update.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    SetLastError(ERROR_SUCCESS);
+    const BOOL adjusted = AdjustTokenPrivileges(
+        token, FALSE, &update, sizeof(update), nullptr, nullptr);
+    const DWORD status = GetLastError();
+    CloseHandle(token);
+
+    if (!adjusted) {
+        std::wcerr << L"AdjustTokenPrivileges failed: " << status << L"\n";
+        return false;
+    }
+    if (status == ERROR_NOT_ALL_ASSIGNED) {
+        std::wcerr << L"Privilege is not present in this token\n";
+        return false;
+    }
+    return status == ERROR_SUCCESS;
+}
+```
+
+Call it with the SDK names:
+
+```cpp
+EnablePrivilege(SE_BACKUP_NAME);
+EnablePrivilege(SE_RESTORE_NAME);
+```
+
+Do not silently continue after `ERROR_NOT_ALL_ASSIGNED`; that turns a failed
+precondition into confusing access-denied errors later.
+
+## Backup intent changes file-open semantics
+
+`CreateFileW` accepts `FILE_FLAG_BACKUP_SEMANTICS`. The flag is also required to
+obtain a handle to a directory with `CreateFile`. For a process holding the
+appropriate privilege, it signals that the open is for backup or restore
+operations.
+
+This lab function requests read access only:
+
+```cpp
+HANDLE OpenForBackupRead(const wchar_t* path) {
+    if (!EnablePrivilege(SE_BACKUP_NAME)) {
+        return INVALID_HANDLE_VALUE;
+    }
+
+    return CreateFileW(
+        path,
+        GENERIC_READ | READ_CONTROL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
+        nullptr);
+}
+```
+
+Two choices are deliberate:
+
+- the access mask does not ask for write or execute rights;
+- `FILE_FLAG_OPEN_REPARSE_POINT` lets a lab inspect the named object rather than
+  automatically following a reparse point.
+
+Real backup software often uses `BackupRead` and `BackupWrite` to preserve
+alternate data streams and security information. A simple `ReadFile` example is
+enough to demonstrate the access decision, but it is not a complete backup
+implementation.
+
+## Build a safe protected-file lab
+
+From an elevated PowerShell console, create a dedicated directory and file:
+
+```powershell
+$root = "C:\KwpwnBackupLab"
+$file = Join-Path $root "protected-note.txt"
+
+New-Item -ItemType Directory -Path $root -Force | Out-Null
+Set-Content -LiteralPath $file -Value "LAB DATA ONLY"
+
+$acl = Get-Acl $file
+$acl.SetAccessRuleProtection($true, $false)
+$acl.Access | ForEach-Object { [void]$acl.RemoveAccessRule($_) }
+
+$adminRule = [Security.AccessControl.FileSystemAccessRule]::new(
+    "BUILTIN\Administrators",
+    "FullControl",
+    "Allow"
+)
+$systemRule = [Security.AccessControl.FileSystemAccessRule]::new(
+    "NT AUTHORITY\SYSTEM",
+    "FullControl",
+    "Allow"
+)
+$acl.AddAccessRule($adminRule)
+$acl.AddAccessRule($systemRule)
+Set-Acl -LiteralPath $file -AclObject $acl
+```
+
+The file contains no secret and exists only to make the access decision visible.
+Before running any backup-aware program, confirm that an ordinary read from the
+standard-user context fails:
+
+```powershell
+Get-Content -LiteralPath C:\KwpwnBackupLab\protected-note.txt
+```
+
+That failure is the negative control.
+
+Next, run the compiled inspection program under a token that was intentionally
+assigned `SeBackupPrivilege` in this disposable lab. Record:
+
+1. the token's user SID and privilege state;
+2. whether enabling succeeded;
+3. the requested access mask and flags;
+4. the `CreateFileW` result and `GetLastError`;
+5. the file SDDL before and after.
+
+The read should not modify owner, DACL, timestamps, or content.
+
+## Restore semantics are not a reason to overwrite
+
+`SeRestorePrivilege` is more dangerous to validate because it grants
+write-oriented rights and can permit owner and DACL changes. Use a second lab
+file and a harmless metadata operation. Do not point restore code at Windows,
+Program Files, registry hive files, or user profiles.
+
+A safe research question is:
+
+> Can this token open the lab file requesting `WRITE_DAC` when restore privilege
+> is enabled and backup semantics are supplied, while the same open is denied
+> when the privilege is disabled?
+
+The test need not call `SetFileSecurity`. The granted handle is sufficient to
+show that the access check differs. Close the handle immediately and compare the
+object's hash and SDDL.
+
+## Directories, reparse points, and traversal
+
+Backup software walks trees, so directory and reparse behavior matters.
+`SeBackupPrivilege` includes traversal-related capability, but following a
+reparse point can move an operation outside the intended tree. A safe backup
+tool should:
+
+- open the reparse point itself when classifying it;
+- inspect its tag;
+- maintain a boundary policy for destinations;
+- avoid assuming that a path string still identifies the same object after a
+  race;
+- record file identity when correctness matters.
+
+Privilege answers “may this operation bypass a DACL?” It does not solve path
+confusion, race conditions, or reparse-point safety.
+
+## Why backup privileges appear in escalation write-ups
+
+A non-administrative service account with backup rights may be able to read
+otherwise protected material. A token with restore rights may be able to replace
+or re-permission files consumed by a privileged component. The resulting impact
+depends on the reachable object and subsequent consumer.
+
+Avoid collapsing capability and impact:
+
+- **Capability:** read a protected lab file with backup semantics.
+- **Potential impact:** access sensitive files the account was not meant to
+  read.
+- **Escalation chain:** use a permitted read or write to influence a
+  higher-privileged authentication or execution boundary.
+
+The third statement needs its own evidence. Do not use credential database
+extraction as a default lab demonstration.
+
+## Detection and hardening
+
+Defenders should focus on assignment and use:
+
+- keep “Back up files and directories” and “Restore files and directories”
+  limited to dedicated, managed service identities;
+- separate backup operators from interactive logon where practical;
+- monitor changes to user-right assignment;
+- correlate privileged file access with process identity, signature, command
+  line, and expected backup windows;
+- alert when a backup-capable identity accesses unrelated application or
+  credential paths;
+- rotate and remove stale service accounts.
+
+An enabled privilege in a token is context, not proof of misuse. A defensible
+detection joins identity, unusual target, process lineage, timing, and operation.
+
+## References
+
+- Microsoft Learn, [Privilege Constants](https://learn.microsoft.com/en-us/windows/win32/secauthz/privilege-constants).
+- Microsoft Learn, [AdjustTokenPrivileges](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges).
+- Microsoft Learn, [CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
+- Microsoft Learn, [BackupRead](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-backupread) and [BackupWrite](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-backupwrite).
+- Yunolay, [Abusing SeBackupPrivilege and SeRestorePrivilege for Windows Privilege Escalation](https://yunolay.com/sebackup-serestore-privilege/), used as the practical topic lead; this lesson intentionally substitutes a harmless protected file for credential material.
+- Yunolay, [Vulnlab Baby Walkthrough](https://yunolay.com/vulnlab-baby-walkthrough-by-yunolay/), the earlier case study that motivated including backup and restore privileges in this path.

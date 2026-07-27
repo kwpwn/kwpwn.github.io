@@ -56,23 +56,25 @@ instead of one-off styling.
 
 Page-level blocks. Most are `i18nAware` (accept/derive `locale`).
 
-| Section             | Path                                         | Props                                                                                                                           |
-| ------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Hero                | `hero/Hero.astro`                            | `variant`, `size`, `eyebrow`, `headline`/`title`, `subheadline`/`content`, `primaryCta`, `secondaryCta`, `locale`; `image` slot |
-| FeatureTabs (React) | `landing/FeatureTabs.tsx`                    | `tabs[]` (`id`, `icon`, `heading`, `description`, `points?`, `visual`)                                                          |
-| FeatureGrid         | `FeatureGrid.astro`                          | `title`, `features[]`, `columns` (2\|3\|4)                                                                                      |
-| FAQ                 | `FAQ.astro`                                  | `title`, `items`                                                                                                                |
-| CTA                 | `ui/marketing/CTA/CTA.astro`                 | `eyebrow`, `title`, `content`, `primaryText`/`primaryHref`, `secondaryText`/`secondaryHref`, `centered`                         |
-| SocialProof         | `ui/marketing/SocialProof/SocialProof.astro` | `title`, `items`                                                                                                                |
-| Pricing             | `sections/Pricing.astro`                     | `title`, `description`, `plans`                                                                                                 |
-| Newsletter          | `sections/Newsletter.astro`                  | `title`, `description`, `placeholder`, `buttonLabel`, `action`                                                                  |
-| Team                | `sections/Team.astro`                        | `title`, `description`, `members`                                                                                               |
-| Comparison          | `sections/Comparison.astro`                  | `title`, `description`, `columns`, `rows`                                                                                       |
-| LogoCloud           | `sections/LogoCloud.astro`                   | `title`, `logos`                                                                                                                |
-| StackMarquee        | `landing/StackMarquee.astro`                 | `items`, `pauseOnHover`                                                                                                         |
-| TechStack           | `landing/TechStack.astro`                    | `items`                                                                                                                         |
-| Credibility         | `landing/Credibility.astro`                  | `stats`, `testimonials`, `logos`                                                                                                |
-| LighthouseScores    | `landing/LighthouseScores.astro`             | `scores`                                                                                                                        |
+| Section                | Path                                         | Props                                                                                                                           |
+| ---------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Hero                   | `hero/Hero.astro`                            | `variant`, `size`, `eyebrow`, `headline`/`title`, `subheadline`/`content`, `primaryCta`, `secondaryCta`, `locale`; `image` slot |
+| FeatureTabs (React)    | `landing/FeatureTabs.tsx`                    | `tabs[]` (`id`, `icon`, `heading`, `description`, `points?`, `visual`)                                                          |
+| FeatureGrid            | `FeatureGrid.astro`                          | `title`, `features[]`, `columns` (2\|3\|4)                                                                                      |
+| FAQ                    | `FAQ.astro`                                  | `title`, `items`                                                                                                                |
+| CTA                    | `ui/marketing/CTA/CTA.astro`                 | `eyebrow`, `title`, `content`, `primaryText`/`primaryHref`, `secondaryText`/`secondaryHref`, `centered`                         |
+| SocialProof            | `ui/marketing/SocialProof/SocialProof.astro` | `title`, `items`                                                                                                                |
+| Pricing                | `sections/Pricing.astro`                     | `title`, `description`, `plans`                                                                                                 |
+| Newsletter             | `sections/Newsletter.astro`                  | `title`, `description`, `placeholder`, `buttonLabel`, `action`                                                                  |
+| Team                   | `sections/Team.astro`                        | `title`, `description`, `members`                                                                                               |
+| Comparison             | `sections/Comparison.astro`                  | `title`, `description`, `columns`, `rows`                                                                                       |
+| LogoCloud              | `sections/LogoCloud.astro`                   | `title`, `logos`                                                                                                                |
+| StackMarquee           | `landing/StackMarquee.astro`                 | `items`, `pauseOnHover`                                                                                                         |
+| TechStack              | `landing/TechStack.astro`                    | `items`                                                                                                                         |
+| Credibility            | `landing/Credibility.astro`                  | `stats`, `testimonials`, `logos`                                                                                                |
+| LighthouseScores       | `landing/LighthouseScores.astro`             | `scores`                                                                                                                        |
+| ResearchTopicDirectory | `sections/ResearchTopicDirectory.astro`      | `posts`, `locale`                                                                                                               |
+| ResearchTopicPage      | `sections/ResearchTopicPage.astro`           | `topic`, `posts`, `locale`                                                                                                      |
 
 ## Feature components
 
@@ -82,6 +84,7 @@ Collection-bound blocks. Compose primitives + the patterns in `patterns.md`.
 | ------------------ | ----------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | BlogCard           | `blog/BlogCard.astro`               | `post`, `variant` (grid\|list), `locale`, `headingLevel`          | Card scaffold + monochrome cover.                                                                     |
 | ArticleHero        | `blog/ArticleHero.astro`            | `post`, `locale`                                                  | Editorial post header + full-width banner.                                                            |
+| ArticleGuide       | `blog/ArticleGuide.astro`           | `post`, `locale`                                                  | Topic, difficulty, prerequisites, objectives, and the safe-lab boundary for a structured lesson.      |
 | RelatedPosts       | `blog/RelatedPosts.astro`           | `currentPost`, `allPosts`, `limit`, `locale`                      | Grid of BlogCards.                                                                                    |
 | ShareButtons       | `blog/ShareButtons.astro`           | `url`, `title`, `locale`                                          | Native share + copy-link feedback + socials.                                                          |
 | BlogImageSVG       | `blog/BlogImageSVG.astro`           | `slug`, `title`                                                   | Deterministic monochrome cover (no inline color).                                                     |
@@ -93,6 +96,20 @@ Collection-bound blocks. Compose primitives + the patterns in `patterns.md`.
 | TopicShelf         | `handbook/TopicShelf.astro`         | `group`, `concepts`                                               | Searchable index for one handbook topic group.                                                        |
 | ApiFlagsCheatsheet | `handbook/ApiFlagsCheatsheet.astro` | —                                                                 | Searchable Windows API and flag-family reference.                                                     |
 | CaseStudyLibrary   | `handbook/CaseStudyLibrary.astro`   | —                                                                 | Curated exploit-chain studies plus the KernelSight case-study ledger.                                 |
+
+### Research topic library
+
+`ResearchTopicDirectory` is the English-first learning entry point. It presents
+the three large research areas and their shared Model → Observe → Test → Explain
+loop. `ResearchTopicPage` turns one area into ordered lessons grouped by learning
+lane. Topic definitions, ordering, source attribution, and route helpers live in
+`src/lib/research-topics.ts`.
+
+Every structured topic article supplies `topic`, `track`, `seriesOrder`,
+`difficulty`, `prerequisites`, `learningObjectives`, and `labEnvironment`.
+`ArticleGuide` renders those fields consistently before the prose. Keep the
+article-level quality contract synchronized with
+`scripts/validate-research-topics.mjs`.
 
 ### Windows service research portal
 

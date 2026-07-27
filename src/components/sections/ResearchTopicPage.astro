@@ -1,0 +1,685 @@
+---
+import { getCollection, type CollectionEntry } from "astro:content";
+import { resolveRoute } from "../../i18n/routes";
+import {
+  getResearchTopic,
+  getResearchTopicPosts,
+  type ResearchTopicId,
+} from "../../lib/research-topics";
+import type { Locale } from "../../lib/site-config";
+import { Badge, Card, Container, Icon, Section } from "../ui";
+
+export interface Props {
+  topicId: ResearchTopicId;
+  locale?: Locale;
+}
+
+const { topicId, locale = "en" } = Astro.props as Props;
+const topic = getResearchTopic(topicId);
+const allPosts: CollectionEntry<"blog">[] = await getCollection("blog");
+const posts = getResearchTopicPosts(allPosts, topicId);
+const postsByTrack = new Map(
+  topic.tracks.map((track) => [
+    track.id,
+    posts.filter((post) => post.data.track === track.id),
+  ]),
+);
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+---
+
+<Section spacing="xl" class="research-topic-section">
+  <Container size="xl">
+    <article class="research-topic">
+      <header class="research-topic__hero">
+        <nav class="research-topic__breadcrumb" aria-label="Breadcrumb">
+          <a href={resolveRoute(locale, "/topics/")}>Topics</a>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">{topic.shortTitle}</span>
+        </nav>
+
+        <div class="research-topic__headline">
+          <div class="research-topic__title">
+            <span class="research-topic__icon" aria-hidden="true">
+              <Icon name={topic.icon} />
+            </span>
+            <div>
+              <p>{topic.eyebrow}</p>
+              <h1>{topic.title}</h1>
+            </div>
+          </div>
+          <p class="research-topic__description">{topic.description}</p>
+        </div>
+
+        <div class="research-topic__thesis">
+          <div>
+            <p class="research-topic__label">Question this path answers</p>
+            <p>{topic.question}</p>
+          </div>
+          <div>
+            <p class="research-topic__label">Outcome</p>
+            <p>{topic.outcome}</p>
+          </div>
+        </div>
+
+        <div class="research-topic__hero-footer">
+          <a
+            class="research-topic__start"
+            href={resolveRoute(locale, `/blog/${topic.recommendedStart}/`)}
+          >
+            Start lesson 01 <span aria-hidden="true">&rarr;</span>
+          </a>
+          <p>
+            {posts.length} detailed {posts.length === 1 ? "lesson" : "lessons"}{
+              " "
+            }
+            across {topic.tracks.length} learning lanes
+          </p>
+        </div>
+      </header>
+
+      <nav
+        class="research-topic__map"
+        aria-label={`${topic.title} learning map`}
+      >
+        {
+          topic.tracks.map((track, index) => {
+            const count = postsByTrack.get(track.id)?.length ?? 0;
+            return (
+              <a href={`#${track.id}`}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <strong>{track.label}</strong>
+                <small>{count} lessons</small>
+              </a>
+            );
+          })
+        }
+      </nav>
+
+      <section
+        class="research-topic__orientation"
+        aria-labelledby="orientation-title"
+      >
+        <div>
+          <p class="research-topic__label">Reading strategy</p>
+          <h2 id="orientation-title">
+            Read in order once. Return by question later.
+          </h2>
+        </div>
+        <div class="research-topic__orientation-copy">
+          <p>
+            The numbered path builds a common vocabulary first, then moves into
+            mechanics and validation. After that first pass, use the lanes as a
+            reference index: every lesson is designed to stand alone without
+            hiding its prerequisites.
+          </p>
+          <ul>
+            <li>
+              <strong>Fact</strong> is tied to Microsoft documentation, a specification,
+              or source code.
+            </li>
+            <li>
+              <strong>Observation</strong> is something you can reproduce in the provided
+              lab.
+            </li>
+            <li>
+              <strong>Inference</strong> is labeled and includes the evidence needed
+              to accept or reject it.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <div class="research-topic__modules">
+        {
+          topic.tracks.map((track, trackIndex) => {
+            const trackPosts = postsByTrack.get(track.id) ?? [];
+            return (
+              <section
+                id={track.id}
+                class="research-topic__module"
+                aria-labelledby={`${track.id}-title`}
+              >
+                <header class="research-topic__module-head">
+                  <div class="research-topic__module-number">
+                    {String(trackIndex + 1).padStart(2, "0")}
+                  </div>
+                  <div>
+                    <p class="research-topic__label">Learning lane</p>
+                    <h2 id={`${track.id}-title`}>{track.label}</h2>
+                    <p>{track.description}</p>
+                  </div>
+                </header>
+
+                {trackPosts.length > 0 ? (
+                  <ol class="research-topic__lessons">
+                    {trackPosts.map((post) => (
+                      <li>
+                        <Card hover class="research-lesson-card">
+                          <div class="research-lesson-card__meta">
+                            <span>
+                              Lesson{" "}
+                              {String(post.data.seriesOrder ?? 0).padStart(
+                                2,
+                                "0",
+                              )}
+                            </span>
+                            <div>
+                              {post.data.difficulty && (
+                                <Badge variant="outline" size="sm">
+                                  {post.data.difficulty}
+                                </Badge>
+                              )}
+                              <Badge variant="secondary" size="sm">
+                                {post.data.learningObjectives.length} objectives
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <div class="research-lesson-card__copy">
+                            <h3>
+                              <a
+                                href={resolveRoute(locale, `/blog/${post.id}/`)}
+                              >
+                                {post.data.title}
+                              </a>
+                            </h3>
+                            <p>{post.data.description}</p>
+                          </div>
+
+                          {post.data.learningObjectives.length > 0 && (
+                            <ul>
+                              {post.data.learningObjectives
+                                .slice(0, 2)
+                                .map((objective: string) => (
+                                  <li>{objective}</li>
+                                ))}
+                            </ul>
+                          )}
+
+                          <div class="research-lesson-card__footer">
+                            <time
+                              datetime={post.data.publishDate.toISOString()}
+                            >
+                              {dateFormatter.format(post.data.publishDate)}
+                            </time>
+                            <span>
+                              Read lesson <span aria-hidden="true">&rarr;</span>
+                            </span>
+                          </div>
+                        </Card>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p class="research-topic__empty">
+                    This learning lane is being prepared.
+                  </p>
+                )}
+              </section>
+            );
+          })
+        }
+      </div>
+
+      <aside
+        class="research-topic__source-note"
+        aria-labelledby="source-note-title"
+      >
+        <div>
+          <p class="research-topic__label">Inspiration and source policy</p>
+          <h2 id="source-note-title">
+            Inspired by a useful topic shelf, rebuilt as a research path.
+          </h2>
+          <p>
+            Yunolay's category organization inspired the high-level topic
+            selection. Technical claims here are independently checked against
+            primary documentation and every lesson ends with its own reference
+            ledger.
+          </p>
+        </div>
+        <a href={topic.yunolayUrl} target="_blank" rel="noopener noreferrer">
+          View the Yunolay topic <span aria-hidden="true">&nearr;</span>
+        </a>
+      </aside>
+    </article>
+  </Container>
+</Section>
+
+<style>
+  .research-topic {
+    display: grid;
+    gap: var(--space-3xl);
+  }
+
+  .research-topic__hero {
+    display: grid;
+    gap: var(--space-2xl);
+    padding-bottom: var(--space-2xl);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .research-topic__breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .research-topic__breadcrumb a {
+    color: var(--foreground);
+    text-underline-offset: var(--space-xs);
+  }
+
+  .research-topic__breadcrumb a:focus-visible,
+  .research-topic__map a:focus-visible,
+  .research-topic__start:focus-visible,
+  .research-topic__source-note > a:focus-visible,
+  :global(.research-lesson-card a:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .research-topic__headline {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(20rem, 0.9fr);
+    gap: var(--space-3xl);
+    align-items: end;
+  }
+
+  .research-topic__title {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-lg);
+  }
+
+  .research-topic__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 3.5rem;
+    height: 3.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: var(--muted);
+  }
+
+  .research-topic__title p,
+  .research-topic__description,
+  .research-topic__thesis p,
+  .research-topic__hero-footer p,
+  .research-topic__orientation p,
+  .research-topic__module-head p,
+  .research-topic__source-note p {
+    margin: 0;
+  }
+
+  .research-topic__title p,
+  .research-topic__label {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .research-topic__title h1 {
+    max-width: 13ch;
+    margin: var(--space-sm) 0 0;
+    font-size: var(--text-5xl);
+    line-height: var(--leading-none);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .research-topic__description {
+    color: var(--muted-foreground);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-topic__thesis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-block: 1px solid var(--border);
+  }
+
+  .research-topic__thesis > div {
+    padding: var(--space-lg) 0;
+  }
+
+  .research-topic__thesis > div:first-child {
+    padding-right: var(--space-xl);
+    border-right: 1px solid var(--border);
+  }
+
+  .research-topic__thesis > div:last-child {
+    padding-left: var(--space-xl);
+  }
+
+  .research-topic__thesis > div > p:last-child {
+    margin-top: var(--space-sm);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-topic__hero-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+  }
+
+  .research-topic__start {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: 2.75rem;
+    padding-inline: var(--space-lg);
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+
+  .research-topic__hero-footer p {
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+  }
+
+  .research-topic__map {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-block: 1px solid var(--border);
+  }
+
+  .research-topic__map a {
+    display: grid;
+    gap: var(--space-xs);
+    min-width: 0;
+    padding: var(--space-lg);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .research-topic__map a + a {
+    border-left: 1px solid var(--border);
+  }
+
+  .research-topic__map span,
+  .research-topic__map small {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .research-topic__map strong {
+    line-height: var(--leading-snug);
+  }
+
+  .research-topic__map a:hover {
+    background: var(--muted);
+  }
+
+  .research-topic__orientation {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: var(--space-3xl);
+  }
+
+  .research-topic__orientation h2 {
+    max-width: 17ch;
+    margin: var(--space-sm) 0 0;
+    font-size: var(--text-3xl);
+    line-height: var(--leading-tight);
+  }
+
+  .research-topic__orientation-copy > p {
+    color: var(--muted-foreground);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-topic__orientation-copy ul {
+    display: grid;
+    gap: var(--space-sm);
+    margin: var(--space-lg) 0 0;
+    padding-left: var(--space-lg);
+    color: var(--muted-foreground);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-topic__orientation-copy strong {
+    color: var(--foreground);
+  }
+
+  .research-topic__modules {
+    display: grid;
+    gap: var(--space-3xl);
+  }
+
+  .research-topic__module {
+    scroll-margin-top: var(--space-3xl);
+  }
+
+  .research-topic__module-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-lg);
+    max-width: 58rem;
+    margin-bottom: var(--space-xl);
+  }
+
+  .research-topic__module-number {
+    padding-top: var(--space-xs);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .research-topic__module-head h2 {
+    margin: var(--space-xs) 0 0;
+    font-size: var(--text-3xl);
+  }
+
+  .research-topic__module-head > div > p:last-child {
+    margin-top: var(--space-sm);
+    color: var(--muted-foreground);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-topic__lessons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-lg);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .research-topic__lessons > li {
+    min-width: 0;
+  }
+
+  :global(.research-lesson-card) {
+    position: relative;
+    height: 100%;
+  }
+
+  :global(.research-lesson-card .ui-card__body) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    height: 100%;
+  }
+
+  .research-lesson-card__meta,
+  .research-lesson-card__meta > div,
+  .research-lesson-card__footer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .research-lesson-card__meta,
+  .research-lesson-card__footer {
+    justify-content: space-between;
+  }
+
+  .research-lesson-card__meta > span,
+  .research-lesson-card__footer {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .research-lesson-card__copy h3,
+  .research-lesson-card__copy p {
+    margin: 0;
+  }
+
+  .research-lesson-card__copy h3 {
+    font-size: var(--text-xl);
+    line-height: var(--leading-snug);
+  }
+
+  .research-lesson-card__copy h3 a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .research-lesson-card__copy h3 a::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+  }
+
+  .research-lesson-card__copy p {
+    margin-top: var(--space-sm);
+    color: var(--muted-foreground);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-lesson-card__copy + ul {
+    display: grid;
+    gap: var(--space-xs);
+    margin: 0;
+    padding-left: var(--space-lg);
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-lesson-card__footer {
+    margin-top: auto;
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+  }
+
+  .research-topic__empty {
+    padding: var(--space-xl);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-xl);
+    color: var(--muted-foreground);
+  }
+
+  .research-topic__source-note {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2xl);
+    align-items: end;
+    padding: var(--space-2xl);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-2xl);
+    background: var(--muted);
+  }
+
+  .research-topic__source-note h2 {
+    max-width: 24ch;
+    margin: var(--space-sm) 0 0;
+    font-size: var(--text-2xl);
+  }
+
+  .research-topic__source-note > div > p:last-child {
+    max-width: 68ch;
+    margin-top: var(--space-md);
+    color: var(--muted-foreground);
+    line-height: var(--leading-relaxed);
+  }
+
+  .research-topic__source-note > a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--foreground);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-underline-offset: var(--space-xs);
+  }
+
+  @media (max-width: 64rem) {
+    .research-topic__headline,
+    .research-topic__orientation,
+    .research-topic__source-note {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-xl);
+    }
+
+    .research-topic__map {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .research-topic__map a:nth-child(3) {
+      border-left: 0;
+    }
+
+    .research-topic__map a:nth-child(n + 3) {
+      border-top: 1px solid var(--border);
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .research-topic {
+      gap: var(--space-2xl);
+    }
+
+    .research-topic__title {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .research-topic__thesis,
+    .research-topic__lessons,
+    .research-topic__map {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .research-topic__thesis > div:first-child,
+    .research-topic__thesis > div:last-child {
+      padding: var(--space-lg) 0;
+      border-right: 0;
+    }
+
+    .research-topic__thesis > div + div,
+    .research-topic__map a + a {
+      border-top: 1px solid var(--border);
+      border-left: 0;
+    }
+
+    .research-topic__hero-footer {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .research-topic__source-note {
+      padding: var(--space-lg);
+    }
+  }
+</style>

@@ -1,0 +1,303 @@
+---
+title: "Object Manager: Names, Handles, Security, and Lifetime"
+description: "A coherent guide to Windows executive objects, object directories, handle tables, granted access, security descriptors, and reference-counted lifetime."
+locale: "en"
+publishDate: 2026-07-27
+draft: false
+featured: false
+tags:
+  - windows internals
+  - object manager
+  - handles
+  - security descriptors
+author: "kwpwn"
+toc: true
+topic: "windows-internals"
+track: "privilege-boundaries"
+seriesOrder: 2
+difficulty: "Intermediate"
+prerequisites:
+  - "Processes, threads, tokens, and handles from lesson 01"
+  - "Basic Windows access-control terminology"
+learningObjectives:
+  - "Navigate the object namespace without confusing it with the file system"
+  - "Explain open-by-name, access check, handle creation, and object lifetime as one flow"
+  - "Create a named event with an explicit lab-only security descriptor"
+labEnvironment: "Run the named-event example as a standard user. Use a unique Local namespace name and remove no system object. Inspect with WinObj only."
+---
+
+The Windows Object Manager gives kernel-mode components a shared way to create,
+name, secure, reference, and destroy many kinds of resources.
+
+Files, processes, threads, tokens, sections, events, mutexes, jobs, registry
+keys, device objects, and symbolic links are different object types, but they
+share object-management services.
+
+This is an object-based design, not C++ object orientation. An object has manager
+metadata and a type-specific body; operations are exposed through system
+services and kernel routines rather than virtual methods on a public class.
+
+## Header, body, and type
+
+Conceptually:
+
+```text
+Object Manager metadata
+  - type
+  - name information, if named
+  - handle/reference accounting
+  - security information
+  - flags
+
+Type-specific object body
+  - process state, event state, file state, token state, ...
+```
+
+Internal header layouts are not stable contracts. Use public debugger symbols
+for the target build when research requires a structure view. Driver code should
+use documented object APIs, not subtract a copied header offset from an object
+pointer.
+
+The object type defines valid access rights and type-specific behavior. An access
+mask bit must be interpreted using the type's mapping.
+
+## The namespace is not a disk directory tree
+
+Object directories organize named objects:
+
+```text
+\
+├─ Device
+├─ Driver
+├─ KnownDlls
+├─ KernelObjects
+├─ Sessions
+├─ BaseNamedObjects
+└─ GLOBAL??
+```
+
+The exact visible entries vary by system and session. An object directory exists
+inside the Object Manager; it is not a directory on NTFS.
+
+Paths bridge namespaces. A Win32 path such as `C:\Lab\note.txt` is translated
+toward an NT object path involving a device object and file-system parsing.
+`\Device` is an Object Manager directory. The directories inside the file-system
+path are then interpreted by the file-system driver.
+
+Named events and mutexes created by desktop applications commonly appear under
+session-specific `BaseNamedObjects`. The `Local\` and `Global\` Win32 prefixes
+affect namespace scope.
+
+## Open-by-name flow
+
+An open can be modeled as:
+
+```text
+caller supplies name + desired access + attributes
+  → Object Manager parses namespace
+  → type-specific parser may continue
+  → target object and security descriptor identified
+  → caller token evaluated
+  → granted access calculated
+  → handle-table entry created
+  → user receives opaque handle value
+```
+
+For a file, I/O and file-system components participate in parsing. For an event,
+the Object Manager can resolve the named object directly.
+
+The handle-table entry records the object reference and granted access. Later
+operations using the handle do not need to resolve the original name again.
+
+## Names are optional
+
+Many objects are unnamed. A user-mode component cannot open an unnamed object by
+name, but it can receive or duplicate a handle to it. Kernel mode can hold a
+referenced object pointer.
+
+Names can also outlive an individual handle while the object exists, or
+disappear when a temporary named object's last references are released. Do not
+assume that finding no name means finding no object.
+
+## Security descriptor and access mask
+
+A security descriptor can contain:
+
+- owner SID;
+- primary group SID;
+- DACL;
+- SACL, including auditing and mandatory label information.
+
+The access check compares a requested mask with the token and descriptor. Generic
+rights such as `GENERIC_READ` are mapped to type-specific rights.
+
+Important edge cases:
+
+- NULL DACL: full access is allowed;
+- empty DACL: no access is allowed;
+- absent name: cannot be opened by name;
+- owner: may receive implicit `READ_CONTROL` and `WRITE_DAC`, unless an
+  `OWNER RIGHTS` ACE changes that behavior;
+- handle already open: retains its granted mask even if the DACL later changes.
+
+Always distinguish the desired access requested by the caller from the granted
+access stored on the successful handle.
+
+## Create a named event with explicit security
+
+The example uses SDDL to allow the current user full event access and
+authenticated users synchronize/query-style access. For a portable real
+application, construct the descriptor from resolved SIDs rather than embedding a
+particular account SID.
+
+This lab uses the current owner default and a conservative demonstration DACL:
+
+```cpp
+#include <windows.h>
+#include <sddl.h>
+#include <iostream>
+
+int wmain() {
+    // SY: LocalSystem full access
+    // BA: Built-in Administrators full access
+    // AU: Authenticated Users synchronize only
+    constexpr wchar_t kSddl[] =
+        L"D:(A;;GA;;;SY)(A;;GA;;;BA)(A;;0x00100000;;;AU)";
+
+    PSECURITY_DESCRIPTOR descriptor = nullptr;
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            kSddl,
+            SDDL_REVISION_1,
+            &descriptor,
+            nullptr)) {
+        std::wcerr << L"SDDL conversion failed: " << GetLastError() << L"\n";
+        return 1;
+    }
+
+    SECURITY_ATTRIBUTES attributes{};
+    attributes.nLength = sizeof(attributes);
+    attributes.lpSecurityDescriptor = descriptor;
+    attributes.bInheritHandle = FALSE;
+
+    HANDLE eventHandle = CreateEventW(
+        &attributes,
+        TRUE,
+        FALSE,
+        L"Local\\KwpwnObjectManagerLab");
+    const DWORD createStatus = GetLastError();
+    LocalFree(descriptor);
+
+    if (!eventHandle) {
+        std::wcerr << L"CreateEvent failed: " << GetLastError() << L"\n";
+        return 2;
+    }
+
+    std::wcout << (createStatus == ERROR_ALREADY_EXISTS
+                       ? L"opened existing event\n"
+                       : L"created new event\n");
+    std::wcout << L"handle=" << eventHandle << L"\n";
+    std::wcout << L"Press Enter to close the final lab handle.\n";
+    std::wcin.get();
+    CloseHandle(eventHandle);
+}
+```
+
+Use WinObj while the program waits:
+
+1. navigate to the session's `BaseNamedObjects`;
+2. locate `KwpwnObjectManagerLab`;
+3. inspect type and security;
+4. open a second instance of the program;
+5. observe `ERROR_ALREADY_EXISTS`;
+6. close both and refresh.
+
+The final close normally removes the temporary named event because no handle or
+kernel reference keeps it alive.
+
+## Handle count and pointer count
+
+The Object Manager tracks references. Conceptually:
+
+- opening a handle increases handle-related accounting and keeps a reference;
+- closing the handle releases it;
+- kernel routines that return referenced pointers require a matching
+  dereference;
+- the object can be deleted when lifetime rules and reference counts permit.
+
+A driver that calls `ObReferenceObjectByHandle` receives a referenced pointer
+and must eventually call `ObDereferenceObject`. A leaked reference can keep an
+object alive. A missing reference can produce use-after-free behavior.
+
+Do not manually infer lifetime from one debugger counter without understanding
+the object type and temporary/permanent state.
+
+## User handles passed to drivers
+
+A user-supplied handle is untrusted input. A driver should:
+
+1. process it in the correct requestor context;
+2. call `ObReferenceObjectByHandle` with the expected object type;
+3. request the access necessary for the operation;
+4. pass the caller's mode where the contract requires an access check;
+5. keep the returned pointer referenced while using it;
+6. dereference it on every exit path.
+
+Failing to specify the expected object type can turn a type confusion into a
+kernel bug. Treating a user handle as a pointer is never valid.
+
+Private kernel handles should use `OBJ_KERNEL_HANDLE` when created in an
+arbitrary process context, preventing user-mode code in that process from
+accessing the handle entry.
+
+## Symbolic links and device exposure
+
+Drivers can create device objects under `\Device` and expose Win32-visible names
+through symbolic links. Security can be applied to device objects and their
+namespaces.
+
+A visible `\\.\DeviceName` path proves discoverability, not permission to send
+every IOCTL. The open request, device security descriptor, IOCTL access bits, and
+driver validation all participate.
+
+## Debugger and tool questions
+
+With WinObj:
+
+- Which object directory contains the name?
+- Is the name session-local or global?
+- What type does the name resolve to?
+- Which symbolic link target is used?
+
+With WinDbg in an authorized VM:
+
+```text
+!object \BaseNamedObjects
+!object <object-address>
+!handle <handle> 3 <process-address>
+!sd <security-descriptor-address>
+```
+
+Use the target's symbols and do not publish raw kernel addresses as durable
+identifiers.
+
+## Common reasoning errors
+
+- treating `\Device` like a folder on disk;
+- treating a numeric handle as globally meaningful;
+- assuming an object must have a name;
+- assuming a DACL change revokes already-open handles;
+- copying an access mask label from the wrong object type;
+- confusing a handle reference with a raw pointer reference;
+- keeping a kernel pointer after releasing its reference;
+- creating a private driver handle without `OBJ_KERNEL_HANDLE`;
+- trusting a user-supplied handle without type and access validation.
+
+## References
+
+- Microsoft Learn, [Windows Kernel-Mode Object Manager](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/windows-kernel-mode-object-manager).
+- Microsoft Learn, [Managing Kernel Objects](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/managing-kernel-objects).
+- Microsoft Learn, [Object Names](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/object-names) and [Object Directories](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/object-directories).
+- Microsoft Learn, [Object Handles](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/object-handles).
+- Microsoft Learn, [Life Cycle of an Object](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/life-cycle-of-an-object).
+- Microsoft Sysinternals, [WinObj](https://learn.microsoft.com/en-us/sysinternals/downloads/winobj).
+- Yunolay, [The Windows Object Manager and Handle Tables](https://yunolay.com/windows-object-manager-and-handle-tables/), used as the topic lead and expanded here with an explicit security and lifetime lab.

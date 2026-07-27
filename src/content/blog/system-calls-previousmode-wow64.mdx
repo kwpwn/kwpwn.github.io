@@ -1,0 +1,286 @@
+---
+title: "System Calls, PreviousMode, and WOW64 Trust Boundaries"
+description: "Trace a Windows request from Win32 through ntdll into a native system service, then reason precisely about Nt versus Zw, PreviousMode, parameter trust, and 32-bit compatibility."
+locale: "en"
+publishDate: 2026-07-27
+draft: false
+featured: false
+tags:
+  - windows internals
+  - system calls
+  - PreviousMode
+  - WOW64
+  - native API
+author: "kwpwn"
+toc: true
+topic: "windows-internals"
+track: "kernel-boundaries"
+seriesOrder: 3
+difficulty: "Advanced"
+prerequisites:
+  - "Processes, threads, tokens, and handles"
+  - "Basic x64 calling conventions and kernel/user mode"
+learningObjectives:
+  - "Trace Win32, native API, system-call dispatch, and executive-manager layers without collapsing them"
+  - "Explain the kernel-mode difference between Nt and Zw entry points"
+  - "Use PreviousMode as a parameter-trust concept rather than an exploit slogan"
+labEnvironment: "The user-mode example queries its own process only. Kernel observations require a disposable Windows debugging VM configured with symbols; do not attach a kernel debugger to production."
+---
+
+Windows applications usually call documented Win32 APIs. Those APIs may perform
+user-mode work, call another subsystem, or eventually invoke a native system
+service. The native boundary is one layer in a longer path:
+
+```text
+application
+  → Win32/API-set implementation
+  → ntdll native stub
+  → architecture-specific system-call transition
+  → kernel system-service dispatch
+  → executive manager or kernel component
+  → return status and output
+```
+
+Not every Win32 function maps one-to-one to one syscall. A function may make
+several calls, no syscall, or use RPC/ALPC to ask a service process to perform
+work.
+
+## The stable contract and the observed implementation
+
+Prefer the documented Win32 API when building applications. Native `Nt*`
+interfaces exposed through `winternl.h` are more likely to change, and Microsoft
+often recommends an equivalent public function.
+
+For research, the native layer is valuable because it shows:
+
+- the request entering kernel mode;
+- which parameters cross the trust boundary;
+- an `NTSTATUS` result;
+- which manager receives the operation;
+- where access checks and probing occur.
+
+System-service numbers are not durable identifiers. They can vary across builds
+and architectures. Resolve symbols and stubs on the target version rather than
+hard-coding a table from another release.
+
+## A safe native query
+
+Microsoft documents a limited `NtQueryInformationProcess` interface in
+`winternl.h` while warning that it may change. The example dynamically resolves
+the function and queries only its own basic information.
+
+```cpp
+#include <windows.h>
+#include <winternl.h>
+#include <iostream>
+
+using NtQueryInformationProcessFn = NTSTATUS(NTAPI*)(
+    HANDLE,
+    PROCESSINFOCLASS,
+    PVOID,
+    ULONG,
+    PULONG);
+
+int wmain() {
+    HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+    auto query = reinterpret_cast<NtQueryInformationProcessFn>(
+        GetProcAddress(ntdll, "NtQueryInformationProcess"));
+    if (!query) return 1;
+
+    PROCESS_BASIC_INFORMATION information{};
+    ULONG returned = 0;
+    const NTSTATUS status = query(
+        GetCurrentProcess(),
+        ProcessBasicInformation,
+        &information,
+        sizeof(information),
+        &returned);
+
+    std::wcout << L"NTSTATUS=0x" << std::hex
+               << static_cast<unsigned long>(status) << L"\n";
+    if (status >= 0) {
+        std::wcout << L"PID=" << std::dec
+                   << information.UniqueProcessId << L"\n";
+        std::wcout << L"PEB=" << information.PebBaseAddress << L"\n";
+        std::wcout << L"returned=" << returned << L"\n";
+    }
+}
+```
+
+Do not treat the printed PEB address as a persistent identifier. Address-space
+layout and process lifetime make it run-specific.
+
+For ordinary code that only needs a PID, call `GetCurrentProcessId`. The native
+query is used here to make the layer visible.
+
+## User-mode Nt and Zw names
+
+From user mode, calls to the Nt and Zw exports that reach the system-call path
+are treated as untrusted user requests. The important Nt-versus-Zw distinction
+is for kernel-mode callers.
+
+Microsoft documents that kernel-mode calls to the two forms can differ in how
+the native service treats parameter origin:
+
+- a kernel-mode call to an **Nt** form follows the current thread's history and
+  `PreviousMode`;
+- a kernel-mode call to a **Zw** form uses a wrapper behavior that treats the
+  parameters as kernel-originated for the service.
+
+That does not make `Zw*` “safer.” It means the driver is asserting that it has
+already established the trustworthiness of the parameters.
+
+## PreviousMode as provenance
+
+When a user-mode thread enters through the system-call mechanism, Windows records
+that the prior mode was user mode. Native service code can use this provenance
+to decide whether to:
+
+- probe pointers as user addresses;
+- catch access faults;
+- perform handle-table and access behavior appropriate for a user request;
+- reject invalid alignment or address ranges.
+
+When a kernel component calls an Nt form while executing in a thread whose
+`PreviousMode` is `UserMode`, the service can continue treating parameters as
+user-originated.
+
+A Zw wrapper temporarily presents kernel origin to the common service
+implementation. Therefore a driver must never pass an unvalidated user pointer
+to Zw and expect the service to protect it.
+
+## The safe driver rule
+
+For an IOCTL carrying user-controlled data:
+
+```text
+untrusted request
+  → identify buffering method
+  → obtain the correct buffer representation
+  → validate length and structure version
+  → probe/capture where the method and context require it
+  → copy into driver-owned storage if lifetime can change
+  → call downstream kernel service with trusted parameters
+```
+
+An unsafe conceptual pattern is:
+
+```cpp
+// Do not do this: userPointer came from an untrusted request.
+ZwQueryInformationFile(
+    userHandle,
+    userIoStatusBlock,
+    userPointer,
+    userLength,
+    FileBasicInformation);
+```
+
+The Zw form tells the service to trust the caller's provenance. It does not
+magically validate `userPointer`, `userIoStatusBlock`, or `userHandle`.
+
+A better design captures the request into kernel-owned data, validates the
+handle with the expected type and rights, and uses documented buffer-handling
+rules. Exact implementation depends on IRQL, request context, framework, and API
+contract.
+
+## Access checks and forced checks
+
+Kernel mode is privileged, but drivers often operate on behalf of user-mode
+clients. The design must preserve the caller's security boundary.
+
+Relevant mechanisms include:
+
+- passing the correct requestor mode to APIs that accept it;
+- validating handles with `ObReferenceObjectByHandle`;
+- specifying expected object type and desired access;
+- using `OBJ_FORCE_ACCESS_CHECK` where a kernel-created open must still enforce
+  access against the effective subject;
+- avoiding `KernelMode` simply to bypass a failed probe or access check.
+
+If a user request causes a driver to open a file as kernel mode without an
+appropriate access check, the driver can become a confused deputy.
+
+## WOW64 is a compatibility path, not “an emulator”
+
+WOW64 enables 32-bit applications on 64-bit Windows. A 32-bit process has
+32-bit user-mode structures and modules, while the 64-bit kernel remains the
+kernel.
+
+Research implications:
+
+- pointer widths and structure layouts differ;
+- 32-bit and 64-bit PEB/TEB views differ;
+- file-system and registry redirection can affect observed paths;
+- the user-mode transition includes WOW64 components;
+- a debugger must use the correct process and architecture context;
+- native information classes can return architecture-specific structures.
+
+Do not cast a 32-bit user pointer into a 64-bit pointer without explicit
+validation and conversion. Avoid copying a structure definition from one
+architecture into the other.
+
+## Process information classes
+
+`PROCESSINFOCLASS` selects different query or set contracts. Some classes are
+documented, some are exposed through public symbols or headers, and others are
+research references rather than supported application contracts.
+
+For every class, record:
+
+```text
+Class name and numeric value:
+Query or set:
+Minimum input/output size:
+Architecture:
+Required process-handle access:
+Caller-mode behavior:
+Supported builds:
+Return-length behavior:
+Primary source:
+Observed status codes:
+```
+
+Do not infer a buffer structure solely from a numeric class. Version the claim.
+
+The System Informer `phnt` headers and NtDoc are useful secondary maps for
+research, but they are not Microsoft support contracts. Cross-check documented
+classes against Microsoft Learn and validate other observations on the target
+build with symbols and controlled calls.
+
+## Debugger workflow
+
+In a lab:
+
+1. break on the target user-mode API;
+2. step to the ntdll native stub;
+3. record registers and user buffer;
+4. observe the kernel service entry with matching symbols;
+5. inspect the current thread and `PreviousMode`;
+6. identify the executive manager that handles the request;
+7. observe status and output on return.
+
+Avoid using a hard-coded system-service number as the breakpoint strategy across
+versions.
+
+## Common mistakes
+
+- claiming every Win32 call has one syscall;
+- treating system-service numbers as stable APIs;
+- saying “Nt validates, Zw does not” without limiting the statement to
+  kernel-mode call context;
+- using Zw with raw user pointers;
+- setting requestor mode to kernel merely to make an error disappear;
+- mixing 32-bit and 64-bit structures in WOW64;
+- treating `phnt` structure definitions as a version-independent contract;
+- publishing a field offset without the build, architecture, and symbol source.
+
+## References
+
+- Microsoft Learn, [Using Nt and Zw Versions of the Native System Services Routines](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/using-nt-and-zw-versions-of-the-native-system-services-routines).
+- Microsoft Learn, [PreviousMode](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/previousmode).
+- Microsoft Learn, [NtQueryInformationProcess](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess).
+- Microsoft Learn, [WOW64 Implementation Details](https://learn.microsoft.com/en-us/windows/win32/winprog64/wow64-implementation-details).
+- System Informer, [phnt `ntpsapi.h`](https://github.com/winsiderss/systeminformer/blob/master/phnt/include/ntpsapi.h), a secondary research header whose definitions must be version-checked.
+- NtDoc, [PROCESSINFOCLASS](https://ntdoc.m417z.com/processinfoclass), a secondary navigation reference.
+- Yunolay, [System Calls and the User-to-Kernel Transition](https://yunolay.com/system-calls-user-to-kernel-transition/), used as the syscall topic lead.
+- Yunolay, [WoW64: Running 32-bit Processes on 64-bit Windows](https://yunolay.com/wow64-running-32-bit-processes-on-64-bit-windows/), used as the compatibility-layer lead.

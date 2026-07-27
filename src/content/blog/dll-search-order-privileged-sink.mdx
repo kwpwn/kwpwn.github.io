@@ -1,0 +1,298 @@
+---
+title: "DLL Search Order: From Writable Directory to Privileged Sink"
+description: "A loader-accurate method for auditing DLL search-order weaknesses, proving reachability, and replacing unsafe base-name loads with explicit resolution."
+locale: "en"
+publishDate: 2026-07-27
+draft: false
+featured: false
+tags:
+  - windows privesc
+  - DLL hijacking
+  - Windows loader
+  - Procmon
+author: "kwpwn"
+toc: true
+topic: "windows-privesc"
+track: "execution"
+seriesOrder: 4
+difficulty: "Intermediate"
+prerequisites:
+  - "Windows files, directories, and access control"
+  - "Basic C or C++ and dynamic linking"
+learningObjectives:
+  - "Distinguish a writable directory from a reachable DLL preloading condition"
+  - "Reason about the modern unpackaged-app search order and alternate search flags"
+  - "Build paired vulnerable and hardened loaders for a safe local lab"
+labEnvironment: "Compile the toy loader and DLL in a disposable, non-privileged directory. The lab never targets a Windows service, vendor application, or elevated process."
+---
+
+“Writable directory” is not equivalent to “DLL hijacking.” A complete DLL
+preloading or binary-planting condition needs all of the following:
+
+1. a process requests a DLL without a fully qualified path, or otherwise uses a
+   search strategy that includes attacker-controlled locations;
+2. the expected module is absent from every earlier location, or the controlled
+   location is deliberately earlier;
+3. the actor can create or replace the candidate file;
+4. the target process reaches that load;
+5. the process runs in a security context worth crossing into;
+6. the supplied module is architecture-compatible and exports what the caller
+   expects.
+
+This lesson proves those links in a harmless loader before discussing a
+privileged consumer.
+
+## The search order is a pipeline
+
+For a common unpackaged application using the standard search order with Safe
+DLL Search Mode enabled, modern Windows considers early resolution mechanisms
+before ordinary directories:
+
+1. DLL redirection;
+2. API sets;
+3. side-by-side manifest redirection;
+4. the loaded-module list;
+5. Known DLLs;
+6. on supported Windows 11 builds, the package dependency graph;
+7. the application directory;
+8. the system directory;
+9. the legacy 16-bit system directory;
+10. the Windows directory;
+11. the current directory;
+12. directories in `PATH`.
+
+The exact order changes with packaging, flags, `SetDllDirectory`,
+`AddDllDirectory`, a manifest, or a fully qualified path. Do not memorize one
+list and apply it to every process.
+
+Safe DLL Search Mode moves the current directory later; it does not remove it.
+Known DLLs and already-loaded modules can make a planted file irrelevant.
+
+## Start from the load request
+
+The most useful evidence is the string and API at the loading call site:
+
+```cpp
+HMODULE module = LoadLibraryW(L"lab-plugin.dll");
+```
+
+This is a base-name load. The loader must resolve a location.
+
+Compare it with:
+
+```cpp
+HMODULE module = LoadLibraryExW(
+    L"C:\\KwpwnDllLab\\plugins\\lab-plugin.dll",
+    nullptr,
+    LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR |
+        LOAD_LIBRARY_SEARCH_SYSTEM32);
+```
+
+The second call provides an absolute path for the requested module and
+restricts where its dependencies are resolved. It makes the resolution policy
+visible in code.
+
+When reverse engineering a target, record:
+
+- the loading API;
+- the exact string passed;
+- flags;
+- process current directory;
+- application directory;
+- process-wide directory changes;
+- activation context and manifest;
+- architecture;
+- the module name Windows ultimately maps.
+
+## A deliberately weak toy loader
+
+```cpp
+#include <windows.h>
+#include <iostream>
+
+using GetMessageFn = const wchar_t* (*)();
+
+int wmain() {
+    HMODULE module = LoadLibraryW(L"lab-plugin.dll");
+    if (!module) {
+        std::wcerr << L"Load failed: " << GetLastError() << L"\n";
+        return 1;
+    }
+
+    auto getMessage = reinterpret_cast<GetMessageFn>(
+        GetProcAddress(module, "GetLabMessage"));
+    if (!getMessage) {
+        std::wcerr << L"Missing export\n";
+        FreeLibrary(module);
+        return 2;
+    }
+
+    std::wcout << getMessage() << L"\n";
+    FreeLibrary(module);
+}
+```
+
+The harmless plugin:
+
+```cpp
+#include <windows.h>
+
+extern "C" __declspec(dllexport)
+const wchar_t* GetLabMessage() {
+    return L"Loaded the lab plugin";
+}
+
+BOOL WINAPI DllMain(HINSTANCE, DWORD, LPVOID) {
+    return TRUE;
+}
+```
+
+Compile both for the same architecture. Place the executable in one lab
+directory and the plugin in another candidate directory. Change only one
+variable at a time: current directory, `PATH`, application directory, or loader
+flags.
+
+The payload is a string. There is no shellcode, process injection, persistence,
+or privileged target.
+
+## Observe resolution with Process Monitor
+
+Use Process Monitor with filters:
+
+```text
+Process Name  is  weak-loader.exe  Include
+Operation     is  Load Image       Include
+Path          ends with .dll       Include
+```
+
+Also inspect `CreateFile` attempts returning `NAME NOT FOUND`. The sequence of
+failed candidate paths can explain the search, but treat it as an observation
+for this build and process configuration—not a replacement for the documented
+loader rules.
+
+Capture:
+
+- the first request for `lab-plugin.dll`;
+- every candidate path in order;
+- the successful `Load Image`;
+- the loaded file's hash;
+- the process user and integrity level.
+
+Repeat with the plugin placed in an earlier directory. Then run the hardened
+loader and confirm that the controlled directory is no longer queried for the
+module.
+
+## Harden the loader
+
+Resolve the application-controlled plugin directory to an absolute path and
+restrict dependency search:
+
+```cpp
+#include <windows.h>
+#include <filesystem>
+
+HMODULE LoadLabPluginSafely() {
+    wchar_t imagePath[MAX_PATH]{};
+    if (!GetModuleFileNameW(nullptr, imagePath, MAX_PATH)) {
+        return nullptr;
+    }
+
+    std::filesystem::path plugin =
+        std::filesystem::path(imagePath).parent_path() /
+        L"plugins" /
+        L"lab-plugin.dll";
+
+    return LoadLibraryExW(
+        plugin.c_str(),
+        nullptr,
+        LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR |
+            LOAD_LIBRARY_SEARCH_SYSTEM32);
+}
+```
+
+For an application with several plugin locations, initialize a process policy
+early with `SetDefaultDllDirectories`, then add only trusted paths with
+`AddDllDirectory`. Avoid a writable directory in `PATH` as an application plugin
+mechanism.
+
+A full-path top-level load does not automatically make every dependency safe.
+The `LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR` and `LOAD_LIBRARY_SEARCH_SYSTEM32` flags
+make dependency resolution more explicit.
+
+## Move from lab behavior to a privileged claim
+
+For a real audit, use the full escalation chain:
+
+| Link            | Required proof                                                          |
+| --------------- | ----------------------------------------------------------------------- |
+| Actor control   | Effective create/replace right on the candidate directory or file       |
+| Load request    | Base name, missing module, or unsafe alternate search behavior          |
+| Search position | Controlled directory is reached before a legitimate resolution          |
+| Trigger         | Standard user can cause the load, or a defined privileged workflow does |
+| Context         | The loading process has a more privileged token                         |
+| Result          | A benign marker proves code ran in that context                         |
+
+Do not plant a DLL in a production directory to “see what happens.” Use static
+analysis, Procmon observations, a cloned directory tree, and a dedicated lab
+binary.
+
+## Important variants
+
+### Phantom DLL
+
+The application requests a module that is absent. A controlled directory later
+in the search can satisfy the request. You must confirm the request is expected
+to tolerate the module's absence and is reachable in the privileged path.
+
+### Replaceable legitimate DLL
+
+The configured path is correct, but the actor can replace the actual module.
+This is primarily a file-permission failure, not a search-order ambiguity.
+
+### Search-path injection
+
+An actor controls a directory added to `PATH`, the current directory, or an
+application-specific plugin list. Establish which configuration owns the path
+and which token can change it.
+
+### Side-by-side and manifests
+
+Activation contexts and manifests can redirect module resolution. A Procmon path
+alone may show the result without explaining the mechanism. Inspect the
+manifest and loader state before naming the bug class.
+
+## Detection ideas
+
+Useful detection joins several signals:
+
+- an image load from a user-writable directory;
+- a privileged or service-host process;
+- a module name normally loaded from another path;
+- a new or unsigned file shortly before the load;
+- failed searches for the same base name;
+- an unexpected signer, hash, or architecture.
+
+An image load from a writable directory is suspicious context, not proof of
+malice. Developer build trees and plugin systems can be legitimate.
+
+## Remediation checklist
+
+- load application modules by an absolute, trusted path;
+- use `LoadLibraryEx` with `LOAD_LIBRARY_SEARCH_*` flags;
+- call `SetDefaultDllDirectories` early where compatible;
+- keep application and plugin directories non-writable by standard users;
+- remove user-writable directories from service and machine `PATH`;
+- ship and test manifests deliberately;
+- baseline module paths and signatures for privileged services;
+- regression-test dependency resolution after hardening.
+
+## References
+
+- Microsoft Learn, [Dynamic-Link Library Search Order](https://learn.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order).
+- Microsoft Learn, [Dynamic-Link Library Security](https://learn.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-security).
+- Microsoft Learn, [LoadLibraryExW](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw).
+- Microsoft Learn, [SetDefaultDllDirectories](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-setdefaultdlldirectories).
+- Microsoft Sysinternals, [Process Monitor](https://learn.microsoft.com/en-us/sysinternals/downloads/procmon).
+- MITRE ATT&CK, [T1574.001 — DLL Search Order Hijacking](https://attack.mitre.org/techniques/T1574/001/).
+- Yunolay, [DLL Hijacking and Search-Order Abuse on Windows](https://yunolay.com/dll-hijacking-and-search-order-abuse-on-windows/), used as topic inspiration and expanded here with paired loader implementations and explicit validation gates.
+- Yunolay, [DLL Hijacking: Privilege Escalation and Persistence on Windows](https://yunolay.com/dll-hijacking/), a related practical overview.

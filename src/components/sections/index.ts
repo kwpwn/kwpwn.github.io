@@ -32,3 +32,5 @@ export { default as WindowsServiceHub } from "./WindowsServiceHub.astro";
 export { default as WindowsServiceTarget } from "./WindowsServiceTarget.astro";
 export { default as WindowsServiceTopic } from "./WindowsServiceTopic.astro";
 export { default as PublishedBlogDirectory } from "./PublishedBlogDirectory.astro";
+export { default as ResearchTopicDirectory } from "./ResearchTopicDirectory.astro";
+export { default as ResearchTopicPage } from "./ResearchTopicPage.astro";

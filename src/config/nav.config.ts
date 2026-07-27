@@ -9,6 +9,21 @@ export interface NavItem {
 export const mainNav: NavItem[] = [
   { href: "/", labelKey: "nav.home" },
   {
+    href: "/topics/",
+    labelKey: "nav.topics",
+    children: [
+      {
+        href: "/topics/windows-privesc/",
+        labelKey: "nav.windowsPrivesc",
+      },
+      { href: "/topics/malware-c2/", labelKey: "nav.malwareC2" },
+      {
+        href: "/topics/windows-internals/",
+        labelKey: "nav.windowsInternals",
+      },
+    ],
+  },
+  {
     href: "/windows-security-concepts/",
     labelKey: "nav.windowsSecurityConcepts",
   },

@@ -1,6 +1,5 @@
 import { defineCollection, z } from "astro:content";
 import { glob } from "astro/loaders";
-import { i18nConfig } from "./config/i18n.config";
 
 // Add locale codes here (e.g. ["en", "id"]) when introducing new languages.
 const localeSchema = z.enum(["en"]);
@@ -34,6 +33,24 @@ const blog = defineCollection({
     format: z.enum(["article", "interactive-atlas"]).default("article"),
     svgSlug: z.string().optional(),
     translationKey: z.string().optional(),
+    topic: z
+      .enum(["windows-privesc", "malware-c2", "windows-internals"])
+      .optional(),
+    track: z
+      .enum([
+        "foundations",
+        "privilege-boundaries",
+        "execution",
+        "analysis",
+        "telemetry",
+        "kernel-boundaries",
+      ])
+      .optional(),
+    seriesOrder: z.number().int().positive().optional(),
+    difficulty: z.enum(["Foundation", "Intermediate", "Advanced"]).optional(),
+    prerequisites: z.array(z.string()).default([]),
+    learningObjectives: z.array(z.string()).default([]),
+    labEnvironment: z.string().optional(),
   }),
 });
 

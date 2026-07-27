@@ -1,0 +1,34 @@
+---
+import ResearchTopicPage from "../../../components/sections/ResearchTopicPage.astro";
+import { i18nConfig } from "../../../config/i18n.config";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import {
+  getResearchTopic,
+  RESEARCH_TOPICS,
+  type ResearchTopicId,
+} from "../../../lib/research-topics";
+import type { Locale } from "../../../lib/site-config";
+
+export function getStaticPaths() {
+  return i18nConfig.locales
+    .filter((locale) => locale !== i18nConfig.defaultLocale)
+    .flatMap((locale) =>
+      RESEARCH_TOPICS.map((topic) => ({
+        params: { locale, topic: topic.id },
+      })),
+    );
+}
+
+const locale = Astro.params.locale as Locale;
+const topicId = Astro.params.topic as ResearchTopicId;
+const topic = getResearchTopic(topicId);
+---
+
+<BaseLayout
+  title={topic.title}
+  description={topic.description}
+  locale={locale}
+  path={`/topics/${topic.id}/`}
+>
+  <ResearchTopicPage topicId={topicId} locale={locale} />
+</BaseLayout>
