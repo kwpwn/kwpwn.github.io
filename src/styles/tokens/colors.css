@@ -8,11 +8,11 @@
 
 :root {
   /* === Core surfaces === */
-  --background: oklch(0.985 0.004 85deg);
+  --background: oklch(0.975 0.006 85deg);
   --foreground: oklch(0.22 0.008 70deg);
-  --card: oklch(0.995 0.003 85deg);
+  --card: oklch(0.988 0.004 85deg);
   --card-foreground: oklch(0.22 0.008 70deg);
-  --popover: oklch(0.995 0.003 85deg);
+  --popover: oklch(0.988 0.004 85deg);
   --popover-foreground: oklch(0.22 0.008 70deg);
 
   /* === Primary — neutral (near-black) === */
@@ -61,40 +61,40 @@
 
 .dark {
   /* === Core surfaces === */
-  --background: oklch(0.205 0.008 70deg);
-  --foreground: oklch(0.925 0.006 82deg);
-  --card: oklch(0.235 0.008 70deg);
-  --card-foreground: oklch(0.925 0.006 82deg);
-  --popover: oklch(0.235 0.008 70deg);
-  --popover-foreground: oklch(0.925 0.006 82deg);
+  --background: oklch(0.34 0.012 70deg);
+  --foreground: oklch(0.92 0.008 82deg);
+  --card: oklch(0.37 0.012 70deg);
+  --card-foreground: oklch(0.92 0.008 82deg);
+  --popover: oklch(0.37 0.012 70deg);
+  --popover-foreground: oklch(0.92 0.008 82deg);
 
   /* === Primary — neutral (near-white) === */
-  --primary: oklch(0.925 0.006 82deg);
-  --primary-foreground: oklch(0.22 0.008 70deg);
+  --primary: oklch(0.92 0.008 82deg);
+  --primary-foreground: oklch(0.27 0.01 70deg);
   --primary-hover: oklch(0.86 0.006 82deg);
   --primary-active: oklch(0.78 0.006 82deg);
-  --primary-muted: oklch(0.285 0.008 70deg);
+  --primary-muted: oklch(0.405 0.012 70deg);
 
   /* === Secondary === */
-  --secondary: oklch(0.285 0.008 70deg);
-  --secondary-foreground: oklch(0.925 0.006 82deg);
-  --secondary-hover: oklch(0.33 0.008 70deg);
+  --secondary: oklch(0.405 0.012 70deg);
+  --secondary-foreground: oklch(0.92 0.008 82deg);
+  --secondary-hover: oklch(0.445 0.012 70deg);
 
   /* === Accent === */
-  --accent: oklch(0.285 0.008 70deg);
-  --accent-foreground: oklch(0.925 0.006 82deg);
-  --accent-hover: oklch(0.33 0.008 70deg);
+  --accent: oklch(0.405 0.012 70deg);
+  --accent-foreground: oklch(0.92 0.008 82deg);
+  --accent-hover: oklch(0.445 0.012 70deg);
 
   /* === Muted === */
-  --muted: oklch(0.275 0.008 70deg);
+  --muted: oklch(0.395 0.012 70deg);
 
   /* 0.74 keeps secondary text >= WCAG AA (>=4.5:1) on dark muted bg */
-  --muted-foreground: oklch(0.72 0.006 82deg);
+  --muted-foreground: oklch(0.75 0.008 82deg);
 
   /* === Border & Ring === */
-  --border: oklch(0.35 0.008 70deg);
-  --ring: oklch(0.68 0.006 82deg);
-  --ring-offset: oklch(0.205 0.008 70deg);
+  --border: oklch(0.47 0.012 70deg);
+  --ring: oklch(0.78 0.008 82deg);
+  --ring-offset: oklch(0.34 0.012 70deg);
 
   /* === Semantic (functional status — kept chromatic) === */
   --destructive: oklch(0.704 0.191 22.216deg);
@@ -108,7 +108,7 @@
 
   /* === Surface invert (for light sections on dark bg) === */
   --surface-invert: oklch(0.985 0 0deg);
-  --surface-invert-foreground: oklch(0.205 0 0deg);
+  --surface-invert-foreground: oklch(0.27 0.01 70deg);
   --surface-invert-border: oklch(0.85 0 0deg);
 }
 

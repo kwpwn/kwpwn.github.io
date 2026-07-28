@@ -687,11 +687,144 @@ function makeBody({
   if (!inspectionProbe) {
     throw new Error(`Missing topic-specific inspection probe for ${slug}`);
   }
-  const concepts = mechanismParts
+  if (mechanismParts.length !== 4) {
+    throw new Error(`Expected four mechanism clauses for ${slug}`);
+  }
+
+  const lessonFrames = {
+    "windows-privesc": {
+      labels: ["Starting state", "Privilege decision", "Reachability", "Proof"],
+      flow: "lower-privileged actor → controlled input → privileged consumer → trigger → measurable effect",
+      rule:
+        "A writable object is only the first edge. The chain is incomplete until the privileged consumer, trigger, resulting context, and negative control are all known.",
+      distinctions: [
+        "Writable does not automatically mean exploitable; the privileged consumer must actually read or execute the controlled material.",
+        "Evidence collected from an administrator console does not establish what the standard-user token can reach.",
+        "A dangerous configuration and a reachable elevation path are different claims and should be reported separately.",
+      ],
+      detection: [
+        "Record the writer identity and the exact object changed.",
+        "Correlate that change with the privileged consumer and its trigger.",
+        "Alert on the joined transition, not on a utility name by itself.",
+        "Harden the earliest reachable edge: permissions, policy, trigger, or consumer identity.",
+      ],
+      caseOpening:
+        "A scanner reports a possible elevation path after finding one suspicious permission or policy value.",
+    },
+    "malware-c2": {
+      labels: ["Observable artifact", "Behavior boundary", "Execution constraint", "Correlated evidence"],
+      flow: "artifact → parser or runtime → state transition → host/network evidence → bounded conclusion",
+      rule:
+        "A family or framework label is an index, not an explanation. The useful result is the smallest behavior claim supported by healthy, time-aligned sensors.",
+      distinctions: [
+        "Encoding, packing, or obfuscation is not malicious intent by itself; describe the behavior revealed after the transformation.",
+        "A missing event is not proof of absence until collection health, provider state, filtering, and retention are tested.",
+        "Static capability, configured capability, and behavior observed during one execution are separate confidence levels.",
+      ],
+      detection: [
+        "Join file or memory provenance with the process and thread transition it caused.",
+        "Correlate host behavior with DNS, flow, TLS, and application-protocol timing.",
+        "Test every sensor with a benign control before interpreting silence.",
+        "Harden execution, credential, egress, and logging boundaries independently.",
+      ],
+      caseOpening:
+        "An analyst assigns a malware or C2 label from one string, process name, or network indicator.",
+    },
+    "windows-internals": {
+      labels: ["Owned state", "Manager or boundary", "Versioned constraint", "Observable evidence"],
+      flow: "owner or manager → object/state → transition → lifetime rule → version-matched observation",
+      rule:
+        "Documented contracts, symbol-backed observations, and reverse-engineered implementation details have different stability. Keep those evidence classes separate.",
+      distinctions: [
+        "A handle is a reference with access rights, not the underlying object or its lifetime.",
+        "A structure layout observed on one build is not a stable ABI unless Microsoft documents it as one.",
+        "A debugger field, trace event, and public API can describe the same mechanism at different abstraction levels without being interchangeable.",
+      ],
+      detection: [
+        "Use version-matched symbols and retain the exact build with every debugger observation.",
+        "Correlate public API results, object state, and trace output instead of trusting one internal field.",
+        "Track creation, references, asynchronous work, cancellation, and teardown as one lifecycle.",
+        "Treat a missing field or command on another build as a version result, not as permission to guess.",
+      ],
+      caseOpening:
+        "A debugger command displays an interesting field and the first interpretation treats it as a universal Windows rule.",
+    },
+  };
+  const frame = lessonFrames[primary.topic];
+  const glossaryCandidates = [
+    [/access token/i, "Access token", "A kernel-managed security context describing an identity, its groups, privileges, integrity level, and restrictions."],
+    [/\bSIDs?\b/i, "SID", "A stable security identifier used by Windows to represent a user, group, service, or other security principal."],
+    [/\bDACLs?\b|access control list/i, "DACL", "The ordered access-control entries Windows evaluates to allow or deny requested rights on an object."],
+    [/integrity level/i, "Integrity level", "A mandatory label that limits write-like interactions from a lower-integrity subject to a higher-integrity object."],
+    [/impersonat/i, "Impersonation", "A thread temporarily uses a client security token while the process primary token remains unchanged."],
+    [/named pipe/i, "Named pipe", "A Windows IPC endpoint with a namespace, security descriptor, server, clients, and message or byte-stream behavior."],
+    [/\bALPC\b/i, "ALPC", "The kernel-backed local IPC facility used by many Windows services and brokers for structured message exchange."],
+    [/\bRPC\b/i, "RPC", "A protocol and runtime that lets a client invoke procedures implemented by another process or system."],
+    [/\bCOM\b/i, "COM", "An object activation and interface model whose server location, registration, bitness, and security affect execution context."],
+    [/service control manager|\bSCM\b/i, "Service Control Manager", "The privileged manager that stores service configuration, starts service processes, and authorizes service operations."],
+    [/\bLSASS\b|local security authority/i, "LSASS", "The protected user-mode service process that hosts LSA policy and authentication packages and manages logon sessions."],
+    [/\bDPAPI\b/i, "DPAPI", "Windows data protection tied to a user or machine master-key hierarchy and the caller's protection context."],
+    [/\bUAC\b|user account control/i, "UAC", "The elevation-consent system that separates normal and elevated use of an administrator's linked tokens."],
+    [/\bWMI\b/i, "WMI", "The Windows management infrastructure that connects CIM classes, namespaces, providers, repository state, and eventing."],
+    [/\bETW\b/i, "ETW", "A high-throughput tracing system composed of providers, controller-managed sessions, event buffers, and consumers."],
+    [/\bAMSI\b/i, "AMSI", "An interface through which participating applications submit content and metadata to an antimalware provider."],
+    [/\bWFP\b|windows firewall/i, "Windows Filtering Platform", "The layered filtering engine behind Windows firewall policy, filters, providers, sublayers, and callouts."],
+    [/\bIRP\b/i, "IRP", "An I/O request packet that carries an operation through driver dispatch, completion, cancellation, and teardown."],
+    [/\bIOCTL\b/i, "IOCTL", "A device-control request whose code, access bits, buffering method, input, and output define a driver boundary."],
+    [/\bKMDF\b|\bWDM\b/i, "Windows driver model", "The contracts and object lifecycle used to connect drivers, devices, queues, callbacks, Plug and Play, power, and I/O."],
+    [/\bIRQL\b/i, "IRQL", "A per-processor interrupt-priority level that constrains scheduling, synchronization, and access to pageable code."],
+    [/\bDPCs?\b/i, "DPC", "Deferred kernel work scheduled after a high-priority interrupt routine finishes its time-critical portion."],
+    [/\bAPCs?\b/i, "APC", "A queued callback delivered in a particular thread context under specific kernel or user-mode rules."],
+    [/\bVADs?\b/i, "VAD", "A kernel descriptor for a process virtual-address region, including range, protection, and backing relationships."],
+    [/page tables?|\bPTEs?\b/i, "Page table entry", "The hardware-visible translation and state record for one virtual page."],
+    [/section objects?|mapped files?/i, "Section object", "Shared backing that can be mapped as image, file data, or pagefile-backed memory into one or more address spaces."],
+    [/\bPEB\b/i, "PEB", "User-mode process environment state used by the loader and runtime; its undocumented fields vary by architecture and build."],
+    [/\bTEB\b/i, "TEB", "Per-thread user-mode state including stack bounds, TLS, last-error information, and architecture-specific fields."],
+    [/\bWoW64\b/i, "WoW64", "The compatibility environment that runs 32-bit user-mode code on 64-bit Windows and translates selected views and transitions."],
+    [/PatchGuard/i, "PatchGuard", "Kernel Patch Protection, which detects unsupported modification of selected critical kernel state."],
+    [/\bHVCI\b/i, "HVCI", "Hypervisor-protected code integrity, which moves selected code-integrity decisions behind a VBS trust boundary."],
+    [/\bVBS\b/i, "VBS", "Virtualization-based security, which uses the hypervisor to isolate selected security services and data."],
+    [/\bC2\b|command and control/i, "Command and control", "The identity, transport, tasking, result, retry, and server-state model used to control a remote agent."],
+    [/shellcode/i, "Shellcode", "Position-independent machine code designed to run without the normal executable-loader contract."],
+    [/process injection/i, "Process injection", "A family of cross-process memory, handle, section, thread, APC, or loader state transitions."],
+    [/\bCOFF\b|beacon object file/i, "COFF object", "A relocatable object whose sections, symbols, and relocations must be resolved by a linker or in-memory host."],
+    [/\bYARA\b/i, "YARA rule", "A byte- and structure-matching rule whose strings, modules, metadata, and condition determine matches."],
+    [/packer|packed malware/i, "Packer", "A loader transformation that stores the original program in compressed or encrypted form and reconstructs it at runtime."],
+    [/job objects?|silos?/i, "Job object", "A process grouping object used for limits, accounting, notifications, and coordinated lifecycle policy."],
+    [/filter manager|minifilter/i, "Minifilter", "A Filter Manager driver registered at an altitude to observe or modify selected file-system operations."],
+    [/\bVSS\b|shadow copy/i, "Volume Shadow Copy", "A coordinated snapshot mechanism involving requesters, writers, providers, and shadow-copy devices."],
+  ];
+  const glossaryFallbacks = [
+    ["Mechanism", "The concrete state, component, decision, and transition that produce an observable result."],
+    ["Trust boundary", "A point where data or control crosses into a component with different authority or assumptions."],
+    ["Evidence", "A recorded observation with enough identity, time, build, and provenance to support or challenge a claim."],
+    ["Negative control", "A repeat of the experiment with one required condition removed, used to test causality."],
+  ];
+  const glossaryEntries = glossaryCandidates
+    .filter(([pattern]) => pattern.test(`${title} ${mechanics}`))
+    .slice(0, 5)
+    .map(([, term, definition]) => [term, definition]);
+  for (const fallback of glossaryFallbacks) {
+    if (glossaryEntries.length >= 5) break;
+    glossaryEntries.push(fallback);
+  }
+  const glossaryRows = glossaryEntries
+    .map(([term, definition]) => `| **${term}** | ${definition} |`)
+    .join("\n");
+  const modelRows = mechanismParts
     .map(
       (part, index) =>
-        `${index + 1}. **${["State", "Boundary", "Constraint", "Evidence"][index] ?? "Mechanism"}:** ${part}.`,
+        `| ${index + 1}. **${frame.labels[index]}** | ${part}. |`,
     )
+    .join("\n");
+  const distinctionList = frame.distinctions
+    .map((item) => `- ${item}`)
+    .join("\n");
+  const detectionList = frame.detection
+    .map((item) => `- ${item}`)
+    .join("\n");
+  const takeawayList = mechanismParts
+    .map((part, index) => `- **${frame.labels[index]}:** ${part}.`)
     .join("\n");
   const sourceList = sourceEntries
     .map(({ title: sourceTitle, url }) => `- [${sourceTitle}](${url})`)
@@ -705,256 +838,221 @@ function makeBody({
   const placementSummary = placements
     .map(
       ({ topic, track, order }) =>
-        `${topic} lesson ${String(order).padStart(2, "0")} in \`${track}\``,
+        `${topic} lesson ${String(order).padStart(2, "0")} in ${track}`,
     )
     .join("; ");
 
-  return `${copy.intro}
+  return `> **Quick answer:** ${mechanismParts[0]}.
 
-The subject here is **${title}**. The goal is not to memorize a named
-technique or an undocumented field. The goal is to be able to explain the
-mechanism, establish its preconditions, collect version-aware evidence, and
-recognize when an apparently similar observation is actually a different
-case. In the curriculum this page is placed as ${placementSummary}.
+## Why this matters
 
-## Concept in one sentence
+${copy.intro}
 
-${mechanismParts[0]}. This definition is deliberately operational: it names
-state that can be inspected and avoids treating a product, utility, or
-structure name as an explanation.
+For **${title}**, start with one practical question: ${copy.question} The rest
+of this lesson answers it in a repeatable order. You will first build a
+small mental model, then identify the conditions that can invalidate it, and
+finally collect read-only evidence in a controlled lab.
 
-## Questions this lesson answers
+The curriculum placement is ${placementSummary}. That placement is navigation,
+not a claim that the mechanism belongs to only one research area.
 
-- ${copy.question}
-- Which statement is a documented contract, which is a lab observation, and
-  which remains an inference?
-- What is the smallest safe experiment that distinguishes the leading
-  hypothesis from a plausible alternative?
-- Which OS build, architecture, policy, identity, and lifecycle conditions
-  must accompany the result?
+## The mental model
 
-These questions form a reusable reading lens. They also prevent a common
-failure mode in security notes: copying a command that produces an interesting
-line without explaining why the line matters or what would make it irrelevant.
+Use this flow as the shortest useful map:
 
-## System model
+> **${frame.flow}**
 
-The mechanism can be decomposed into four connected claims:
+${frame.rule}
 
-${concepts}
+| Step | Working model |
+| --- | --- |
+${modelRows}
 
-Read those claims from left to right as a state transition, then from right to
-left as an evidence plan. If the final effect is claimed, there must be
-evidence for the constraint and boundary that made the transition possible.
-If a prerequisite cannot be observed, label it unknown. Do not silently
-promote it to true.
+Do not try to memorize the table as terminology. Read it as a chain. Start with
+the state that exists, locate the component that makes the important decision,
+check the condition that permits or blocks the transition, and name the evidence
+that would remain if the explanation were correct.
 
-## Lifecycle and ownership
+## Key terms in plain language
 
-Every Windows security mechanism has an owner and a lifecycle. Identify the
-component that creates the relevant state, the object or record that retains
-it, the identity allowed to modify it, the consumer that reads it, and the
-event that retires or invalidates it. This is more precise than a flat list of
-APIs because APIs are entry points into a state machine, not the state machine
-itself.
+These are the terms that carry the most meaning in this lesson. Read them once
+before continuing; later sections use them precisely rather than as loose
+synonyms.
 
-For **${title}**, build the lifecycle around the four claims above. Mark
-asynchronous boundaries explicitly. A service, worker thread, scheduled
-callback, provider host, loader, or kernel deferred routine may consume data
-long after the originating call returned. That time gap changes both object
-lifetime and the telemetry needed to reconstruct causality.
+| Term | Plain-language meaning |
+| --- | --- |
+${glossaryRows}
 
-Ownership is equally important. A handle is not the object; a process ID is
-not the process object; a filename is not the mapped image; a registry path is
-not proof that a specific view was read. Record references and identities at
-the boundary where the security decision or state transition actually occurs.
+## Important distinctions
 
-## Trust-boundary map
+${distinctionList}
 
-| Dimension | Record explicitly | Why it changes the result |
+These distinctions are useful because superficially similar observations can
+come from different mechanisms. Write the narrower claim first. Broaden it only
+when a second source of evidence supports the same transition.
+
+## What can change the answer
+
+| Dimension | Record | Question to ask |
 | --- | --- | --- |
-| Actor | SID, groups, privileges, integrity, process and thread context | Account names hide deny-only groups, filtering, and impersonation |
-| Controlled input | Exact object, bytes, value, path, message, or policy | Similar-looking locations may have different owners and consumers |
-| Consumer | Image, service or manager, token, bitness, and session | The consumer determines authority and parsing behavior |
-| Trigger | Call, boot phase, logon, timer, connection, load, or restart | Writable state without a reachable trigger is not a complete chain |
-| Result | New state, access decision, event, mapping, or execution context | The result must be measurable without assuming the conclusion |
-| Negative control | One removed prerequisite and the expected changed outcome | It distinguishes causality from coincidence |
+| Identity | User SID, groups, privileges, integrity, process and thread token | Did the test run as the actor named in the claim? |
+| Build | Edition, architecture, build, cumulative update, native or WoW64 view | Does the cited behavior or structure belong to this build? |
+| Policy | Effective value and its local, domain, MDM, or runtime source | Is the visible setting actually enforced here? |
+| Reachability | ACL, namespace, endpoint, path, interface, session, and trigger | Can the actor reach the decision point without borrowed privilege? |
+| Lifetime | Creation, use, asynchronous work, cancellation, teardown, and cleanup | Was the observed state still valid when it was consumed? |
+| Sensor health | Provider, channel, filter, retention, clock, and collection status | Would the sensor have recorded a benign control? |
 
-This table should be completed before a lab is run. Empty cells are useful:
-they expose exactly what research is still required.
+A result without these dimensions is a screenshot, not yet a reproducible
+finding. Unknown values should remain explicitly unknown; they should not be
+silently promoted to assumptions.
 
-## Version and configuration dimensions
+## Build an evidence plan
 
-Windows internals and security behavior are versioned. Record edition,
-architecture, build number, cumulative update, boot security state, relevant
-policy source, and whether the observation came from a native or WoW64
-process. A blog post, proof of concept, or structure browser may describe a
-different build. Treat its offsets, defaults, and reachable paths as
-hypotheses until reproduced.
+Work from the claim to the sensor before running tools:
 
-Configuration has provenance. Local policy, domain policy, mobile-device
-management, installer state, service configuration, and runtime calls can
-produce the same visible value through different authorities. Preserve both
-the effective setting and, where available, its policy source. A reliable
-write-up should say “observed on build X with policy Y” rather than “Windows
-always does Z.”
+1. **Baseline the actor and system.** Record identity, build, policy, time, and
+   the exact object or specimen.
+2. **Predict one observable transition.** State what should change if the model
+   is correct and what should remain unchanged if it is wrong.
+3. **Choose the least-invasive source.** Prefer documented queries, ACL and
+   configuration inspection, version-matched symbols, offline parsing, and
+   event collection.
+4. **Prove the sensor works.** Generate a benign event whose outcome is already
+   known.
+5. **Remove one prerequisite.** Repeat with a deliberately different test
+   object, identity, policy, or trigger.
+6. **Join independent evidence.** Configuration plus runtime evidence is
+   stronger than either source alone.
+7. **Assign confidence.** Use confirmed, supported, tentative, rejected, or
+   unknown and explain why.
 
-## Evidence-first workflow
-
-1. **Freeze context.** Record time, build, architecture, current token,
-   relevant policy, and specimen or object identity.
-2. **State one claim.** Write a falsifiable sentence using the actor, controlled
-   input, consumer, trigger, and result.
-3. **Collect the least-invasive evidence.** Prefer documented queries, ACL
-   inspection, event collection, symbols, and offline parsing.
-4. **Run a benign positive control.** Confirm the sensor and interpretation can
-   observe a known safe event.
-5. **Run a negative control.** Remove one prerequisite or query a clearly
-   unaffected object and predict the changed result.
-6. **Correlate independent sources.** A configuration record plus runtime
-   telemetry is stronger than either alone.
-7. **Classify confidence.** Separate fact, observation, inference, and unknown.
-8. **Reset and repeat.** Reproduction after snapshot restore detects hidden
-   state and timing assumptions.
-
-The workflow intentionally delays high-impact activity. Most incorrect
-findings can be rejected through reachability, identity, ACL, build, or policy
-evidence without attempting an exploit or executing an unknown sample.
+This sequence keeps the experiment safe and makes the final explanation easier
+to review. It also reveals exactly which missing observation blocks a stronger
+conclusion.
 
 ## Safe guided lab
 
 ${copy.lab}
 
-Create a case directory outside synchronized folders. Save the baseline
-commands and redirect their output to timestamped text files if you need an
-audit trail:
+### Step 1 — capture the baseline
+
+Run the baseline in the identity and architecture named in the hypothesis. Save
+the output with a timestamp if the result will be compared across snapshots.
 
 \`\`\`powershell
 ${copy.commands}
 \`\`\`
 
-Write the hypothesis before collecting topic-specific evidence:
+### Step 2 — inspect this mechanism
 
-\`\`\`json
-${copy.evidence}
-\`\`\`
-
-For this lesson, populate the \`controlled_object\` or \`observation\` fields
-with the exact item described in the System model. Then perform two read-only
-passes: the first from the intended low-privileged or analysis context, and the
-second against a test object you created with a deliberately different
-configuration. Do not use a production service, another user's credential
-material, a live C2 endpoint, or an unsigned kernel component.
-
-### Topic-specific inspection probe
-
-The following probe is deliberately read-only. Replace placeholders only with
-an object, process, file, trace, or VM that belongs to the lab. Some commands
-require an elevated debugging console to *inspect* kernel or system state;
-elevation for observation does not prove that a standard user could reach the
-same state transition.
+The following probe is read-only. Replace placeholders only with a process,
+file, object, trace, or VM that belongs to the lab. An elevated debugger may be
+needed to observe system state; that observation does not prove that a standard
+user can cause the same transition.
 
 \`\`\`text
 ${inspectionProbe}
 \`\`\`
 
-Interpret each line through the trust-boundary table. Capture the complete
-output, command context, exit status, and time. A command that is unavailable
-on a particular edition or build is itself a version note, not permission to
-substitute an unrelated conclusion.
+Interpret the output using the four rows in the mental model. Preserve the
+complete command, output, execution identity, time, exit status, Windows build,
+and symbol or policy provenance.
 
-Use this compact decision record after each pass:
+### Step 3 — write the decision record
 
 \`\`\`text
 Claim:
-Observed fact:
-Supporting source:
+Starting state:
+Decision boundary:
+Required condition:
+Observed evidence:
 Alternative explanation:
+Benign control:
 Negative control:
-Result of negative control:
-Windows build and policy:
-Confidence: confirmed | supported | tentative | rejected
+Build, identity, and policy:
+Confidence: confirmed | supported | tentative | rejected | unknown
 \`\`\`
 
-The lab is complete when the negative control changes the predicted evidence,
-not when a tool prints a dramatic label.
+The lab is complete when the control changes the predicted evidence. A dramatic
+tool label is not a completion criterion.
 
-## Worked case study
+## Worked example: from clue to conclusion
 
-Assume an analyst reports **${title}** after observing only the first visible
-artifact. The review team does not accept the label immediately. It reconstructs
-the four mechanism claims, identifies the owning component, and asks whether
-the observed actor can reach the relevant transition on the recorded build.
+${frame.caseOpening} Treat that first clue as a lead rather than a conclusion.
+Review it through four checkpoints:
 
-The first pass confirms the artifact but leaves consumer identity and trigger
-unknown. The team therefore marks the case *tentative*. A second pass captures
-runtime telemetry while a benign test object follows the documented path. This
-establishes the expected consumer, timing, and result. Finally, the team removes
-one prerequisite—permission, policy, input, provider, mapping, or trigger,
-depending on the mechanism—and repeats the test. The predicted event or state
-transition disappears.
+1. **Starting state:** verify this concrete claim — ${mechanismParts[0]}.
+2. **Decision boundary:** identify and observe the component or access decision
+   described here — ${mechanismParts[1]}.
+3. **Required condition:** test whether the recorded build and configuration
+   satisfy this constraint — ${mechanismParts[2]}.
+4. **Proof:** demand the joined evidence described here — ${mechanismParts[3]}.
 
-That sequence supports causality. If the result had remained unchanged, the
-original model would be rejected or revised. The important lesson is that a
-case study is not valuable because it names a famous technique. It is valuable
-because another reader can reproduce the claim, observe its limits, and tell
-which part of the chain failed.
+The case is **confirmed** only when the state, boundary, condition, and resulting
+evidence agree and a negative control removes the expected transition. It is
+**supported** when most links agree but one low-risk observation is unavailable.
+It remains **tentative** when the privileged consumer, runtime behavior, sensor
+health, or version context is inferred rather than observed. If the control does
+not change the result, revise or reject the model.
 
-## Telemetry and detection strategy
+That decision language is intentionally plain. It tells the next reader what is
+known, what still needs testing, and which experiment would change the answer.
 
-Detection should follow invariant state transitions instead of copying one
-command line. Build a matrix with one row for each step in the mechanism and
-columns for configuration evidence, process or thread evidence, object or
-memory evidence, and external collection. Record sensor prerequisites and
-retention. A missing row then means “coverage unknown” rather than “activity
-did not happen.”
+## Detection and hardening
 
-Prefer joined signals: an unusual writer plus a sensitive object; a privileged
-consumer plus lower-privileged input; a protection change plus an anomalous
-thread start; a provider action plus a repository change; or a network message
-plus correlated task execution. Joins reduce dependence on superficial names
-that can change while the underlying mechanism remains.
+${detectionList}
 
-Hardening should break the earliest practical edge in the chain. Remove
-unnecessary reachability, narrow object permissions, enforce code or caller
-identity, disable unused components, strengthen protocol authentication, and
-retain telemetry outside the authority of the component being monitored.
-Validate the control with the same positive and negative tests used to
-establish the original model.
+Detection should follow the mechanism rather than one filename, command line,
+framework label, or structure offset. Hardening should break the earliest edge
+that is both reachable and operationally safe to change. Re-run the benign and
+negative controls after the change so that “mitigated” means the expected
+transition actually disappeared.
 
-## Common analytical failures
+## Common mistakes
 
-- Treating a scanner, catalog, debugger extension, or framework label as proof.
-- Quoting a structure offset or default without recording the Windows build.
-- Confusing a writable object with a privileged consumer that will read it.
-- Confusing a process primary token with a thread impersonation token.
-- Treating missing telemetry as absence without a sensor-health control.
-- Running from an administrator console and attributing the result to a
-  standard user.
-- Presenting an isolated API call without object lifetime, cleanup, or error
-  behavior.
-- Reproducing only the positive case and therefore failing to establish
-  causality.
+- Starting with a tool or technique name and fitting every observation to it.
+- Copying an offset, default, or policy claim without the source build and
+  configuration.
+- Confusing an object that can be modified with a consumer that will use the
+  modified state.
+- Treating missing telemetry as absence without a sensor-health test.
+- Testing from an administrator or debugger context and assigning the same
+  reachability to a standard user.
+- Showing only the positive case and therefore never establishing causality.
+- Omitting cleanup, teardown, failure behavior, or the lifetime of asynchronous
+  work.
 
-These failures are useful review prompts. A strong article makes each one hard
-to commit because its evidence ledger exposes the missing link.
+When a write-up avoids these mistakes, it becomes useful even after tools,
+product names, and Windows builds change.
 
-## Review checklist
+## Takeaways
 
-- [ ] I can define the concept without using a product or exploit name.
-- [ ] I can name the manager, owner, object, actor, consumer, trigger, and result.
-- [ ] I recorded build, architecture, policy, identity, and time.
-- [ ] I separated a documented contract from an observation and an inference.
-- [ ] I used a benign positive control and a meaningful negative control.
-- [ ] I know which sensor gaps could hide the expected transition.
-- [ ] I can state at least one configuration where the conclusion no longer holds.
-- [ ] My notes contain enough provenance for another reader to reproduce them.
+${takeawayList}
+
+If those four statements can be explained in your own words, connected to a
+specific build, and tested with a negative control, you understand the mechanism
+well enough to continue into deeper implementation or exploitability research.
+
+## Check your understanding
+
+<details>
+  <summary>Can you explain the mechanism without naming a tool?</summary>
+  A strong answer follows the complete flow: ${frame.flow}. It names the owner,
+  actor, controlled state, decision point, condition, result, and evidence.
+</details>
+
+<details>
+  <summary>What result would make you reject the current model?</summary>
+  Reject or revise it when the predicted transition survives removal of a
+  required condition, when the consumer cannot be reached by the stated actor,
+  or when an independent source contradicts the claimed state.
+</details>
 
 ## Source coverage
 
-This local lesson consolidates the following Yunolay source material into a
-single mechanism-first document. Consolidation avoids duplicate pages while
-preserving every source URL in the reference ledger.
+This lesson consolidates the following Yunolay material into one local,
+mechanism-first document. The links are retained so that claims can be compared
+with their original context.
 
 ${sourceList}
 
@@ -986,7 +1084,7 @@ for (const [slug, sourceEntries] of groupedCoverage) {
     // The lesson does not exist yet.
   }
 
-  const description = `A mechanism-first, version-aware study of ${title}, with trust boundaries, evidence collection, a safe guided lab, telemetry, hardening, and reproducible case analysis.`;
+  const description = `A plain-language, evidence-first guide to ${title}.`;
   const prerequisites =
     primary.topic === "windows-internals"
       ? [
@@ -1003,9 +1101,9 @@ for (const [slug, sourceEntries] of groupedCoverage) {
             "A disposable VM with a standard-user test account",
           ];
   const learningObjectives = [
-    `Explain ${title} as a sequence of state transitions and trust boundaries`,
-    "Collect version-aware evidence and distinguish fact, observation, inference, and unknown",
-    "Design a safe positive control, negative control, detection plan, and hardening check",
+    `Build a clear mental model for ${title}`,
+    "Identify the state, decision boundary, required condition, and observable proof",
+    "Verify the model with a read-only probe and a meaningful negative control",
   ];
   const frontmatter = `---
 title: ${JSON.stringify(title)}

@@ -29,7 +29,18 @@
   --text-3xl: clamp(1.875rem, 1.5rem + 1.875vw, 2.5rem); /* 30-40px  */
   --text-4xl: clamp(2.25rem, 1.75rem + 2.5vw, 3rem); /* 36-48px  */
   --text-5xl: clamp(3rem, 2.25rem + 3.75vw, 4rem); /* 48-64px  */
-  --text-reading: clamp(1.0625rem, 1.015rem + 0.22vw, 1.1875rem);
+
+  /*
+   * Long-form text deliberately sits below the general UI scale. Technical
+   * articles contain dense identifiers and code, so a compact 15.5–16.5px
+   * measure is easier to scan than an enlarged marketing-style paragraph.
+   */
+  --text-reading: clamp(0.9688rem, 0.95rem + 0.08vw, 1.0313rem);
+  --text-reading-lead: clamp(1rem, 0.975rem + 0.1vw, 1.0625rem);
+  --text-article-title: clamp(1.625rem, 1.45rem + 0.8vw, 2rem);
+  --text-article-description: clamp(1rem, 0.975rem + 0.1vw, 1.0625rem);
+  --text-article-h2: clamp(1.25rem, 1.16rem + 0.4vw, 1.5rem);
+  --text-article-h3: clamp(1.0625rem, 1rem + 0.28vw, 1.25rem);
 
   /* === Heading weights === */
   --font-weight-light: 300;
@@ -44,7 +55,7 @@
   --leading-snug: 1.375;
   --leading-normal: 1.5;
   --leading-relaxed: 1.625;
-  --leading-reading: 1.72;
+  --leading-reading: 1.65;
   --leading-loose: 2;
 
   /* === Letter spacing === */

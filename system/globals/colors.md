@@ -9,8 +9,9 @@ Always use a semantic token.
 
 - **Model:** OKLCH (`oklch(L C H)`), perceptually uniform.
 - **Palette:** low-chroma warm neutral. Reading surfaces use a very small
-  warm chroma so light mode avoids clinical white and dark mode avoids harsh
-  black while remaining visually neutral.
+  warm chroma so light mode avoids clinical white. Dark mode is intentionally
+  a mid-charcoal “dim” surface rather than near-black, reducing glare around
+  long technical passages while remaining visually neutral.
 - **Dark mode:** class strategy (`.dark` on `<html>`). Every semantic token has a
   light and dark value; components reference the token, never a mode-specific color.
 

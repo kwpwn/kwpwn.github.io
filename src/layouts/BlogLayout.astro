@@ -89,7 +89,7 @@ const allPosts = await getCollection("blog");
     jsonLd={jsonLd}
   />
 
-  <article class="blog-layout container py-12">
+  <article class="blog-layout container">
     <ArticleHero post={post} locale={locale} />
     <ArticleGuide post={post} />
 
@@ -106,12 +106,27 @@ const allPosts = await getCollection("blog");
       )
     }
 
+    {
+      tocEnabled && siteConfig.articleFeatures.toc.layout === "sidebar" && (
+        <div class="blog-layout__toc-mobile">
+          <TableOfContents
+            headings={headings}
+            layout="inline"
+            maxDepth={siteConfig.articleFeatures.toc.maxDepth}
+            minHeadings={siteConfig.articleFeatures.toc.minHeadings}
+            title={t(locale, "blog.toc")}
+            locale={locale}
+          />
+        </div>
+      )
+    }
+
     <div
       class={`blog-layout__content${tocEnabled && siteConfig.articleFeatures.toc.layout === "sidebar" ? " blog-layout__content--with-toc" : ""}`}
     >
       {
         tocEnabled && siteConfig.articleFeatures.toc.layout === "sidebar" && (
-          <aside class="blog-layout__toc blog-layout__toc--sidebar">
+          <aside class="blog-layout__toc blog-layout__toc--sidebar blog-layout__toc--desktop">
             <TableOfContents
               headings={headings}
               layout="sidebar"
@@ -158,7 +173,9 @@ const allPosts = await getCollection("blog");
 <style>
   .blog-layout {
     display: grid;
-    gap: var(--space-2xl);
+    gap: var(--space-xl);
+    max-width: 68rem;
+    padding-block: var(--space-xl);
   }
 
   .blog-layout__content {
@@ -168,7 +185,8 @@ const allPosts = await getCollection("blog");
   }
 
   .blog-layout__content--with-toc {
-    grid-template-columns: minmax(0, 1fr) 16rem;
+    grid-template-columns: minmax(0, 45rem) minmax(12rem, 14rem);
+    justify-content: space-between;
   }
 
   /*
@@ -191,9 +209,13 @@ const allPosts = await getCollection("blog");
     overflow-y: auto;
   }
 
-  /* Comfortable reading measure for long-form content. */
+  .blog-layout__toc-mobile {
+    display: none;
+  }
+
+  /* Compact reading measure for dense technical material. */
   .blog-layout__article {
-    max-width: 68ch;
+    max-width: 72ch;
   }
 
   .blog-layout__article--wide {
@@ -246,6 +268,21 @@ const allPosts = await getCollection("blog");
       position: static;
       max-height: none;
       overflow-y: visible;
+    }
+
+    .blog-layout__toc--desktop {
+      display: none;
+    }
+
+    .blog-layout__toc-mobile {
+      display: block;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .blog-layout {
+      gap: var(--space-lg);
+      padding-block: var(--space-lg);
     }
   }
 </style>

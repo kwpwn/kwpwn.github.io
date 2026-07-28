@@ -39,7 +39,7 @@ const show = visibleHeadings.length >= minHeadings;
   show && (
     <nav class={`toc toc--${layout}`} aria-label="Table of contents">
       {layout === "inline" ? (
-        <details open>
+        <details>
           <summary>{title ?? t(locale, "blog.toc")}</summary>
           <ul>
             {visibleHeadings.map((heading) => (
@@ -107,12 +107,12 @@ const show = visibleHeadings.length >= minHeadings;
   /* Inline variant: collapsible card placed above the article. */
   .toc--inline {
     border: 1px solid var(--color-border);
-    border-radius: 0.9rem;
+    border-radius: var(--radius-lg);
     background: var(--color-bg-secondary);
   }
 
   .toc--inline details {
-    padding: var(--space-lg);
+    padding: var(--space-sm) var(--space-md);
   }
 
   /* Sidebar variant: light right-rail, no heavy card. */
@@ -129,9 +129,9 @@ const show = visibleHeadings.length >= minHeadings;
   }
 
   .toc__title {
-    margin: 0 0 0.85rem;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
+    margin: 0 0 var(--space-sm);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     color: var(--color-text-secondary);
   }
@@ -141,24 +141,25 @@ const show = visibleHeadings.length >= minHeadings;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 0.35rem;
+    gap: var(--spacing-1);
   }
 
   .toc__item--depth-3 {
-    padding-left: 1rem;
+    padding-left: var(--space-md);
   }
 
   .toc__item--depth-4,
   .toc__item--depth-5,
   .toc__item--depth-6 {
-    padding-left: 1.5rem;
-    font-size: 0.875rem;
+    padding-left: var(--space-lg);
+    font-size: var(--text-xs);
   }
 
   .toc a {
     display: block;
-    padding: 0.2rem 0;
+    padding-block: var(--spacing-1);
     color: var(--color-text-secondary);
+    font-size: var(--text-xs);
     text-decoration: none;
     line-height: 1.4;
     transition: color 0.15s ease;
@@ -170,8 +171,8 @@ const show = visibleHeadings.length >= minHeadings;
 
   .toc--sidebar a {
     border-left: 2px solid transparent;
-    margin-left: -2px;
-    padding-left: 0.75rem;
+    margin-left: calc(var(--spacing-1) / -2);
+    padding-left: var(--space-sm);
   }
 
   .toc a.is-active {
@@ -186,6 +187,6 @@ const show = visibleHeadings.length >= minHeadings;
   .toc a:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
   }
 </style>

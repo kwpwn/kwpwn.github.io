@@ -27,13 +27,15 @@ Heading aliases: `--heading-h1`…`--heading-h6` map to the scale.
 
 - Weights: `--font-weight-{light,normal,medium,semibold,bold,extrabold}`.
 - Headings default to `--font-weight-semibold`, `--leading-tight`.
-- Body uses `--leading-normal`; long-form prose uses `--text-reading` at
-  17–19px with `--leading-reading` (1.72).
+- Body uses `--leading-normal`; dense long-form prose uses `--text-reading` at
+  15.5–16.5px with `--leading-reading` (1.65). Article-specific title,
+  description, lead, h2, and h3 tokens keep editorial pages compact without
+  shrinking the general component scale.
 - Letter-spacing tokens: `--tracking-tight` for large headings, default elsewhere.
 
 ## Rules
 
 - Use heading elements semantically (one `h1` per page; never skip levels).
-- Prose/long-form content is capped to a readable measure (~68ch).
+- Prose/long-form content is capped to a readable measure (~72ch).
 - Prefer the scale tokens over arbitrary font sizes.
 - Section eyebrows: uppercase, `--text-xs`, tracked, `--muted-foreground` or `--primary`.
