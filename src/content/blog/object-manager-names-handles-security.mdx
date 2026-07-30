@@ -11,6 +11,9 @@ tags:
   - handles
   - security descriptors
 author: "kwpwn"
+content_type: "concept"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 topic: "windows-internals"
 track: "security-objects"
@@ -295,6 +298,117 @@ identifiers.
 - keeping a kernel pointer after releasing its reference;
 - creating a private driver handle without `OBJ_KERNEL_HANDLE`;
 - trusting a user-supplied handle without type and access validation.
+
+## Follow one object through its lifetime
+
+The easiest way to connect names, handles, security, and references is to
+follow one object chronologically:
+
+1. **Creation:** an object type supplies procedures and valid access bits; the
+   creator may insert a name and security descriptor.
+2. **Name lookup/open:** the Object Manager resolves directories and symbolic
+   links, evaluates the desired access, and creates a process-local handle
+   with a granted-access mask.
+3. **Use:** later APIs present the handle; the handle-table entry identifies
+   the object and the rights already granted for that handle.
+4. **Pointer reference:** kernel code can obtain a referenced pointer after
+   validating handle, type, desired access, and caller mode.
+5. **Handle close:** the handle count decreases, but another handle or pointer
+   reference can keep the object alive.
+6. **Name removal/free:** a temporary object's name is removed when its handle
+   count reaches zero; the object body remains until the reference count also
+   reaches zero.
+
+That final distinction explains two observations that otherwise look
+contradictory: opening the old name can fail while kernel code that holds a
+referenced pointer still uses the object, and closing one handle does not prove
+the object was destroyed.
+
+## Separate four security questions
+
+| Question | Relevant evidence |
+| --- | --- |
+| Can the actor discover the name? | namespace enumeration and session/container view |
+| Can the actor open it? | security descriptor, desired access, token, generic mapping |
+| What can this handle do? | granted-access mask in that handle-table entry |
+| Can a driver safely turn it into a pointer? | caller mode, object type, desired access, successful reference, paired dereference |
+
+Knowing a name is not authority. Owning a handle does not imply all rights.
+Changing a DACL does not retroactively reduce a handle already granted stronger
+access. A kernel pointer is not safe merely because it came from a numeric
+handle; the conversion must enforce the intended type and rights.
+
+## Worked case: named event with an explicit DACL
+
+Create a harmless named event in the appropriate per-session namespace with a
+security descriptor that gives the test identity only synchronization/query
+rights and withholds modification rights.
+
+Run these controls:
+
+1. Open the event requesting the permitted right and record success plus the
+   granted-access mask.
+2. Open it requesting the withheld right and record access denied.
+3. Open a first handle with broader rights under the creator, then tighten the
+   DACL.
+4. Show that a new low-privileged open follows the new DACL while the existing
+   creator handle retains its original granted access.
+5. Close the last handle to the temporary named event and confirm that opening
+   the old name fails.
+6. If an authorized kernel lab is available, hold a referenced pointer across
+   the final handle close and observe that lifetime continues until the
+   reference is released.
+
+The user-mode portion proves name resolution and access-mask behavior. The
+kernel-only final step proves reference lifetime. Do not claim pointer survival
+from user-mode observations alone.
+
+## Namespace scope is part of the result
+
+Object names can resolve differently by session, silo/container context, and
+the link through which a Win32 name reaches the native namespace. Device
+interfaces also add Plug and Play publication and their own security context.
+Record:
+
+- the exact native and Win32-visible names;
+- session ID and logon context;
+- process container/AppContainer/silo state where relevant;
+- symbolic-link target observed on the tested build;
+- object type and security descriptor;
+- whether the name was permanent or temporary;
+- handle owner process and granted access;
+- symbol/build source for kernel addresses and fields.
+
+Do not publish raw kernel addresses or handle values as stable identifiers.
+They are evidence for one capture and can be reused after lifetime ends.
+
+## Driver review case
+
+For every IOCTL accepting a user handle, ask the driver to prove this sequence:
+
+```text
+capture handle value
+  -> ObReferenceObjectByHandle(
+       desired access,
+       expected object type,
+       caller/requestor mode)
+  -> use referenced object within its contract
+  -> ObDereferenceObject on every terminal path
+```
+
+Search explicitly for a zero desired-access request, `KernelMode` used on a
+user-supplied handle, a null expected type, work queued after dereference,
+double dereference, or an early return that leaks the reference. The safe claim
+is tied to the reachable IOCTL, device DACL, caller, object type, and exact
+access checked.
+
+## Review gate
+
+An Object Manager explanation is complete when it distinguishes namespace
+discovery, access check, granted handle rights, handle count, pointer
+references, and final deletion. Every debugger observation must include the
+Windows build and symbols; every security claim must include the caller token
+and exact requested access.
 
 ## References
 

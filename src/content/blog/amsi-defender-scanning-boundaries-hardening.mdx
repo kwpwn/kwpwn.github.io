@@ -11,6 +11,9 @@ tags:
   - "detection engineering"
   - "Research Notes"
 author: "Kwpwn"
+content_type: "concept"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 wide: false
 topic: "malware-c2"
@@ -34,111 +37,137 @@ learningObjectives:
 labEnvironment: "Use an approved isolated malware-analysis environment with snapshots, synthetic credentials, controlled networking, and non-production hardware. Prefer benign fixtures and inert byte sequences. Do not connect an unknown sample to the public Internet or implement a deployable payload, listener, persistence mechanism, or evasion chain."
 ---
 
-> **Quick answer:** AMSI is an interface through which participating applications submit content and metadata to an antimalware provider.
+> **Quick answer:** AMSI is an interface through which participating applications submit content and metadata to an antimalware provider. The conclusion becomes defensible only when the remaining boundary, constraint, and evidence stages are verified on the named build and identity.
 
-## Why this matters
+## Scope and evidence contract
 
-This lesson separates observation from attribution. A sample or framework label is only an index. The useful model records state transitions across file structure, process execution, memory, persistence, network protocol, task semantics, and telemetry, while keeping every experiment inside a controlled analysis boundary.
+This lesson separates observation from attribution. A sample or framework label is only an index. The useful model records state transitions across file structure, process execution, memory, persistence, network protocol, task semantics, and telemetry, while keeping every experiment inside a controlled analysis boundary. Applied to **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, this method begins with the concrete statement that amsi is an interface through which participating applications submit content and metadata to an antimalware provider.
 
-For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, start with one practical question: What changed, which component caused the change, which sensor observed it, and what alternative explanation or sensor gap could produce the same record? The rest
-of this lesson answers it in a repeatable order. You will first build a
-small mental model, then identify the conditions that can invalidate it, and
-finally collect read-only evidence in a controlled lab.
+This document treats **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** as a mechanism to reconstruct, not a label to memorize. Its curriculum placement is windows-privesc lesson 23 in policy-controls; malware-c2 lesson 20 in detection-engineering. That placement helps navigation; it does not imply that the behavior belongs to one security domain or that every environment exposes the same path.
 
-The curriculum placement is windows-privesc lesson 23 in policy-controls; malware-c2 lesson 20 in detection-engineering. That placement is navigation,
-not a claim that the mechanism belongs to only one research area.
+The **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** track-specific focus is: Turn a behavior model into a testable analytic with explicit data requirements, joins, time bounds, exclusions, coverage controls, performance limits, and retirement criteria. The practical objective for this article is to ship an analytic another defender can test, understand, tune, and retire without depending on folklore or a single indicator.
 
-## The mental model
+Before using any internal field, configuration value, event, or public write-up as evidence for **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, record the target's Windows edition, version, build and revision, architecture, symbol status, relevant policy and mitigation state, execution identity, and collection time. The confidence vocabulary below prevents this specific lesson from hiding uncertainty behind polished prose:
 
-Use this flow as the shortest useful map:
+| State | Meaning in this lesson |
+| --- | --- |
+| **CONFIRMED** | Current-target evidence proves the claim and the expected negative control changes the result. |
+| **LIKELY** | Multiple sources support the claim, but one decisive low-risk observation remains unavailable. |
+| **UNVERIFIED** | The statement is plausible but depends on public references, a decompiler view, a scanner label, another build, or an untested configuration. |
+| **REJECTED** | Current evidence or a control contradicts the proposed mechanism. |
+
+## Architecture at a glance
+
+Use this flow as the shortest complete map:
 
 > **artifact → parser or runtime → state transition → host/network evidence → bounded conclusion**
 
-A family or framework label is an index, not an explanation. The useful result is the smallest behavior claim supported by healthy, time-aligned sensors.
+A family or framework label is an index, not an explanation. The useful result is the smallest behavior claim supported by healthy, time-aligned sensors. In **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, the four stages resolve to observable artifact → behavior boundary → execution constraint → correlated evidence, and each stage must point to the mechanism statement and evidence in the table below.
 
-| Step | Working model |
-| --- | --- |
-| 1. **Observable artifact** | AMSI is an interface through which participating applications submit content and metadata to an antimalware provider. |
-| 2. **Behavior boundary** | coverage depends on the host integrating AMSI, the content reaching a scan point, provider health, and policy state. |
-| 3. **Execution constraint** | Defender real-time protection, behavior monitoring, cloud protection, attack-surface-reduction rules, and tamper protection are related but distinct layers. |
-| 4. **Correlated evidence** | validation should use benign test content and provider-health telemetry rather than bypass code. |
+| Stage | Mechanism on this topic | Strongest first evidence |
+| --- | --- | --- |
+| 1. **Observable artifact** | AMSI is an interface through which participating applications submit content and metadata to an antimalware provider. | Stable behavior invariant and the smallest required event fields |
+| 2. **Behavior boundary** | coverage depends on the host integrating AMSI, the content reaching a scan point, provider health, and policy state. | Healthy source, provider, parser, clock, retention, and loss evidence |
+| 3. **Execution constraint** | Defender real-time protection, behavior monitoring, cloud protection, attack-surface-reduction rules, and tamper protection are related but distinct layers. | Representative positives, hard negatives, near misses, and environment variants |
+| 4. **Correlated evidence** | validation should use benign test content and provider-health telemetry rather than bypass code. | Precision, recall proxy, cost, triage context, owner, review date, and rollback |
 
-Do not try to memorize the table as terminology. Read it as a chain. Start with
-the state that exists, locate the component that makes the important decision,
-check the condition that permits or blocks the transition, and name the evidence
-that would remain if the explanation were correct.
+For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, the table is a causal chain rather than a checklist of unrelated facts. Trace it backward from each correlated evidence observation to the actor and owned state, then forward through the behavior boundary decision, transition, cleanup, and failure path.
+
+## Mechanism deep dive
+
+### 1. Observable artifact
+
+**Mechanism claim.** AMSI is an interface through which participating applications submit content and metadata to an antimalware provider.
+
+For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, this stage is where the write-up must become concrete. Preserve the original artifact and describe the exact bytes, metadata, memory, request, or record that begins the hypothesis. The relevant evidence source for this stage is **stable behavior invariant and the smallest required event fields**. Preserve the complete result rather than copying only the field that appears to support the hypothesis.
+
+**What can invalidate this observable artifact stage.** For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, The artifact is common compiler, library, administrative, or protocol material and does not carry the claimed behavior. Treat that result as useful evidence because it narrows this article's mechanism and prevents the lead from becoming a universal security claim.
+
+**Review question for observable artifact.** Can another researcher identify the actor or owner, exact object or artifact, deciding component, required state, and timestamp for this stage of **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**? If not, this specific mechanism claim remains **UNVERIFIED**.
+
+### 2. Behavior boundary
+
+**Mechanism claim.** coverage depends on the host integrating AMSI, the content reaching a scan point, provider health, and policy state.
+
+For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, this stage is where the write-up must become concrete. Identify the parser, loader, runtime, service, operating-system component, or protocol peer that turns the artifact into behavior. The relevant evidence source for this stage is **healthy source, provider, parser, clock, retention, and loss evidence**. Preserve the complete result rather than copying only the field that appears to support the hypothesis.
+
+**What can invalidate this behavior boundary stage.** For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, The expected parser, runtime, loader, service, or peer never consumes the artifact during the observed execution. Treat that result as useful evidence because it narrows this article's mechanism and prevents the lead from becoming a universal security claim.
+
+**Review question for behavior boundary.** Can another researcher identify the actor or owner, exact object or artifact, deciding component, required state, and timestamp for this stage of **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**? If not, this specific mechanism claim remains **UNVERIFIED**.
+
+### 3. Execution constraint
+
+**Mechanism claim.** Defender real-time protection, behavior monitoring, cloud protection, attack-surface-reduction rules, and tamper protection are related but distinct layers.
+
+For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, this stage is where the write-up must become concrete. Record architecture, policy, privileges, configuration, timing, network responses, and anti-analysis conditions that select the observed path. The relevant evidence source for this stage is **representative positives, hard negatives, near misses, and environment variants**. Preserve the complete result rather than copying only the field that appears to support the hypothesis.
+
+**What can invalidate this execution constraint stage.** For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, A required architecture, configuration, key, response, privilege, policy, or timing condition is absent. Treat that result as useful evidence because it narrows this article's mechanism and prevents the lead from becoming a universal security claim.
+
+**Review question for execution constraint.** Can another researcher identify the actor or owner, exact object or artifact, deciding component, required state, and timestamp for this stage of **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**? If not, this specific mechanism claim remains **UNVERIFIED**.
+
+### 4. Correlated evidence
+
+**Mechanism claim.** validation should use benign test content and provider-health telemetry rather than bypass code.
+
+For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, this stage is where the write-up must become concrete. Correlate independent host and network sources on one timeline and prove each sensor with a benign event before interpreting silence. The relevant evidence source for this stage is **precision, recall proxy, cost, triage context, owner, review date, and rollback**. Preserve the complete result rather than copying only the field that appears to support the hypothesis.
+
+**What can invalidate this correlated evidence stage.** For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, Independent telemetry contradicts the transition, the sensor fails its health control, or the behavior cannot be repeated from a clean snapshot. Treat that result as useful evidence because it narrows this article's mechanism and prevents the lead from becoming a universal security claim.
+
+**Review question for correlated evidence.** Can another researcher identify the actor or owner, exact object or artifact, deciding component, required state, and timestamp for this stage of **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**? If not, this specific mechanism claim remains **UNVERIFIED**.
 
 ## Key terms in plain language
 
-These are the terms that carry the most meaning in this lesson. Read them once
-before continuing; later sections use them precisely rather than as loose
-synonyms.
+The terms below are intentionally scoped to **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**. They should not be used as synonyms: each names a different object, policy, boundary, or kind of evidence.
 
-| Term | Plain-language meaning |
+| Term | Precise working meaning |
 | --- | --- |
-| **AMSI** | An interface through which participating applications submit content and metadata to an antimalware provider. |
+| **AMSI** | An interface through which participating applications submit content and metadata to a registered antimalware provider. |
 | **Mechanism** | The concrete state, component, decision, and transition that produce an observable result. |
-| **Trust boundary** | A point where data or control crosses into a component with different authority or assumptions. |
-| **Evidence** | A recorded observation with enough identity, time, build, and provenance to support or challenge a claim. |
-| **Negative control** | A repeat of the experiment with one required condition removed, used to test causality. |
+| **Trust boundary** | A point where data or control crosses into a component with different authority, ownership, or assumptions. |
+| **Evidence** | A recorded observation with enough identity, time, build, provenance, and collection context to support or challenge a claim. |
+| **Negative control** | A repeat of the experiment with one required condition removed, used to test causality and alternate explanations. |
 
-## Important distinctions
+When public documentation and debugger terminology for **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** differ, retain both names and state which source supplied each one. Any debugger field used in this lesson is evidence for the recorded build, not automatically a stable ABI or security contract.
 
-- Encoding, packing, or obfuscation is not malicious intent by itself; describe the behavior revealed after the transformation.
-- A missing event is not proof of absence until collection health, provider state, filtering, and retention are tested.
-- Static capability, configured capability, and behavior observed during one execution are separate confidence levels.
+## Version and environment scope
 
-These distinctions are useful because superficially similar observations can
-come from different mechanisms. Write the narrower claim first. Broaden it only
-when a second source of evidence supports the same transition.
+Provider schemas, Defender features, AMSI hosts, logging policy, YARA engine, application control, product versions, and normal fleet behavior evolve. For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, the version-sensitive statement that must be rechecked first is: Defender real-time protection, behavior monitoring, cloud protection, attack-surface-reduction rules, and tamper protection are related but distinct layers.
 
-## What can change the answer
+Record the following **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** dimensions before comparing two systems or importing an exploitability conclusion from another target:
 
-| Dimension | Record | Question to ask |
+| Dimension | Minimum record | Why it can change the answer |
 | --- | --- | --- |
-| Identity | User SID, groups, privileges, integrity, process and thread token | Did the test run as the actor named in the claim? |
-| Build | Edition, architecture, build, cumulative update, native or WoW64 view | Does the cited behavior or structure belong to this build? |
-| Policy | Effective value and its local, domain, MDM, or runtime source | Is the visible setting actually enforced here? |
-| Reachability | ACL, namespace, endpoint, path, interface, session, and trigger | Can the actor reach the decision point without borrowed privilege? |
-| Lifetime | Creation, use, asynchronous work, cancellation, teardown, and cleanup | Was the observed state still valid when it was consumed? |
-| Sensor health | Provider, channel, filter, retention, clock, and collection status | Would the sensor have recorded a benign control? |
+| Operating system | Edition, version, build, revision, update level | Code paths, defaults, layouts, services, telemetry, and mitigations change through servicing. |
+| Architecture | x86, x64, ARM64, native or WoW64 view | Pointer width, calling convention, structure view, redirection, and available mitigations differ. |
+| Identity | User and group SIDs, integrity, privileges, process token, thread token, session | The actor that can observe a condition may not be the actor that can reach or trigger it. |
+| Policy | Effective local/domain/MDM/runtime source and enforcement mode | A visible registry value or UI setting may be overridden, merged, audited, or inactive. |
+| Mitigations | VBS/HVCI, CFG/CET, DEP, ASLR, application control, PPL, sandbox policy as relevant | Exploitability and observability depend on actual opt-in, hardware, boot, and process state. |
+| Symbols and tools | PDB identity, symbol path, debugger/parser/collector version | Offsets, names, schemas, and decoded fields are meaningful only with matching provenance. |
+| Sensor health | Provider/session/channel, filters, loss, clock, retention, forwarding | Missing telemetry cannot support absence until a benign control proves the collection path. |
+| Lifetime | Creation, references, asynchronous work, cancellation, teardown, cleanup | Stale handles, reused identifiers, queued callbacks, and delayed consumers can change object identity. |
 
-A result without these dimensions is a screenshot, not yet a reproducible
-finding. Unknown values should remain explicitly unknown; they should not be
-silently promoted to assumptions.
+Unknown values in a **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** decision record must remain explicitly **unknown**. Do not fill this article's gaps with defaults copied from documentation or another researcher's machine.
 
-## Build an evidence plan
+## Evidence matrix
 
-Work from the claim to the sensor before running tools:
+For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, work from each mechanism claim to the least-invasive evidence source before choosing a tool:
 
-1. **Baseline the actor and system.** Record identity, build, policy, time, and
-   the exact object or specimen.
-2. **Predict one observable transition.** State what should change if the model
-   is correct and what should remain unchanged if it is wrong.
-3. **Choose the least-invasive source.** Prefer documented queries, ACL and
-   configuration inspection, version-matched symbols, offline parsing, and
-   event collection.
-4. **Prove the sensor works.** Generate a benign event whose outcome is already
-   known.
-5. **Remove one prerequisite.** Repeat with a deliberately different test
-   object, identity, policy, or trigger.
-6. **Join independent evidence.** Configuration plus runtime evidence is
-   stronger than either source alone.
-7. **Assign confidence.** Use confirmed, supported, tentative, rejected, or
-   unknown and explain why.
+| Claim stage | Preferred evidence | Observation that supports the claim | Observation that falsifies or narrows it |
+| --- | --- | --- | --- |
+| Observable artifact | Stable behavior invariant and the smallest required event fields | AMSI is an interface through which participating applications submit content and metadata to an antimalware provider. | The artifact is common compiler, library, administrative, or protocol material and does not carry the claimed behavior. |
+| Behavior boundary | Healthy source, provider, parser, clock, retention, and loss evidence | coverage depends on the host integrating AMSI, the content reaching a scan point, provider health, and policy state. | The expected parser, runtime, loader, service, or peer never consumes the artifact during the observed execution. |
+| Execution constraint | Representative positives, hard negatives, near misses, and environment variants | Defender real-time protection, behavior monitoring, cloud protection, attack-surface-reduction rules, and tamper protection are related but distinct layers. | A required architecture, configuration, key, response, privilege, policy, or timing condition is absent. |
+| Correlated evidence | Precision, recall proxy, cost, triage context, owner, review date, and rollback | validation should use benign test content and provider-health telemetry rather than bypass code. | Independent telemetry contradicts the transition, the sensor fails its health control, or the behavior cannot be repeated from a clean snapshot. |
 
-This sequence keeps the experiment safe and makes the final explanation easier
-to review. It also reveals exactly which missing observation blocks a stronger
-conclusion.
+For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, a screenshot of one promising field is weaker than a reproducible evidence bundle. Preserve raw commands, complete output, exit status, actor token, object identity, timestamps, build, symbol or decoder provenance, and both controls named above.
 
 ## Safe guided lab
 
-Use an approved isolated malware-analysis environment with snapshots, synthetic credentials, controlled networking, and non-production hardware. Prefer benign fixtures and inert byte sequences. Do not connect an unknown sample to the public Internet or implement a deployable payload, listener, persistence mechanism, or evasion chain.
+Use an approved isolated malware-analysis environment with snapshots, synthetic credentials, controlled networking, and non-production hardware. Prefer benign fixtures and inert byte sequences. Do not connect an unknown sample to the public Internet or implement a deployable payload, listener, persistence mechanism, or evasion chain. The **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** exercise is limited to the read-only inspection probe and controls described below.
 
-### Step 1 — capture the baseline
+### 1. Establish the baseline
 
-Run the baseline in the identity and architecture named in the hypothesis. Save
-the output with a timestamp if the result will be compared across snapshots.
+Run the **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** baseline from the identity and architecture named in the hypothesis. Use a fresh snapshot or purpose-built test object for this mechanism and save the output with an ISO-8601 timestamp.
 
 ```powershell
 # Static intake only; do not execute the specimen
@@ -148,12 +177,16 @@ Get-Item $sample | Select-Object Length, CreationTimeUtc, LastWriteTimeUtc
 Get-AuthenticodeSignature $sample | Select-Object Status, StatusMessage
 ```
 
-### Step 2 — inspect this mechanism
+Baseline acceptance criteria for **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**:
 
-The following probe is read-only. Replace placeholders only with a process,
-file, object, trace, or VM that belongs to the lab. An elevated debugger may be
-needed to observe system state; that observation does not prove that a standard
-user can cause the same transition.
+- the **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** execution identity and Windows build are visible in the saved record;
+- the test object, file, process, endpoint, provider, or specimen belongs to the lab;
+- relevant policy and mitigation values are captured before the observation;
+- no production secret, unknown binary, persistence payload, or destructive trigger is introduced.
+
+### 2. Inspect the topic-specific mechanism
+
+The **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** probe below is read-only. Replace placeholders only with a process, file, object, trace, or VM that belongs to the authorized lab. If an elevated debugger is needed to observe this mechanism, record that elevation separately; it does not prove a standard user can cause the same transition.
 
 ```text
 Get-MpComputerStatus |
@@ -161,79 +194,83 @@ Get-MpComputerStatus |
 Get-MpPreference | Select-Object DisableScriptScanning, DisableRealtimeMonitoring
 ```
 
-Interpret the output using the four rows in the mental model. Preserve the
-complete command, output, execution identity, time, exit status, Windows build,
-and symbol or policy provenance.
+Interpret the **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** output against observable artifact, behavior boundary, execution constraint, correlated evidence rather than a tool's severity label. If a field or command is unavailable on this target, record that as a version/tool result and do not import the missing value from another build.
 
-### Step 3 — write the decision record
+### 3. Run a positive and negative control
+
+For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, the positive control keeps every required precondition and predicts the correlated evidence observation. The negative control changes exactly one relevant variable—actor identity, object ACL, policy, architecture/view, consumer state, trigger, network response, or sensor configuration—while the remaining lab state stays stable.
+
+| Control | Change | Expected result |
+| --- | --- | --- |
+| Positive | Preserve all four mechanism stages | The predicted transition appears in the primary and at least one corroborating source. |
+| Negative | Remove one required condition | The transition disappears or changes in the way predicted by the model. |
+| Sensor health | Generate a benign event with a known result | The collector records and decodes it without unexplained loss. |
+| Cleanup | Revert the test object and repeat inspection | Persistent state returns to baseline and no queued work remains. |
+
+### 4. Write the decision record
 
 ```text
+Title: AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening
 Claim:
+Target: edition | version | build.revision | architecture
+Identity: process token | thread token | integrity | privileges | session
 Starting state:
 Decision boundary:
 Required condition:
-Observed evidence:
-Alternative explanation:
+Observed transition:
+Primary evidence:
+Corroborating evidence:
+Contradictory evidence:
 Benign control:
 Negative control:
-Build, identity, and policy:
-Confidence: confirmed | supported | tentative | rejected | unknown
+Version and policy caveats:
+Cleanup result:
+Confidence: CONFIRMED | LIKELY | UNVERIFIED | REJECTED
+Next experiment and falsification criterion:
 ```
 
-The lab is complete when the control changes the predicted evidence. A dramatic
-tool label is not a completion criterion.
+The **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** lab is complete only when the controls explain its evidence. A dramatic tool label, isolated event, writable path, suspicious string, or debugger field cannot substitute for the four-stage mechanism.
 
-## Worked example: from clue to conclusion
+## Worked case-study method
 
-An analyst assigns a malware or C2 label from one string, process name, or network indicator. Treat that first clue as a lead rather than a conclusion.
-Review it through four checkpoints:
+An analyst assigns a malware or C2 label from one string, process name, memory characteristic, or network indicator. For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, treat that clue as a lead and review it through the same four stages:
 
-1. **Starting state:** verify this concrete claim — AMSI is an interface through which participating applications submit content and metadata to an antimalware provider.
-2. **Decision boundary:** identify and observe the component or access decision
-   described here — coverage depends on the host integrating AMSI, the content reaching a scan point, provider health, and policy state.
-3. **Required condition:** test whether the recorded build and configuration
-   satisfy this constraint — Defender real-time protection, behavior monitoring, cloud protection, attack-surface-reduction rules, and tamper protection are related but distinct layers.
-4. **Proof:** demand the joined evidence described here — validation should use benign test content and provider-health telemetry rather than bypass code.
+1. **Observable artifact:** verify the current-target statement that AMSI is an interface through which participating applications submit content and metadata to an antimalware provider.
+2. **Behavior boundary:** identify the component and decision described by this claim: coverage depends on the host integrating AMSI, the content reaching a scan point, provider health, and policy state.
+3. **Execution constraint:** test the build, identity, policy, lifetime, and configuration constraint: Defender real-time protection, behavior monitoring, cloud protection, attack-surface-reduction rules, and tamper protection are related but distinct layers.
+4. **Correlated evidence:** demand the joined observation described here: validation should use benign test content and provider-health telemetry rather than bypass code.
 
-The case is **confirmed** only when the state, boundary, condition, and resulting
-evidence agree and a negative control removes the expected transition. It is
-**supported** when most links agree but one low-risk observation is unavailable.
-It remains **tentative** when the privileged consumer, runtime behavior, sensor
-health, or version context is inferred rather than observed. If the control does
-not change the result, revise or reject the model.
+For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, stop at the strongest supported conclusion. If observable artifact and behavior boundary are proven but execution constraint is not, report a **dangerous condition** or **research lead**, not confirmed impact. If runtime evidence agrees but the sensor-health control fails, lower confidence. If the negative control does not change the result, revise this mechanism before collecting more screenshots.
 
-That decision language is intentionally plain. It tells the next reader what is
-known, what still needs testing, and which experiment would change the answer.
+A publication-quality **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** case study should include a target table, causal diagram, exact evidence excerpts, competing explanations, version scope, mitigation interaction, cleanup, limitations, and direct references. A second researcher must be able to reproduce this mechanism without relying on the original author's private intuition.
 
 ## Detection and hardening
 
-- Join file or memory provenance with the process and thread transition it caused.
+- For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, join file or memory provenance with the process and thread transition it caused.
 - Correlate host behavior with DNS, flow, TLS, and application-protocol timing.
 - Test every sensor with a benign control before interpreting silence.
 - Harden execution, credential, egress, and logging boundaries independently.
 
-Detection should follow the mechanism rather than one filename, command line,
-framework label, or structure offset. Hardening should break the earliest edge
-that is both reachable and operationally safe to change. Re-run the benign and
-negative controls after the change so that “mitigated” means the expected
-transition actually disappeared.
+For the **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** detection model, correlate stable behavior invariant and the smallest required event fields, healthy source, provider, parser, clock, retention, and loss evidence, representative positives, hard negatives, near misses, and environment variants, precision, recall proxy, cost, triage context, owner, review date, and rollback. Join its state change to consumer activity and resulting effect within a justified time window, then document required fields, clock source, exclusions, expected volume, sensor-health control, and what this analytic cannot prove.
 
-## Common mistakes
+Hardening **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** should break the earliest edge that is both reachable and operationally safe to change. After changing the relevant permission, policy, service exposure, execution control, authentication, egress, or telemetry path, repeat this lesson's controls. **Mitigated** means the predicted transition no longer occurs under the original preconditions—not merely that a setting changed.
 
-- Starting with a tool or technique name and fitting every observation to it.
-- Copying an offset, default, or policy claim without the source build and
-  configuration.
-- Confusing an object that can be modified with a consumer that will use the
-  modified state.
-- Treating missing telemetry as absence without a sensor-health test.
-- Testing from an administrator or debugger context and assigning the same
-  reachability to a standard user.
-- Showing only the positive case and therefore never establishing causality.
-- Omitting cleanup, teardown, failure behavior, or the lifetime of asynchronous
-  work.
+## Failure modes and review checklist
 
-When a write-up avoids these mistakes, it becomes useful even after tools,
-product names, and Windows builds change.
+Use this checklist when reviewing a draft of **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**:
+
+- Does the opening of **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** state the exact target, actor, object or artifact, consumer, constraint, and result?
+- Are documented facts, current-target observations, and implementation inferences labeled separately?
+- Does every internal structure, event schema, default, or policy claim carry build and source provenance?
+- Is a handle or identifier kept separate from the underlying object and its lifetime?
+- Is writable or suspicious state kept separate from consumer reachability and actual execution?
+- Are static capability, configured capability, and behavior observed in one execution reported at different confidence levels?
+- Does a benign control prove the sensor, and does a negative control test causality?
+- Are cancellation, teardown, cleanup, failure behavior, and asynchronous work included?
+- Are mitigations recorded as effective target state rather than assumed from product version?
+- Could another researcher falsify the conclusion using the retained evidence?
+
+A **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** draft that cannot answer these questions is not finished, regardless of its word count or number of screenshots.
 
 ## Takeaways
 
@@ -242,43 +279,51 @@ product names, and Windows builds change.
 - **Execution constraint:** Defender real-time protection, behavior monitoring, cloud protection, attack-surface-reduction rules, and tamper protection are related but distinct layers.
 - **Correlated evidence:** validation should use benign test content and provider-health telemetry rather than bypass code.
 
-If those four statements can be explained in your own words, connected to a
-specific build, and tested with a negative control, you understand the mechanism
-well enough to continue into deeper implementation or exploitability research.
+The durable **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** skill is not remembering one command. It is connecting each of this lesson's four mechanism statements to a target-specific observation, explaining what would disprove it, and repeating the test without silently changing the trust boundary.
 
 ## Check your understanding
 
 <details>
-  <summary>Can you explain the mechanism without naming a tool?</summary>
-  A strong answer follows the complete flow: artifact → parser or runtime → state transition → host/network evidence → bounded conclusion. It names the owner,
-  actor, controlled state, decision point, condition, result, and evidence.
+  <summary>Can you explain AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening without naming a tool?</summary>
+  A strong answer follows artifact → parser or runtime → state transition → host/network evidence → bounded conclusion. It names the owner or actor, controlled state, deciding component, required condition, transition, lifetime, and evidence.
 </details>
 
 <details>
-  <summary>What result would make you reject the current model?</summary>
-  Reject or revise it when the predicted transition survives removal of a
-  required condition, when the consumer cannot be reached by the stated actor,
-  or when an independent source contradicts the claimed state.
+  <summary>Which fact is most likely to change across Windows versions?</summary>
+  For **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening**, start with this track warning: Provider schemas, Defender features, AMSI hosts, logging policy, YARA engine, application control, product versions, and normal fleet behavior evolve. Then
+  replace the assumption with a current-target observation tied to
+  **AMSI is an interface through which participating applications submit content and metadata to an antimalware provider**.
 </details>
 
-## Source coverage
+<details>
+  <summary>What result would make you reject the model?</summary>
+  Reject or revise the **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** model when its predicted transition survives
+  removal of a required condition, the stated actor cannot reach
+  **coverage depends on the host integrating AMSI, the content reaching a scan point, provider health, and policy state**, object identity or lifetime is wrong, or an
+  independent healthy source contradicts the claimed state.
+</details>
 
-This lesson consolidates the following Yunolay material into one local,
-mechanism-first document. The links are retained so that claims can be compared
-with their original context.
+## Limitations and next research
 
-- [AMSI and Windows Defender Bypass: A Practical Primer](https://yunolay.com/amsi-defender-bypass/)
-- [AMSI Bypass Techniques and Defensive Hardening](https://yunolay.com/amsi-bypass-techniques-and-defensive-hardening/)
+This **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** document does not claim that every Windows edition, patch level, architecture, policy set, hardware configuration, or product integration behaves identically. Its read-only lab is not exploitability proof, attribution, or a production authorization decision. The next useful experiment is the smallest safe observation that can move one named observable artifact/behavior boundary/execution constraint/correlated evidence stage from **UNVERIFIED** to **LIKELY** or **CONFIRMED**, or reject it cleanly.
 
 ## References
 
-1. https://yunolay.com/amsi-defender-bypass/
-2. https://yunolay.com/amsi-bypass-techniques-and-defensive-hardening/
-3. https://learn.microsoft.com/windows/win32/debug/pe-format
-4. https://learn.microsoft.com/sysinternals/downloads/sysmon
-5. https://learn.microsoft.com/defender-endpoint/
-6. https://attack.mitre.org/techniques/enterprise/
-7. https://yara.readthedocs.io/en/stable/
-8. https://github.com/mandiant/flare-vm
-9. https://github.com/REMnux
-10. https://github.com/mandiant/capa
+### Source coverage and reliability
+
+The **AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening** lesson consolidates the source material below. These pages and repositories provide context but cannot override current-target evidence. Any public structure layout, ReactOS/Wine behavior, debugger screenshot, blog-derived claim, or cross-build offset used here remains **UNVERIFIED** until checked against the tested binary, symbols, documented API, dump, or runtime trace.
+
+| Source | Type | How it is used |
+| --- | --- | --- |
+| [AMSI and Windows Defender Bypass: A Practical Primer](https://yunolay.com/amsi-defender-bypass/) | Original lesson source | Establishes the source article's terminology and examples; re-check claims against primary documentation and the tested build. |
+| [AMSI Bypass Techniques and Defensive Hardening](https://yunolay.com/amsi-bypass-techniques-and-defensive-hardening/) | Original lesson source | Establishes the source article's terminology and examples; re-check claims against primary documentation and the tested build. |
+| [learn.microsoft.com/windows/win32/debug/pe-format](https://learn.microsoft.com/windows/win32/debug/pe-format) | Microsoft documentation | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [learn.microsoft.com/sysinternals/downloads/sysmon](https://learn.microsoft.com/sysinternals/downloads/sysmon) | Microsoft documentation | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [learn.microsoft.com/defender-endpoint/](https://learn.microsoft.com/defender-endpoint/) | Microsoft documentation | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [attack.mitre.org/techniques/enterprise/](https://attack.mitre.org/techniques/enterprise/) | Knowledge base | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [yara.readthedocs.io/en/stable/](https://yara.readthedocs.io/en/stable/) | Research reference | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [github.com/mandiant/flare-vm](https://github.com/mandiant/flare-vm) | Source repository | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [github.com/REMnux](https://github.com/REMnux) | Source repository | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [github.com/mandiant/capa](https://github.com/mandiant/capa) | Source repository | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+
+Accessed: **2026-07-28**.

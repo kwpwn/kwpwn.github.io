@@ -2,8 +2,16 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = process.cwd();
-const refreshGenerated = process.argv.includes("--refresh");
+const overwriteGenerated = process.argv.includes("--overwrite-generated");
 const blogDirectory = path.join(root, "src", "content", "blog");
+const labSlugs = new Set([
+  "backup-restore-privileges-lab",
+  "reproducible-windows-malware-analysis-lab",
+]);
+const vulnerabilitySlugs = new Set([
+  "authentication-coercion-petitpotam-relay-boundaries",
+  "print-spooler-boundaries-and-printnightmare",
+]);
 const coverage = JSON.parse(
   await readFile(
     path.join(root, "src", "data", "yunolay-topic-coverage.json"),
@@ -553,7 +561,7 @@ Get-Date -Format o`,
       "https://learn.microsoft.com/sysinternals/",
       "https://learn.microsoft.com/windows/security/application-security/application-control/windows-defender-application-control/",
       "https://attack.mitre.org/tactics/TA0004/",
-      "https://www.microsoft.com/msrc/security-guidance",
+      "https://msrc.microsoft.com/update-guide/",
       "https://github.com/gtworek/Priv2Admin",
     ],
   },
@@ -671,6 +679,337 @@ function yamlList(items, indent = "") {
   return items.map((item) => `${indent}- ${JSON.stringify(item)}`).join("\n");
 }
 
+const trackCopy = {
+  "windows-internals": {
+    "processes-execution": {
+      focus:
+        "Follow identity and lifetime separately: a process owns an address space and handle table, a thread is the schedulable execution context, and either object can outlive a user-visible identifier through retained references.",
+      evidence: [
+        "Documented process and thread query APIs",
+        "Version-matched WinDbg process, thread, token, wait, and stack views",
+        "Kernel process/thread/image ETW with loss counters retained",
+        "Handle, reference, cancellation, and teardown observations",
+      ],
+      versionRisk:
+        "EPROCESS, ETHREAD, KTHREAD, worker-factory, scheduler, and mitigation fields are implementation details. Record the exact build, architecture, and symbol provenance before naming a field or offset.",
+      readerGoal:
+        "Explain who owns the state, which object carries it, which reference keeps it alive, and which transition a scheduler or executive component performs.",
+    },
+    "memory-manager": {
+      focus:
+        "Separate virtual address description, committed backing, page-table state, residency, mapped-section provenance, and allocator metadata. They answer different questions even when tools display them on one screen.",
+      evidence: [
+        "VirtualQuery, memory-map, section, and working-set APIs",
+        "VAD, PTE, section, control-area, and working-set debugger views",
+        "Protection, backing file, commit, dirty, and copy-on-write transitions",
+        "Page heap, Special Pool, verifier, allocation stacks, and first-fault evidence",
+      ],
+      versionRisk:
+        "PTE encodings, VAD layouts, heap backends, pool allocators, metadata hardening, and debugger extensions evolve across releases. Treat public layouts as build-specific references until confirmed.",
+      readerGoal:
+        "Trace one address from region ownership through backing and residency to the operation that changed its protection, contents, or lifetime.",
+    },
+    "security-objects": {
+      focus:
+        "Model authorization as an access request evaluated with a particular token against a particular securable object. Identity labels, granted handle rights, object lifetime, and impersonation state must remain distinct.",
+      evidence: [
+        "TokenInformationClass and documented authorization APIs",
+        "Security descriptors, mandatory labels, requested masks, and granted masks",
+        "Process primary-token and thread impersonation-token observations",
+        "Object namespace, handle-table, and reference-lifetime evidence",
+      ],
+      versionRisk:
+        "Documented access rights are more stable than token/object implementation layouts. New token attributes, mitigations, isolation modes, and container boundaries can change effective behavior without changing an account name.",
+      readerGoal:
+        "Reconstruct the complete access decision and show why a name, SID, handle value, or integrity level alone is insufficient evidence.",
+    },
+    "io-drivers": {
+      focus:
+        "Start at the exposed device interface and follow an I/O request through access checks, buffering, queue ownership, dispatch, completion, cancellation, Plug and Play, power, and teardown.",
+      evidence: [
+        "Device interfaces, symbolic links, service configuration, and ACLs",
+        "IOCTL access bits, METHOD_* buffering, input/output lengths, and IRP state",
+        "WDM dispatch or KMDF queue/callback configuration",
+        "Driver Verifier, I/O verification, stack traces, and completion/cancel evidence",
+      ],
+      versionRisk:
+        "Framework versions, queue policy, default device security, verifier rules, pool APIs, and internal IRP or framework-object layouts vary. Prefer WDK contracts and exact target observations.",
+      readerGoal:
+        "Draw the request lifecycle and identify the component responsible for every buffer, reference, callback, and failure path.",
+    },
+    "ipc-services": {
+      focus:
+        "Treat IPC as a protocol boundary with endpoint discovery, namespace security, connection identity, message schema, transferred objects, impersonation rules, cancellation, and disconnect lifetime.",
+      evidence: [
+        "Endpoint names, namespace placement, and security descriptors",
+        "Client/server identities, authentication, impersonation level, and access masks",
+        "Message sizes, attributes, handles, shared views, and state transitions",
+        "RPC, ALPC, pipe, COM, service, ETW, and process-correlation evidence",
+      ],
+      versionRisk:
+        "Undocumented port names, message layouts, COM registration behavior, service hosting, RPC defaults, and broker policy can change with builds and configuration. Confirm the live endpoint.",
+      readerGoal:
+        "Explain how one client-controlled message reaches one server decision and what proves the server consumed it under the claimed authority.",
+    },
+    "telemetry-runtime": {
+      focus:
+        "Separate event production from session control, buffering, transport, decoding, retention, and analysis. A missing record is meaningful only after the complete collection path is proven healthy.",
+      evidence: [
+        "Provider identity, event descriptor, keywords, levels, and enablement",
+        "Session buffer, clock, stack-walk, file, and loss settings",
+        "Manifest, TraceLogging, MOF, WPP, or runtime decoder provenance",
+        "A benign control joined to debugger, API, or secondary telemetry",
+      ],
+      versionRisk:
+        "Provider manifests, event versions, decoder schemas, debugger behavior, exception metadata, WoW64 transitions, and WMI providers vary. Preserve raw records and the decoder version.",
+      readerGoal:
+        "Prove which component emitted the record, which session retained it, how it was decoded, and which independent observation supports the interpretation.",
+    },
+    "kernel-platform": {
+      focus:
+        "Analyze platform protection as several independent enforcement boundaries: code admission, virtualization-protected policy, integrity of selected kernel state, isolation, and hardware-assisted control flow.",
+      evidence: [
+        "Effective Device Guard, VBS, HVCI, code-integrity, and boot state",
+        "Loaded-image signatures, policy identifiers, and CodeIntegrity events",
+        "Hypervisor, Secure Boot, CET, CFG, and process mitigation observations",
+        "Version-matched symbols and supported diagnostics instead of bypass assumptions",
+      ],
+      versionRisk:
+        "Hardware support, edition, boot configuration, servicing state, firmware, policy deployment, compatibility mode, and opt-in process settings all affect the real boundary.",
+      readerGoal:
+        "Name exactly which protection makes which decision and avoid collapsing DSE, HVCI, VBS, PatchGuard, CFG, or CET into one generic mitigation.",
+    },
+    "boot-architecture": {
+      focus:
+        "Follow the chain of trust phase by phase: firmware, boot manager, loader, kernel initialization, Session Manager, Wininit, services, and interactive logon each consume different policy and evidence.",
+      evidence: [
+        "Firmware, Secure Boot, TPM/measured-boot, and BCD state",
+        "Boot manager, winload, kernel, ELAM, Code Integrity, and VBS logs",
+        "SMSS, Wininit, SCM, service, and session creation evidence",
+        "The earliest failed phase with exact status, component, and persistent input",
+      ],
+      versionRisk:
+        "Firmware behavior, boot applications, BCD interpretation, ELAM, hypervisor startup, Secure Boot policy, and recovery paths differ across hardware and Windows releases.",
+      readerGoal:
+        "Locate the earliest trust decision that explains the observed later state instead of starting investigation after the desktop appears.",
+    },
+  },
+  "windows-privesc": {
+    foundations: {
+      focus:
+        "Represent elevation as a graph from a real low-privilege token to a stronger security context. Every edge needs actor control, consumer reachability, a trigger, and a privileged effect.",
+      evidence: [
+        "Standard-user token, integrity, groups, privileges, and session",
+        "Controlled object plus exact writable or management rights",
+        "Privileged consumer identity, trigger, and resulting operation",
+        "Positive and negative controls recorded on the same build",
+      ],
+      versionRisk:
+        "Account type, UAC policy, linked tokens, service isolation, application control, VBS, and cumulative updates change the graph. Do not inherit a chain from another host.",
+      readerGoal:
+        "Reject scanner shorthand and explain every trust-boundary edge in a form another researcher can reproduce safely.",
+    },
+    "discovery-evidence": {
+      focus:
+        "Enumeration produces leads. Convert each lead into a narrow hypothesis and preserve enough identity, ACL, configuration, runtime, and control evidence to accept or reject it.",
+      evidence: [
+        "Raw discovery output with tool version, time, and execution token",
+        "Native ACL or management API results rather than color-coded labels",
+        "Consumer process, account, configuration origin, and trigger",
+        "Decision record containing alternatives and falsification evidence",
+      ],
+      versionRisk:
+        "Scanner rules, privilege mappings, defaults, service configuration, policy sources, and Windows protections evolve. Re-evaluate the native condition on the tested machine.",
+      readerGoal:
+        "Turn one automated finding into a reproducible claim without treating tool severity as root-cause or exploitability evidence.",
+    },
+    "service-boundaries": {
+      focus:
+        "Separate service-object rights, registry representation, executable and DLL paths, referenced dependencies, account privileges, triggers, and restart reachability.",
+      evidence: [
+        "SCM security descriptor and granted service access rights",
+        "ImagePath, ServiceDll, account, start mode, dependencies, and triggers",
+        "Filesystem ACLs for every parsed executable or dependency candidate",
+        "Start/restart authority, boot timing, failure actions, and service telemetry",
+      ],
+      versionRisk:
+        "Service hardening, per-service SIDs, svchost splitting, trigger-start behavior, protected services, path parsing, and installer policy vary by build and configuration.",
+      readerGoal:
+        "Prove that the standard user controls material a stronger service actually consumes and can reach the relevant lifecycle transition.",
+    },
+    "token-ipc": {
+      focus:
+        "Treat impersonation chains as identity transfer across a real IPC or authentication boundary. A privileged client connection, permitted impersonation level, token type, and usable privilege are separate prerequisites.",
+      evidence: [
+        "Server endpoint ACL and attacker process/thread token",
+        "Origin and security context of the connecting privileged client",
+        "Impersonation level, token type, privileges, session, and restrictions",
+        "Revert, duplicate, access-check, and negative-control observations",
+      ],
+      versionRisk:
+        "COM/RPC activation, authentication protections, session isolation, service privileges, token restrictions, and patched coercion paths invalidate many named technique variants.",
+      readerGoal:
+        "Name the exact coercion and impersonation primitives instead of reporting a Potato-family tool name as the mechanism.",
+    },
+    "policy-controls": {
+      focus:
+        "Distinguish configured value, policy source, audit mode, enforcement point, scope, precedence, and runtime decision. A visible setting is not necessarily effective policy.",
+      evidence: [
+        "Local, domain, MDM, registry, and runtime policy origins",
+        "Audit versus enforcement events from the deciding component",
+        "Publisher, path, hash, script, DLL, driver, and interpreter coverage",
+        "Benign allowed/blocked controls executed under the claimed token",
+      ],
+      versionRisk:
+        "Policy schema, managed-installer state, reputation services, script hosts, rule options, defaults, and servicing behavior change. Record effective policy identifiers and OS build.",
+      readerGoal:
+        "Show which enforcement engine evaluated which artifact under which rule, then identify the narrow policy gap without calling every bypass an elevation.",
+    },
+    "execution-persistence": {
+      focus:
+        "A persistence location is a stored edge to a future consumer. Prove writer control, resolution precedence, trigger recurrence, consumer identity, and resulting execution context.",
+      evidence: [
+        "Exact registry key, file, COM class, task, service, or startup location",
+        "Writer identity plus before/after content and ACL evidence",
+        "Resolution, parsing, bitness, environment, and dependency behavior",
+        "Trigger event, consumer process tree, resulting token, and cleanup proof",
+      ],
+      versionRisk:
+        "Packaged activation, COM lookup, loader search, task schema, autorun policy, service hardening, and application control can change reachability across systems.",
+      readerGoal:
+        "Differentiate writable configuration from a recurring execution chain and document the first point where stronger authority is actually gained.",
+    },
+    "credentials-recovery": {
+      focus:
+        "Separate credential metadata, protected blob, key hierarchy, caller scope, logon material, backup or recovery path, and the privilege needed to read or decrypt each layer.",
+      evidence: [
+        "Owner SID, logon type, token, credential type, and storage scope",
+        "Blob, master-key, machine/user, domain backup, and policy identifiers",
+        "PPL, Credential Guard, VBS, LSASS, provider, and package state",
+        "Self-created test secret with successful and failed recovery controls",
+      ],
+      versionRisk:
+        "Authentication packages, logon types, DPAPI roaming, password changes, domain policy, PPL, Credential Guard, and virtualization-backed protections affect recoverability.",
+      readerGoal:
+        "Explain exactly which secret exists, where it is protected, what context can recover it, and which stronger boundary would have to be crossed.",
+    },
+    "lateral-boundaries": {
+      focus:
+        "Separate identity coercion, transport authentication, relay compatibility, target authorization, remote execution or management semantics, and durable artifacts.",
+      evidence: [
+        "Source identity and the service or machine induced to authenticate",
+        "Protocol signing, channel binding, SPN, TLS, and authentication method",
+        "Target endpoint authorization and the exact accepted operation",
+        "Host, network, directory, certificate, WMI, or WSL artifacts joined in time",
+      ],
+      versionRisk:
+        "Protocol hardening, endpoint configuration, domain functional state, certificate templates, DCOM changes, WSL architecture, and cumulative updates alter the chain.",
+      readerGoal:
+        "Stop at the strongest proven remote effect and do not equate a coerced authentication, successful relay, and code execution.",
+    },
+  },
+  "malware-c2": {
+    foundations: {
+      focus:
+        "Treat analysis as a controlled measurement process: preserve the specimen, state a falsifiable behavior hypothesis, prove every sensor, bound execution, and reset to a known state.",
+      evidence: [
+        "Hash, size, provenance, signature, handling class, and immutable original",
+        "Snapshot, network simulation, time source, credentials, and containment state",
+        "Healthy process, file, registry, memory, DNS, flow, TLS, and protocol sensors",
+        "Timeline, negative control, disposal record, and confidence decision",
+      ],
+      versionRisk:
+        "Guest build, analysis tooling, hypervisor artifacts, time, network simulation, Defender policy, and sample configuration change behavior and visibility.",
+      readerGoal:
+        "Produce a repeatable experiment whose observations can be distinguished from sandbox artifacts, collection gaps, and analyst assumptions.",
+    },
+    "static-analysis": {
+      focus:
+        "Move from container and file structure to bounded capability claims. Validate offsets, sizes, encodings, imports, relocations, signatures, metadata, and parser assumptions before interpreting strings.",
+      evidence: [
+        "Cryptographic hash, exact bytes, file type, container members, and provenance",
+        "Bounds-checked headers, sections, imports, exports, resources, and overlays",
+        "Strings with encoding, location, references, and surrounding control flow",
+        "Compiler, library, packer, rule, and capability claims with hard negatives",
+      ],
+      versionRisk:
+        "Parser versions, format extensions, compiler output, signatures, YARA modules, packed variants, and document features change interpretation. Preserve tool versions and raw bytes.",
+      readerGoal:
+        "Explain what the artifact can support without claiming that a static capability executed during the observed incident.",
+    },
+    "dynamic-analysis": {
+      focus:
+        "Build a synchronized state-transition timeline across process, file, registry, service, task, WMI, memory, DNS, transport, and application-protocol evidence.",
+      evidence: [
+        "Pre-execution snapshot and one explicit behavior hypothesis",
+        "Process/thread/image, file, registry, service, task, and WMI telemetry",
+        "Memory regions, protections, writes, imports, call stacks, and control transfers",
+        "DNS, flow, TLS, request/response, simulated service, and sensor-health records",
+      ],
+      versionRisk:
+        "Sample configuration, privileges, locale, clock, network responses, EDR hooks, Defender state, anti-analysis checks, and guest build can fork execution.",
+      readerGoal:
+        "State what happened during this execution, what did not receive coverage, and which alternate environment could produce a different path.",
+    },
+    "memory-execution": {
+      focus:
+        "Follow the executable-content lifecycle: origin, decode or reconstruction, allocation or mapping, writes, relocations/imports, protection change, execution transfer, and cleanup.",
+      evidence: [
+        "Source bytes, decoder stub, reconstruction writes, and unpacking transition",
+        "Private or section-backed regions, protection history, and mapped provenance",
+        "Thread start, APC, callback, context, call stack, and target-process relationship",
+        "Dump limitations, unresolved imports, anti-debug influence, and negative controls",
+      ],
+      versionRisk:
+        "Architecture, calling convention, CFG, CET, ACG, DEP, ASLR, loader behavior, EDR instrumentation, and process policy constrain executable-memory chains.",
+      readerGoal:
+        "Describe the smallest observable execution primitive and keep loader capability, reconstructed code, and behavior actually executed as separate claims.",
+    },
+    "c2-operations": {
+      focus:
+        "Model command and control as identity, transport, message direction, correlation, retry, tasking, result, server state, extension, and operator boundaries—not a product label.",
+      evidence: [
+        "Agent identity, enrollment, keys, configuration, and server-side state",
+        "DNS, flow, TLS, HTTP or other protocol fields with timing and direction",
+        "Task identifier, payload or command semantics, acknowledgements, and results",
+        "Host execution joined to transport records and a benign protocol simulator",
+      ],
+      versionRisk:
+        "Framework version, profile, agent build, extension set, listener configuration, TLS stack, redirector, infrastructure, and network middleware change observables.",
+      readerGoal:
+        "Extract protocol and task invariants that survive superficial profile changes while avoiding signatures based only on names or one request shape.",
+    },
+    "execution-persistence": {
+      focus:
+        "Separate initial execution, privilege context, persistence storage, trigger, consumer, asynchronous service state, transfer job, and later recurrence.",
+      evidence: [
+        "Writer and stored object with before/after state",
+        "Task, service, BITS, WMI, registry, startup, or Linux consumer configuration",
+        "Trigger time, process ancestry, token, network activity, and resulting artifacts",
+        "Reboot/logon/session controls plus cleanup and recurrence verification",
+      ],
+      versionRisk:
+        "BITS queue format, WMI repository behavior, task/service policy, WSL architecture, systemd precedence, application control, and telemetry differ across environments.",
+      readerGoal:
+        "Prove recurrence under the intended identity and lifecycle event instead of labeling a stored artifact as established persistence.",
+    },
+    "detection-engineering": {
+      focus:
+        "Turn a behavior model into a testable analytic with explicit data requirements, joins, time bounds, exclusions, coverage controls, performance limits, and retirement criteria.",
+      evidence: [
+        "Stable behavior invariant and the smallest required event fields",
+        "Healthy source, provider, parser, clock, retention, and loss evidence",
+        "Representative positives, hard negatives, near misses, and environment variants",
+        "Precision, recall proxy, cost, triage context, owner, review date, and rollback",
+      ],
+      versionRisk:
+        "Provider schemas, Defender features, AMSI hosts, logging policy, YARA engine, application control, product versions, and normal fleet behavior evolve.",
+      readerGoal:
+        "Ship an analytic another defender can test, understand, tune, and retire without depending on folklore or a single indicator.",
+    },
+  },
+};
+
 function makeBody({
   slug,
   title,
@@ -680,46 +1019,53 @@ function makeBody({
   mechanics,
 }) {
   const copy = topicCopy[primary.topic];
-  const mechanismParts = mechanics
-    .split(";")
-    .map((part) => part.trim().replace(/[.]+$/, ""));
-  const inspectionProbe = inspectionProbes[slug];
-  if (!inspectionProbe) {
-    throw new Error(`Missing topic-specific inspection probe for ${slug}`);
-  }
-  if (mechanismParts.length !== 4) {
-    throw new Error(`Expected four mechanism clauses for ${slug}`);
-  }
-
-  const lessonFrames = {
+  const track = trackCopy[primary.topic]?.[primary.track];
+  const frameByTopic = {
     "windows-privesc": {
       labels: ["Starting state", "Privilege decision", "Reachability", "Proof"],
       flow: "lower-privileged actor → controlled input → privileged consumer → trigger → measurable effect",
-      rule:
-        "A writable object is only the first edge. The chain is incomplete until the privileged consumer, trigger, resulting context, and negative control are all known.",
-      distinctions: [
-        "Writable does not automatically mean exploitable; the privileged consumer must actually read or execute the controlled material.",
-        "Evidence collected from an administrator console does not establish what the standard-user token can reach.",
-        "A dangerous configuration and a reachable elevation path are different claims and should be reported separately.",
+      rule: "A writable object is only the first edge. The chain is incomplete until the privileged consumer, trigger, resulting context, and negative control are all known.",
+      stagePrompts: [
+        "Capture the caller's actual token and the exact object the caller controls. Do not substitute an administrator-shell result or a scanner label.",
+        "Locate the stronger component that makes the decisive access, parsing, loading, authentication, or execution decision.",
+        "Prove the caller can reach the consumer and trigger on this host without borrowing the privilege the finding is supposed to obtain.",
+        "Join configuration and runtime evidence, then remove one prerequisite and confirm that the predicted privileged transition disappears.",
+      ],
+      falsifiers: [
+        "The standard-user token lacks the claimed control, or the controlled object is not the object used by the consumer.",
+        "The privileged component never reads, resolves, authenticates, loads, or executes the controlled material.",
+        "Policy, ACL, path precedence, session, architecture, service state, or trigger timing blocks the chain.",
+        "The same effect remains after the required condition is removed, or the resulting context is not stronger than the starting token.",
       ],
       detection: [
         "Record the writer identity and the exact object changed.",
         "Correlate that change with the privileged consumer and its trigger.",
-        "Alert on the joined transition, not on a utility name by itself.",
+        "Alert on the joined transition rather than a utility name by itself.",
         "Harden the earliest reachable edge: permissions, policy, trigger, or consumer identity.",
       ],
       caseOpening:
         "A scanner reports a possible elevation path after finding one suspicious permission or policy value.",
     },
     "malware-c2": {
-      labels: ["Observable artifact", "Behavior boundary", "Execution constraint", "Correlated evidence"],
+      labels: [
+        "Observable artifact",
+        "Behavior boundary",
+        "Execution constraint",
+        "Correlated evidence",
+      ],
       flow: "artifact → parser or runtime → state transition → host/network evidence → bounded conclusion",
-      rule:
-        "A family or framework label is an index, not an explanation. The useful result is the smallest behavior claim supported by healthy, time-aligned sensors.",
-      distinctions: [
-        "Encoding, packing, or obfuscation is not malicious intent by itself; describe the behavior revealed after the transformation.",
-        "A missing event is not proof of absence until collection health, provider state, filtering, and retention are tested.",
-        "Static capability, configured capability, and behavior observed during one execution are separate confidence levels.",
+      rule: "A family or framework label is an index, not an explanation. The useful result is the smallest behavior claim supported by healthy, time-aligned sensors.",
+      stagePrompts: [
+        "Preserve the original artifact and describe the exact bytes, metadata, memory, request, or record that begins the hypothesis.",
+        "Identify the parser, loader, runtime, service, operating-system component, or protocol peer that turns the artifact into behavior.",
+        "Record architecture, policy, privileges, configuration, timing, network responses, and anti-analysis conditions that select the observed path.",
+        "Correlate independent host and network sources on one timeline and prove each sensor with a benign event before interpreting silence.",
+      ],
+      falsifiers: [
+        "The artifact is common compiler, library, administrative, or protocol material and does not carry the claimed behavior.",
+        "The expected parser, runtime, loader, service, or peer never consumes the artifact during the observed execution.",
+        "A required architecture, configuration, key, response, privilege, policy, or timing condition is absent.",
+        "Independent telemetry contradicts the transition, the sensor fails its health control, or the behavior cannot be repeated from a clean snapshot.",
       ],
       detection: [
         "Join file or memory provenance with the process and thread transition it caused.",
@@ -728,337 +1074,580 @@ function makeBody({
         "Harden execution, credential, egress, and logging boundaries independently.",
       ],
       caseOpening:
-        "An analyst assigns a malware or C2 label from one string, process name, or network indicator.",
+        "An analyst assigns a malware or C2 label from one string, process name, memory characteristic, or network indicator.",
     },
     "windows-internals": {
-      labels: ["Owned state", "Manager or boundary", "Versioned constraint", "Observable evidence"],
+      labels: [
+        "Owned state",
+        "Manager or boundary",
+        "Versioned constraint",
+        "Observable evidence",
+      ],
       flow: "owner or manager → object/state → transition → lifetime rule → version-matched observation",
-      rule:
-        "Documented contracts, symbol-backed observations, and reverse-engineered implementation details have different stability. Keep those evidence classes separate.",
-      distinctions: [
-        "A handle is a reference with access rights, not the underlying object or its lifetime.",
-        "A structure layout observed on one build is not a stable ABI unless Microsoft documents it as one.",
-        "A debugger field, trace event, and public API can describe the same mechanism at different abstraction levels without being interchangeable.",
+      rule: "Documented contracts, symbol-backed observations, and reverse-engineered implementation details have different stability. Keep those evidence classes separate.",
+      stagePrompts: [
+        "Name the executive manager, subsystem, process, driver, service, or runtime that owns the state; then separate that state from the handle or identifier used to find it.",
+        "Trace creation, lookup, access, mutation, queueing, completion, reference ownership, cancellation, and teardown across the actual subsystem boundary.",
+        "Record build, architecture, symbols, policy, mitigation state, and every undocumented layout assumption before interpreting internal fields.",
+        "Correlate a documented API or contract with debugger, trace, object, or memory evidence and retain enough provenance to reproduce the observation.",
+      ],
+      falsifiers: [
+        "The displayed identifier, handle, field, or list entry refers to a different object or a stale/reused lifetime.",
+        "The presumed manager does not perform the transition, or another layer owns the decisive state and synchronization.",
+        "The layout, policy, mitigation, architecture, or code path does not match the tested Windows build.",
+        "A documented query, independent trace, or negative control contradicts the debugger-derived interpretation.",
       ],
       detection: [
         "Use version-matched symbols and retain the exact build with every debugger observation.",
         "Correlate public API results, object state, and trace output instead of trusting one internal field.",
         "Track creation, references, asynchronous work, cancellation, and teardown as one lifecycle.",
-        "Treat a missing field or command on another build as a version result, not as permission to guess.",
+        "Treat a missing field or command on another build as a version result, not permission to guess.",
       ],
       caseOpening:
         "A debugger command displays an interesting field and the first interpretation treats it as a universal Windows rule.",
     },
   };
-  const frame = lessonFrames[primary.topic];
+  const frame = frameByTopic[primary.topic];
+  if (!copy || !track || !frame) {
+    throw new Error(`Missing professional lesson frame for ${slug}`);
+  }
+
+  const mechanismParts = mechanics
+    .split(";")
+    .map((part) => part.trim().replace(/[.]+$/, ""));
+  if (mechanismParts.length !== 4) {
+    throw new Error(`Expected four mechanism clauses for ${slug}`);
+  }
+
+  const inspectionProbe = inspectionProbes[slug];
+  if (!inspectionProbe) {
+    throw new Error(`Missing topic-specific inspection probe for ${slug}`);
+  }
+
   const glossaryCandidates = [
-    [/access token/i, "Access token", "A kernel-managed security context describing an identity, its groups, privileges, integrity level, and restrictions."],
-    [/\bSIDs?\b/i, "SID", "A stable security identifier used by Windows to represent a user, group, service, or other security principal."],
-    [/\bDACLs?\b|access control list/i, "DACL", "The ordered access-control entries Windows evaluates to allow or deny requested rights on an object."],
-    [/integrity level/i, "Integrity level", "A mandatory label that limits write-like interactions from a lower-integrity subject to a higher-integrity object."],
-    [/impersonat/i, "Impersonation", "A thread temporarily uses a client security token while the process primary token remains unchanged."],
-    [/named pipe/i, "Named pipe", "A Windows IPC endpoint with a namespace, security descriptor, server, clients, and message or byte-stream behavior."],
-    [/\bALPC\b/i, "ALPC", "The kernel-backed local IPC facility used by many Windows services and brokers for structured message exchange."],
-    [/\bRPC\b/i, "RPC", "A protocol and runtime that lets a client invoke procedures implemented by another process or system."],
-    [/\bCOM\b/i, "COM", "An object activation and interface model whose server location, registration, bitness, and security affect execution context."],
-    [/service control manager|\bSCM\b/i, "Service Control Manager", "The privileged manager that stores service configuration, starts service processes, and authorizes service operations."],
-    [/\bLSASS\b|local security authority/i, "LSASS", "The protected user-mode service process that hosts LSA policy and authentication packages and manages logon sessions."],
-    [/\bDPAPI\b/i, "DPAPI", "Windows data protection tied to a user or machine master-key hierarchy and the caller's protection context."],
-    [/\bUAC\b|user account control/i, "UAC", "The elevation-consent system that separates normal and elevated use of an administrator's linked tokens."],
-    [/\bWMI\b/i, "WMI", "The Windows management infrastructure that connects CIM classes, namespaces, providers, repository state, and eventing."],
-    [/\bETW\b/i, "ETW", "A high-throughput tracing system composed of providers, controller-managed sessions, event buffers, and consumers."],
-    [/\bAMSI\b/i, "AMSI", "An interface through which participating applications submit content and metadata to an antimalware provider."],
-    [/\bWFP\b|windows firewall/i, "Windows Filtering Platform", "The layered filtering engine behind Windows firewall policy, filters, providers, sublayers, and callouts."],
-    [/\bIRP\b/i, "IRP", "An I/O request packet that carries an operation through driver dispatch, completion, cancellation, and teardown."],
-    [/\bIOCTL\b/i, "IOCTL", "A device-control request whose code, access bits, buffering method, input, and output define a driver boundary."],
-    [/\bKMDF\b|\bWDM\b/i, "Windows driver model", "The contracts and object lifecycle used to connect drivers, devices, queues, callbacks, Plug and Play, power, and I/O."],
-    [/\bIRQL\b/i, "IRQL", "A per-processor interrupt-priority level that constrains scheduling, synchronization, and access to pageable code."],
-    [/\bDPCs?\b/i, "DPC", "Deferred kernel work scheduled after a high-priority interrupt routine finishes its time-critical portion."],
-    [/\bAPCs?\b/i, "APC", "A queued callback delivered in a particular thread context under specific kernel or user-mode rules."],
-    [/\bVADs?\b/i, "VAD", "A kernel descriptor for a process virtual-address region, including range, protection, and backing relationships."],
-    [/page tables?|\bPTEs?\b/i, "Page table entry", "The hardware-visible translation and state record for one virtual page."],
-    [/section objects?|mapped files?/i, "Section object", "Shared backing that can be mapped as image, file data, or pagefile-backed memory into one or more address spaces."],
-    [/\bPEB\b/i, "PEB", "User-mode process environment state used by the loader and runtime; its undocumented fields vary by architecture and build."],
-    [/\bTEB\b/i, "TEB", "Per-thread user-mode state including stack bounds, TLS, last-error information, and architecture-specific fields."],
-    [/\bWoW64\b/i, "WoW64", "The compatibility environment that runs 32-bit user-mode code on 64-bit Windows and translates selected views and transitions."],
-    [/PatchGuard/i, "PatchGuard", "Kernel Patch Protection, which detects unsupported modification of selected critical kernel state."],
-    [/\bHVCI\b/i, "HVCI", "Hypervisor-protected code integrity, which moves selected code-integrity decisions behind a VBS trust boundary."],
-    [/\bVBS\b/i, "VBS", "Virtualization-based security, which uses the hypervisor to isolate selected security services and data."],
-    [/\bC2\b|command and control/i, "Command and control", "The identity, transport, tasking, result, retry, and server-state model used to control a remote agent."],
-    [/shellcode/i, "Shellcode", "Position-independent machine code designed to run without the normal executable-loader contract."],
-    [/process injection/i, "Process injection", "A family of cross-process memory, handle, section, thread, APC, or loader state transitions."],
-    [/\bCOFF\b|beacon object file/i, "COFF object", "A relocatable object whose sections, symbols, and relocations must be resolved by a linker or in-memory host."],
-    [/\bYARA\b/i, "YARA rule", "A byte- and structure-matching rule whose strings, modules, metadata, and condition determine matches."],
-    [/packer|packed malware/i, "Packer", "A loader transformation that stores the original program in compressed or encrypted form and reconstructs it at runtime."],
-    [/job objects?|silos?/i, "Job object", "A process grouping object used for limits, accounting, notifications, and coordinated lifecycle policy."],
-    [/filter manager|minifilter/i, "Minifilter", "A Filter Manager driver registered at an altitude to observe or modify selected file-system operations."],
-    [/\bVSS\b|shadow copy/i, "Volume Shadow Copy", "A coordinated snapshot mechanism involving requesters, writers, providers, and shadow-copy devices."],
+    [
+      /access token/i,
+      "Access token",
+      "A kernel-managed security context describing an identity, its groups, privileges, integrity level, restrictions, and selected policy state.",
+    ],
+    [
+      /\bSIDs?\b/i,
+      "SID",
+      "A stable security identifier used by Windows to represent a user, group, service, package, capability, or other security principal.",
+    ],
+    [
+      /\bDACLs?\b|access control list/i,
+      "DACL",
+      "The ordered access-control entries Windows evaluates to allow or deny requested rights on a securable object.",
+    ],
+    [
+      /integrity level/i,
+      "Integrity level",
+      "A mandatory label used by Mandatory Integrity Control to constrain write-like interactions across integrity boundaries.",
+    ],
+    [
+      /impersonat/i,
+      "Impersonation",
+      "A thread temporarily evaluates security using a client token while the process primary token remains a separate security context.",
+    ],
+    [
+      /named pipe/i,
+      "Named pipe",
+      "A Windows IPC endpoint with namespace placement, a security descriptor, server/client identities, and message or byte-stream semantics.",
+    ],
+    [
+      /\bALPC\b/i,
+      "ALPC",
+      "The kernel-backed local IPC facility used by many services and brokers for messages, attributes, handle transfer, and shared views.",
+    ],
+    [
+      /\bRPC\b/i,
+      "RPC",
+      "A protocol and runtime that marshals a client's procedure request to a server endpoint with authentication and authorization policy.",
+    ],
+    [
+      /\bCOM\b/i,
+      "COM",
+      "An activation and interface model whose registration, activation context, bitness, server type, and security determine the actual execution boundary.",
+    ],
+    [
+      /service control manager|\bSCM\b/i,
+      "Service Control Manager",
+      "The privileged manager that stores service configuration, starts service processes, sends controls, and authorizes service-object operations.",
+    ],
+    [
+      /\bLSASS\b|local security authority/i,
+      "LSASS",
+      "The user-mode security service process that hosts LSA policy and authentication packages and maintains logon-session state.",
+    ],
+    [
+      /\bDPAPI\b/i,
+      "DPAPI",
+      "Windows data protection tied to a user or machine master-key hierarchy and the caller's logon and protection context.",
+    ],
+    [
+      /\bUAC\b|user account control/i,
+      "UAC",
+      "The elevation-consent system that mediates use of an administrator's linked filtered and elevated tokens.",
+    ],
+    [
+      /\bWMI\b/i,
+      "WMI",
+      "The management infrastructure connecting CIM namespaces and classes to providers, repository state, remote transport, and eventing.",
+    ],
+    [
+      /\bETW\b/i,
+      "ETW",
+      "A high-throughput tracing system composed of providers, controller-managed sessions, buffers, event metadata, and consumers.",
+    ],
+    [
+      /\bAMSI\b/i,
+      "AMSI",
+      "An interface through which participating applications submit content and metadata to a registered antimalware provider.",
+    ],
+    [
+      /\bWFP\b|windows firewall/i,
+      "Windows Filtering Platform",
+      "The layered filtering engine behind Windows firewall policy, filters, providers, sublayers, and callouts.",
+    ],
+    [
+      /\bIRP\b/i,
+      "IRP",
+      "An I/O request packet carrying an operation through driver dispatch, queueing, completion, cancellation, and teardown.",
+    ],
+    [
+      /\bIOCTL\b/i,
+      "IOCTL",
+      "A device-control request whose control code, required handle access, buffering method, input, and output define a driver boundary.",
+    ],
+    [
+      /\bKMDF\b|\bWDM\b/i,
+      "Windows driver model",
+      "The contracts and lifecycles connecting drivers, devices, queues, callbacks, Plug and Play, power, and I/O.",
+    ],
+    [
+      /\bIRQL\b/i,
+      "IRQL",
+      "A per-processor interrupt-priority level that constrains scheduling, synchronization, interruptibility, and pageable-code access.",
+    ],
+    [
+      /\bDPCs?\b/i,
+      "DPC",
+      "Deferred kernel work normally scheduled after an interrupt routine completes its time-critical processing.",
+    ],
+    [
+      /\bAPCs?\b/i,
+      "APC",
+      "A queued callback delivered in a particular thread context under specific kernel, special-kernel, or user-mode rules.",
+    ],
+    [
+      /\bVADs?\b/i,
+      "VAD",
+      "A kernel descriptor for a process virtual-address region, including its range, protection, commitment, and backing relationship.",
+    ],
+    [
+      /page tables?|\bPTEs?\b/i,
+      "Page table entry",
+      "The architecture-specific translation and state record for one virtual page; its software meanings are build dependent.",
+    ],
+    [
+      /section objects?|mapped files?/i,
+      "Section object",
+      "Shared backing that can be mapped as image, file data, or pagefile-backed memory into one or more address spaces.",
+    ],
+    [
+      /\bPEB\b/i,
+      "PEB",
+      "User-mode process environment state used by the loader and runtime; undocumented fields vary by architecture and Windows build.",
+    ],
+    [
+      /\bTEB\b/i,
+      "TEB",
+      "Per-thread user-mode state including stack bounds, TLS, last-error information, and architecture-specific runtime fields.",
+    ],
+    [
+      /\bWoW64\b/i,
+      "WoW64",
+      "The compatibility environment that runs 32-bit user-mode code on 64-bit Windows and translates selected views and transitions.",
+    ],
+    [
+      /PatchGuard/i,
+      "PatchGuard",
+      "Kernel Patch Protection, which detects unsupported modification of selected critical kernel code or state.",
+    ],
+    [
+      /\bHVCI\b/i,
+      "HVCI",
+      "Hypervisor-protected code integrity, which moves selected code-integrity policy and decisions behind a VBS boundary.",
+    ],
+    [
+      /\bVBS\b/i,
+      "VBS",
+      "Virtualization-based security, which uses the hypervisor to isolate selected security services, policy, and data.",
+    ],
+    [
+      /\bC2\b|command and control/i,
+      "Command and control",
+      "The identity, transport, tasking, result, retry, and server-state model used to control a remote agent.",
+    ],
+    [
+      /shellcode/i,
+      "Shellcode",
+      "Position-independent machine code designed to execute without the normal executable-loader contract.",
+    ],
+    [
+      /process injection/i,
+      "Process injection",
+      "A family of cross-process memory, handle, section, thread, APC, callback, or loader state transitions.",
+    ],
+    [
+      /\bCOFF\b|beacon object file/i,
+      "COFF object",
+      "A relocatable object whose sections, symbols, and relocations must be resolved by a linker or in-memory host.",
+    ],
+    [
+      /\bYARA\b/i,
+      "YARA rule",
+      "A byte- and structure-matching rule whose strings, modules, metadata, and condition determine match semantics and cost.",
+    ],
+    [
+      /packer|packed malware/i,
+      "Packer",
+      "A loader transformation that stores original code or data in compressed or encrypted form and reconstructs it at runtime.",
+    ],
+    [
+      /job objects?|silos?/i,
+      "Job object",
+      "A process grouping object used for resource limits, accounting, notifications, and coordinated lifecycle policy.",
+    ],
+    [
+      /filter manager|minifilter/i,
+      "Minifilter",
+      "A Filter Manager driver registered at an altitude to observe or modify selected file-system operations.",
+    ],
+    [
+      /\bVSS\b|shadow copy/i,
+      "Volume Shadow Copy",
+      "A coordinated snapshot mechanism involving requesters, writers, providers, and shadow-copy devices.",
+    ],
   ];
   const glossaryFallbacks = [
-    ["Mechanism", "The concrete state, component, decision, and transition that produce an observable result."],
-    ["Trust boundary", "A point where data or control crosses into a component with different authority or assumptions."],
-    ["Evidence", "A recorded observation with enough identity, time, build, and provenance to support or challenge a claim."],
-    ["Negative control", "A repeat of the experiment with one required condition removed, used to test causality."],
+    [
+      "Mechanism",
+      "The concrete state, component, decision, and transition that produce an observable result.",
+    ],
+    [
+      "Trust boundary",
+      "A point where data or control crosses into a component with different authority, ownership, or assumptions.",
+    ],
+    [
+      "Evidence",
+      "A recorded observation with enough identity, time, build, provenance, and collection context to support or challenge a claim.",
+    ],
+    [
+      "Negative control",
+      "A repeat of the experiment with one required condition removed, used to test causality and alternate explanations.",
+    ],
   ];
   const glossaryEntries = glossaryCandidates
     .filter(([pattern]) => pattern.test(`${title} ${mechanics}`))
-    .slice(0, 5)
+    .slice(0, 6)
     .map(([, term, definition]) => [term, definition]);
   for (const fallback of glossaryFallbacks) {
-    if (glossaryEntries.length >= 5) break;
+    if (glossaryEntries.length >= 6) break;
     glossaryEntries.push(fallback);
   }
-  const glossaryRows = glossaryEntries
-    .map(([term, definition]) => `| **${term}** | ${definition} |`)
-    .join("\n");
+
+  const placementSummary = placements
+    .map(
+      ({ topic, track: placementTrack, order }) =>
+        `${topic} lesson ${String(order).padStart(2, "0")} in ${placementTrack}`,
+    )
+    .join("; ");
   const modelRows = mechanismParts
     .map(
       (part, index) =>
-        `| ${index + 1}. **${frame.labels[index]}** | ${part}. |`,
+        `| ${index + 1}. **${frame.labels[index]}** | ${part}. | ${track.evidence[index]} |`,
     )
     .join("\n");
-  const distinctionList = frame.distinctions
-    .map((item) => `- ${item}`)
+  const glossaryRows = glossaryEntries
+    .map(([term, definition]) => `| **${term}** | ${definition} |`)
+    .join("\n");
+  const stageSections = mechanismParts
+    .map(
+      (part, index) => `### ${index + 1}. ${frame.labels[index]}
+
+**Mechanism claim.** ${part}.
+
+For **${title}**, this stage is where the write-up must become concrete. ${frame.stagePrompts[index]} The relevant evidence source for this stage is **${track.evidence[index].toLowerCase()}**. Preserve the complete result rather than copying only the field that appears to support the hypothesis.
+
+**What can invalidate this ${frame.labels[index].toLowerCase()} stage.** For **${title}**, ${frame.falsifiers[index]} Treat that result as useful evidence because it narrows this article's mechanism and prevents the lead from becoming a universal security claim.
+
+**Review question for ${frame.labels[index].toLowerCase()}.** Can another researcher identify the actor or owner, exact object or artifact, deciding component, required state, and timestamp for this stage of **${title}**? If not, this specific mechanism claim remains **UNVERIFIED**.`,
+    )
+    .join("\n\n");
+  const evidenceRows = track.evidence
+    .map(
+      (source, index) =>
+        `| ${frame.labels[index]} | ${source} | ${mechanismParts[index]}. | ${frame.falsifiers[index]} |`,
+    )
     .join("\n");
   const detectionList = frame.detection
-    .map((item) => `- ${item}`)
+    .map((item, index) =>
+      index === 0
+        ? `- For **${title}**, ${item.charAt(0).toLowerCase()}${item.slice(1)}`
+        : `- ${item}`,
+    )
     .join("\n");
   const takeawayList = mechanismParts
     .map((part, index) => `- **${frame.labels[index]}:** ${part}.`)
     .join("\n");
   const sourceList = sourceEntries
-    .map(({ title: sourceTitle, url }) => `- [${sourceTitle}](${url})`)
-    .join("\n");
-  const references = [
-    ...new Set([...sourceEntries.map(({ url }) => url), ...copy.references]),
-  ];
-  const referenceList = references
-    .map((url, index) => `${index + 1}. ${url}`)
-    .join("\n");
-  const placementSummary = placements
     .map(
-      ({ topic, track, order }) =>
-        `${topic} lesson ${String(order).padStart(2, "0")} in ${track}`,
+      ({ title: sourceTitle, url }) =>
+        `| [${sourceTitle}](${url}) | Original lesson source | Establishes the source article's terminology and examples; re-check claims against primary documentation and the tested build. |`,
     )
-    .join("; ");
+    .join("\n");
+  const genericReferences = [...new Set(copy.references)].map((url) => {
+    const kind = url.includes("learn.microsoft.com")
+      ? "Microsoft documentation"
+      : url.includes("attack.mitre.org")
+        ? "Knowledge base"
+        : url.includes("github.com")
+          ? "Source repository"
+          : "Research reference";
+    return { title: new URL(url).hostname + new URL(url).pathname, url, kind };
+  });
+  const referenceRows = genericReferences
+    .map(
+      ({ title: referenceTitle, url, kind }) =>
+        `| [${referenceTitle}](${url}) | ${kind} | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |`,
+    )
+    .join("\n");
+  const fence = "```";
 
-  return `> **Quick answer:** ${mechanismParts[0]}.
+  return `> **Quick answer:** ${mechanismParts[0]}. The conclusion becomes defensible only when the remaining boundary, constraint, and evidence stages are verified on the named build and identity.
 
-## Why this matters
+## Scope and evidence contract
 
-${copy.intro}
+${copy.intro} Applied to **${title}**, this method begins with the concrete statement that ${mechanismParts[0].toLowerCase()}.
 
-For **${title}**, start with one practical question: ${copy.question} The rest
-of this lesson answers it in a repeatable order. You will first build a
-small mental model, then identify the conditions that can invalidate it, and
-finally collect read-only evidence in a controlled lab.
+This document treats **${title}** as a mechanism to reconstruct, not a label to memorize. Its curriculum placement is ${placementSummary}. That placement helps navigation; it does not imply that the behavior belongs to one security domain or that every environment exposes the same path.
 
-The curriculum placement is ${placementSummary}. That placement is navigation,
-not a claim that the mechanism belongs to only one research area.
+The **${title}** track-specific focus is: ${track.focus} The practical objective for this article is to ${track.readerGoal.toLowerCase()}
 
-## The mental model
+Before using any internal field, configuration value, event, or public write-up as evidence for **${title}**, record the target's Windows edition, version, build and revision, architecture, symbol status, relevant policy and mitigation state, execution identity, and collection time. The confidence vocabulary below prevents this specific lesson from hiding uncertainty behind polished prose:
 
-Use this flow as the shortest useful map:
+| State | Meaning in this lesson |
+| --- | --- |
+| **CONFIRMED** | Current-target evidence proves the claim and the expected negative control changes the result. |
+| **LIKELY** | Multiple sources support the claim, but one decisive low-risk observation remains unavailable. |
+| **UNVERIFIED** | The statement is plausible but depends on public references, a decompiler view, a scanner label, another build, or an untested configuration. |
+| **REJECTED** | Current evidence or a control contradicts the proposed mechanism. |
+
+## Architecture at a glance
+
+Use this flow as the shortest complete map:
 
 > **${frame.flow}**
 
-${frame.rule}
+${frame.rule} In **${title}**, the four stages resolve to ${frame.labels.join(" → ").toLowerCase()}, and each stage must point to the mechanism statement and evidence in the table below.
 
-| Step | Working model |
-| --- | --- |
+| Stage | Mechanism on this topic | Strongest first evidence |
+| --- | --- | --- |
 ${modelRows}
 
-Do not try to memorize the table as terminology. Read it as a chain. Start with
-the state that exists, locate the component that makes the important decision,
-check the condition that permits or blocks the transition, and name the evidence
-that would remain if the explanation were correct.
+For **${title}**, the table is a causal chain rather than a checklist of unrelated facts. Trace it backward from each ${frame.labels[3].toLowerCase()} observation to the actor and owned state, then forward through the ${frame.labels[1].toLowerCase()} decision, transition, cleanup, and failure path.
+
+## Mechanism deep dive
+
+${stageSections}
 
 ## Key terms in plain language
 
-These are the terms that carry the most meaning in this lesson. Read them once
-before continuing; later sections use them precisely rather than as loose
-synonyms.
+The terms below are intentionally scoped to **${title}**. They should not be used as synonyms: each names a different object, policy, boundary, or kind of evidence.
 
-| Term | Plain-language meaning |
+| Term | Precise working meaning |
 | --- | --- |
 ${glossaryRows}
 
-## Important distinctions
+When public documentation and debugger terminology for **${title}** differ, retain both names and state which source supplied each one. Any debugger field used in this lesson is evidence for the recorded build, not automatically a stable ABI or security contract.
 
-${distinctionList}
+## Version and environment scope
 
-These distinctions are useful because superficially similar observations can
-come from different mechanisms. Write the narrower claim first. Broaden it only
-when a second source of evidence supports the same transition.
+${track.versionRisk} For **${title}**, the version-sensitive statement that must be rechecked first is: ${mechanismParts[2]}.
 
-## What can change the answer
+Record the following **${title}** dimensions before comparing two systems or importing an exploitability conclusion from another target:
 
-| Dimension | Record | Question to ask |
+| Dimension | Minimum record | Why it can change the answer |
 | --- | --- | --- |
-| Identity | User SID, groups, privileges, integrity, process and thread token | Did the test run as the actor named in the claim? |
-| Build | Edition, architecture, build, cumulative update, native or WoW64 view | Does the cited behavior or structure belong to this build? |
-| Policy | Effective value and its local, domain, MDM, or runtime source | Is the visible setting actually enforced here? |
-| Reachability | ACL, namespace, endpoint, path, interface, session, and trigger | Can the actor reach the decision point without borrowed privilege? |
-| Lifetime | Creation, use, asynchronous work, cancellation, teardown, and cleanup | Was the observed state still valid when it was consumed? |
-| Sensor health | Provider, channel, filter, retention, clock, and collection status | Would the sensor have recorded a benign control? |
+| Operating system | Edition, version, build, revision, update level | Code paths, defaults, layouts, services, telemetry, and mitigations change through servicing. |
+| Architecture | x86, x64, ARM64, native or WoW64 view | Pointer width, calling convention, structure view, redirection, and available mitigations differ. |
+| Identity | User and group SIDs, integrity, privileges, process token, thread token, session | The actor that can observe a condition may not be the actor that can reach or trigger it. |
+| Policy | Effective local/domain/MDM/runtime source and enforcement mode | A visible registry value or UI setting may be overridden, merged, audited, or inactive. |
+| Mitigations | VBS/HVCI, CFG/CET, DEP, ASLR, application control, PPL, sandbox policy as relevant | Exploitability and observability depend on actual opt-in, hardware, boot, and process state. |
+| Symbols and tools | PDB identity, symbol path, debugger/parser/collector version | Offsets, names, schemas, and decoded fields are meaningful only with matching provenance. |
+| Sensor health | Provider/session/channel, filters, loss, clock, retention, forwarding | Missing telemetry cannot support absence until a benign control proves the collection path. |
+| Lifetime | Creation, references, asynchronous work, cancellation, teardown, cleanup | Stale handles, reused identifiers, queued callbacks, and delayed consumers can change object identity. |
 
-A result without these dimensions is a screenshot, not yet a reproducible
-finding. Unknown values should remain explicitly unknown; they should not be
-silently promoted to assumptions.
+Unknown values in a **${title}** decision record must remain explicitly **unknown**. Do not fill this article's gaps with defaults copied from documentation or another researcher's machine.
 
-## Build an evidence plan
+## Evidence matrix
 
-Work from the claim to the sensor before running tools:
+For **${title}**, work from each mechanism claim to the least-invasive evidence source before choosing a tool:
 
-1. **Baseline the actor and system.** Record identity, build, policy, time, and
-   the exact object or specimen.
-2. **Predict one observable transition.** State what should change if the model
-   is correct and what should remain unchanged if it is wrong.
-3. **Choose the least-invasive source.** Prefer documented queries, ACL and
-   configuration inspection, version-matched symbols, offline parsing, and
-   event collection.
-4. **Prove the sensor works.** Generate a benign event whose outcome is already
-   known.
-5. **Remove one prerequisite.** Repeat with a deliberately different test
-   object, identity, policy, or trigger.
-6. **Join independent evidence.** Configuration plus runtime evidence is
-   stronger than either source alone.
-7. **Assign confidence.** Use confirmed, supported, tentative, rejected, or
-   unknown and explain why.
+| Claim stage | Preferred evidence | Observation that supports the claim | Observation that falsifies or narrows it |
+| --- | --- | --- | --- |
+${evidenceRows}
 
-This sequence keeps the experiment safe and makes the final explanation easier
-to review. It also reveals exactly which missing observation blocks a stronger
-conclusion.
+For **${title}**, a screenshot of one promising field is weaker than a reproducible evidence bundle. Preserve raw commands, complete output, exit status, actor token, object identity, timestamps, build, symbol or decoder provenance, and both controls named above.
 
 ## Safe guided lab
 
-${copy.lab}
+${copy.lab} The **${title}** exercise is limited to the read-only inspection probe and controls described below.
 
-### Step 1 — capture the baseline
+### 1. Establish the baseline
 
-Run the baseline in the identity and architecture named in the hypothesis. Save
-the output with a timestamp if the result will be compared across snapshots.
+Run the **${title}** baseline from the identity and architecture named in the hypothesis. Use a fresh snapshot or purpose-built test object for this mechanism and save the output with an ISO-8601 timestamp.
 
-\`\`\`powershell
+${fence}powershell
 ${copy.commands}
-\`\`\`
+${fence}
 
-### Step 2 — inspect this mechanism
+Baseline acceptance criteria for **${title}**:
 
-The following probe is read-only. Replace placeholders only with a process,
-file, object, trace, or VM that belongs to the lab. An elevated debugger may be
-needed to observe system state; that observation does not prove that a standard
-user can cause the same transition.
+- the **${title}** execution identity and Windows build are visible in the saved record;
+- the test object, file, process, endpoint, provider, or specimen belongs to the lab;
+- relevant policy and mitigation values are captured before the observation;
+- no production secret, unknown binary, persistence payload, or destructive trigger is introduced.
 
-\`\`\`text
+### 2. Inspect the topic-specific mechanism
+
+The **${title}** probe below is read-only. Replace placeholders only with a process, file, object, trace, or VM that belongs to the authorized lab. If an elevated debugger is needed to observe this mechanism, record that elevation separately; it does not prove a standard user can cause the same transition.
+
+${fence}text
 ${inspectionProbe}
-\`\`\`
+${fence}
 
-Interpret the output using the four rows in the mental model. Preserve the
-complete command, output, execution identity, time, exit status, Windows build,
-and symbol or policy provenance.
+Interpret the **${title}** output against ${frame.labels.join(", ").toLowerCase()} rather than a tool's severity label. If a field or command is unavailable on this target, record that as a version/tool result and do not import the missing value from another build.
 
-### Step 3 — write the decision record
+### 3. Run a positive and negative control
 
-\`\`\`text
+For **${title}**, the positive control keeps every required precondition and predicts the ${frame.labels[3].toLowerCase()} observation. The negative control changes exactly one relevant variable—actor identity, object ACL, policy, architecture/view, consumer state, trigger, network response, or sensor configuration—while the remaining lab state stays stable.
+
+| Control | Change | Expected result |
+| --- | --- | --- |
+| Positive | Preserve all four mechanism stages | The predicted transition appears in the primary and at least one corroborating source. |
+| Negative | Remove one required condition | The transition disappears or changes in the way predicted by the model. |
+| Sensor health | Generate a benign event with a known result | The collector records and decodes it without unexplained loss. |
+| Cleanup | Revert the test object and repeat inspection | Persistent state returns to baseline and no queued work remains. |
+
+### 4. Write the decision record
+
+${fence}text
+Title: ${title}
 Claim:
+Target: edition | version | build.revision | architecture
+Identity: process token | thread token | integrity | privileges | session
 Starting state:
 Decision boundary:
 Required condition:
-Observed evidence:
-Alternative explanation:
+Observed transition:
+Primary evidence:
+Corroborating evidence:
+Contradictory evidence:
 Benign control:
 Negative control:
-Build, identity, and policy:
-Confidence: confirmed | supported | tentative | rejected | unknown
-\`\`\`
+Version and policy caveats:
+Cleanup result:
+Confidence: CONFIRMED | LIKELY | UNVERIFIED | REJECTED
+Next experiment and falsification criterion:
+${fence}
 
-The lab is complete when the control changes the predicted evidence. A dramatic
-tool label is not a completion criterion.
+The **${title}** lab is complete only when the controls explain its evidence. A dramatic tool label, isolated event, writable path, suspicious string, or debugger field cannot substitute for the four-stage mechanism.
 
-## Worked example: from clue to conclusion
+## Worked case-study method
 
-${frame.caseOpening} Treat that first clue as a lead rather than a conclusion.
-Review it through four checkpoints:
+${frame.caseOpening} For **${title}**, treat that clue as a lead and review it through the same four stages:
 
-1. **Starting state:** verify this concrete claim — ${mechanismParts[0]}.
-2. **Decision boundary:** identify and observe the component or access decision
-   described here — ${mechanismParts[1]}.
-3. **Required condition:** test whether the recorded build and configuration
-   satisfy this constraint — ${mechanismParts[2]}.
-4. **Proof:** demand the joined evidence described here — ${mechanismParts[3]}.
+1. **${frame.labels[0]}:** verify the current-target statement that ${mechanismParts[0]}.
+2. **${frame.labels[1]}:** identify the component and decision described by this claim: ${mechanismParts[1]}.
+3. **${frame.labels[2]}:** test the build, identity, policy, lifetime, and configuration constraint: ${mechanismParts[2]}.
+4. **${frame.labels[3]}:** demand the joined observation described here: ${mechanismParts[3]}.
 
-The case is **confirmed** only when the state, boundary, condition, and resulting
-evidence agree and a negative control removes the expected transition. It is
-**supported** when most links agree but one low-risk observation is unavailable.
-It remains **tentative** when the privileged consumer, runtime behavior, sensor
-health, or version context is inferred rather than observed. If the control does
-not change the result, revise or reject the model.
+For **${title}**, stop at the strongest supported conclusion. If ${frame.labels[0].toLowerCase()} and ${frame.labels[1].toLowerCase()} are proven but ${frame.labels[2].toLowerCase()} is not, report a **dangerous condition** or **research lead**, not confirmed impact. If runtime evidence agrees but the sensor-health control fails, lower confidence. If the negative control does not change the result, revise this mechanism before collecting more screenshots.
 
-That decision language is intentionally plain. It tells the next reader what is
-known, what still needs testing, and which experiment would change the answer.
+A publication-quality **${title}** case study should include a target table, causal diagram, exact evidence excerpts, competing explanations, version scope, mitigation interaction, cleanup, limitations, and direct references. A second researcher must be able to reproduce this mechanism without relying on the original author's private intuition.
 
 ## Detection and hardening
 
 ${detectionList}
 
-Detection should follow the mechanism rather than one filename, command line,
-framework label, or structure offset. Hardening should break the earliest edge
-that is both reachable and operationally safe to change. Re-run the benign and
-negative controls after the change so that “mitigated” means the expected
-transition actually disappeared.
+For the **${title}** detection model, correlate ${track.evidence.join(", ").toLowerCase()}. Join its state change to consumer activity and resulting effect within a justified time window, then document required fields, clock source, exclusions, expected volume, sensor-health control, and what this analytic cannot prove.
 
-## Common mistakes
+Hardening **${title}** should break the earliest edge that is both reachable and operationally safe to change. After changing the relevant permission, policy, service exposure, execution control, authentication, egress, or telemetry path, repeat this lesson's controls. **Mitigated** means the predicted transition no longer occurs under the original preconditions—not merely that a setting changed.
 
-- Starting with a tool or technique name and fitting every observation to it.
-- Copying an offset, default, or policy claim without the source build and
-  configuration.
-- Confusing an object that can be modified with a consumer that will use the
-  modified state.
-- Treating missing telemetry as absence without a sensor-health test.
-- Testing from an administrator or debugger context and assigning the same
-  reachability to a standard user.
-- Showing only the positive case and therefore never establishing causality.
-- Omitting cleanup, teardown, failure behavior, or the lifetime of asynchronous
-  work.
+## Failure modes and review checklist
 
-When a write-up avoids these mistakes, it becomes useful even after tools,
-product names, and Windows builds change.
+Use this checklist when reviewing a draft of **${title}**:
+
+- Does the opening of **${title}** state the exact target, actor, object or artifact, consumer, constraint, and result?
+- Are documented facts, current-target observations, and implementation inferences labeled separately?
+- Does every internal structure, event schema, default, or policy claim carry build and source provenance?
+- Is a handle or identifier kept separate from the underlying object and its lifetime?
+- Is writable or suspicious state kept separate from consumer reachability and actual execution?
+- Are static capability, configured capability, and behavior observed in one execution reported at different confidence levels?
+- Does a benign control prove the sensor, and does a negative control test causality?
+- Are cancellation, teardown, cleanup, failure behavior, and asynchronous work included?
+- Are mitigations recorded as effective target state rather than assumed from product version?
+- Could another researcher falsify the conclusion using the retained evidence?
+
+A **${title}** draft that cannot answer these questions is not finished, regardless of its word count or number of screenshots.
 
 ## Takeaways
 
 ${takeawayList}
 
-If those four statements can be explained in your own words, connected to a
-specific build, and tested with a negative control, you understand the mechanism
-well enough to continue into deeper implementation or exploitability research.
+The durable **${title}** skill is not remembering one command. It is connecting each of this lesson's four mechanism statements to a target-specific observation, explaining what would disprove it, and repeating the test without silently changing the trust boundary.
 
 ## Check your understanding
 
 <details>
-  <summary>Can you explain the mechanism without naming a tool?</summary>
-  A strong answer follows the complete flow: ${frame.flow}. It names the owner,
-  actor, controlled state, decision point, condition, result, and evidence.
+  <summary>Can you explain ${title} without naming a tool?</summary>
+  A strong answer follows ${frame.flow}. It names the owner or actor, controlled state, deciding component, required condition, transition, lifetime, and evidence.
 </details>
 
 <details>
-  <summary>What result would make you reject the current model?</summary>
-  Reject or revise it when the predicted transition survives removal of a
-  required condition, when the consumer cannot be reached by the stated actor,
-  or when an independent source contradicts the claimed state.
+  <summary>Which fact is most likely to change across Windows versions?</summary>
+  For **${title}**, start with this track warning: ${track.versionRisk} Then
+  replace the assumption with a current-target observation tied to
+  **${mechanismParts[0]}**.
 </details>
 
-## Source coverage
+<details>
+  <summary>What result would make you reject the model?</summary>
+  Reject or revise the **${title}** model when its predicted transition survives
+  removal of a required condition, the stated actor cannot reach
+  **${mechanismParts[1]}**, object identity or lifetime is wrong, or an
+  independent healthy source contradicts the claimed state.
+</details>
 
-This lesson consolidates the following Yunolay material into one local,
-mechanism-first document. The links are retained so that claims can be compared
-with their original context.
+## Limitations and next research
 
-${sourceList}
+This **${title}** document does not claim that every Windows edition, patch level, architecture, policy set, hardware configuration, or product integration behaves identically. Its read-only lab is not exploitability proof, attribution, or a production authorization decision. The next useful experiment is the smallest safe observation that can move one named ${frame.labels.join("/").toLowerCase()} stage from **UNVERIFIED** to **LIKELY** or **CONFIRMED**, or reject it cleanly.
 
 ## References
 
-${referenceList}
+### Source coverage and reliability
+
+The **${title}** lesson consolidates the source material below. These pages and repositories provide context but cannot override current-target evidence. Any public structure layout, ReactOS/Wine behavior, debugger screenshot, blog-derived claim, or cross-build offset used here remains **UNVERIFIED** until checked against the tested binary, symbols, documented API, dump, or runtime trace.
+
+| Source | Type | How it is used |
+| --- | --- | --- |
+${sourceList}
+${referenceRows}
+
+Accessed: **2026-07-28**.
 `;
 }
 
@@ -1079,7 +1668,7 @@ for (const [slug, sourceEntries] of groupedCoverage) {
 
   try {
     await stat(destination);
-    if (!refreshGenerated) continue;
+    if (!overwriteGenerated) continue;
   } catch {
     // The lesson does not exist yet.
   }
@@ -1105,6 +1694,11 @@ for (const [slug, sourceEntries] of groupedCoverage) {
     "Identify the state, decision boundary, required condition, and observable proof",
     "Verify the model with a read-only probe and a meaningful negative control",
   ];
+  const contentType = labSlugs.has(slug)
+    ? "lab"
+    : vulnerabilitySlugs.has(slug)
+      ? "vulnerability"
+      : "concept";
   const frontmatter = `---
 title: ${JSON.stringify(title)}
 description: ${JSON.stringify(description)}
@@ -1123,6 +1717,9 @@ ${yamlList(
   "  ",
 )}
 author: "Kwpwn"
+content_type: ${JSON.stringify(contentType)}
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 wide: false
 topic: ${JSON.stringify(primary.topic)}

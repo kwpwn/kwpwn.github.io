@@ -11,6 +11,9 @@ tags:
   - DACL
   - local system
 author: "kwpwn"
+content_type: "concept"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 topic: "windows-privesc"
 track: "service-boundaries"
@@ -306,6 +309,115 @@ After remediation:
 3. confirm health monitoring and updates still work;
 4. compare the new SDDL with the approved baseline;
 5. monitor for future installer changes that reintroduce the ACE.
+
+## Audit three authorization planes
+
+A service path is controlled by at least three independent security
+descriptors:
+
+1. **SCM service object:** controls who can query, start, stop, reconfigure,
+   delete, or change the service object's DACL.
+2. **registry/configuration objects:** can contain `ImagePath`, parameters, or a
+   hosted service's module configuration.
+3. **filesystem objects:** control creation, replacement, rename, delete, and
+   traversal for the executable, module, and parent directories.
+
+Do not collapse them into "service permissions." Record a separate actor,
+desired access, access-check result, and controlled field for each plane.
+
+| Capability | Exact evidence to seek | What it does not prove |
+| --- | --- | --- |
+| `SERVICE_CHANGE_CONFIG` | `OpenService` succeeds for that requested bit under the standard token | actor can stop/start or write the new executable |
+| `WRITE_DAC` | service object can be opened for DACL modification | a dangerous ACE was actually installed |
+| registry value write | access check and benign marker change on the exact key/value | SCM consumes that value for this service form |
+| executable replacement | create/rename/delete rights on file and parents | service reaches and accepts the replacement |
+| service start/stop | exact control right and successful state transition | configuration is attacker-controlled |
+
+Microsoft explicitly warns that `SERVICE_CHANGE_CONFIG` should be restricted
+because it can change the executable run by the service. `SERVICE_STOP` is also
+security-relevant, but it is not interchangeable with configuration control.
+Ask for the narrowest access bit during validation so a broader successful open
+does not hide which permission mattered.
+
+## DACL evaluation must use the real actor
+
+Membership output is not an access check. The effective token can contain deny-
+only groups, restricted SIDs, integrity constraints, AppContainer state, or
+impersonation context. In addition, generic rights must be mapped for the
+service object type before interpreting an ACE.
+
+Use two complementary methods:
+
+- call the real SCM API while requesting exactly one right and record the
+  result under the standard user's token;
+- parse/display the security descriptor to explain which ACE produced that
+  result.
+
+The API result is the capability observation; the ACE analysis explains it.
+When they disagree, preserve the token, SDDL, requested mask, generic mapping,
+and error rather than choosing the more convenient answer.
+
+## Worked case: safe configuration marker
+
+Use a disposable lab service that runs as a dedicated unprivileged service
+account and points to a harmless executable in an administrator-owned
+directory. The test user should initially have query rights only.
+
+1. Export the service configuration, object SDDL, registry security, executable
+   hash, directory DACLs, and service state.
+2. Request `SERVICE_CHANGE_CONFIG` alone under the test user's non-elevated
+   token. The baseline must be denied.
+3. Add one lab ACE granting only that right.
+4. Repeat the exact open and change a non-executing property such as the display
+   name to a marker value. Record success and restore it immediately.
+5. Attempt `SERVICE_STOP` and `SERVICE_START` separately. They should remain
+   denied unless deliberately granted for another run.
+6. Remove the ACE and prove that the original request is denied again.
+7. Confirm that service health and its executable hash are unchanged.
+
+This demonstrates service-object configuration control without redirecting a
+privileged executable. If the research question concerns `ImagePath`, record
+that the right is capable of changing it based on the documented API, but keep
+the hands-on validation non-destructive.
+
+For a filesystem-only case, keep the service DACL strong and create a separate
+harmless plugin directory. Prove the test user can or cannot create the exact
+candidate path, then remove the marker. Do not combine the two cases until both
+authorization planes have independent evidence.
+
+## Hosted services and indirect configuration
+
+An `svchost`-hosted service may select a service DLL or parameters from
+service-specific registry configuration rather than execute `ImagePath` as a
+standalone program. Protected services, launch-protected settings, virtual
+accounts, service SIDs, required privileges, failure actions, triggers, and
+WDAC/AppLocker policy can further change reachability.
+
+Record:
+
+- Windows edition/build and service binary/module versions;
+- service type, start mode, account, service SID type, and protection state;
+- standalone executable versus hosted module configuration;
+- service object SDDL and exact granted rights;
+- registry key/value sources and DACLs;
+- filesystem DACLs for every resolved component;
+- start/stop/trigger path and policy decisions;
+- whether remediation survives product repair, update, and reboot.
+
+A path writable on one release is not proof for another installer version.
+
+## Evidence-to-claim ladder
+
+1. **weak descriptor:** a low-privileged SID has a suspicious ACE;
+2. **usable right:** the standard token obtains the exact access;
+3. **controlled input:** a specific configuration field or path can be changed;
+4. **reachable consumer:** the service reads it on a tested trigger;
+5. **privileged sink:** the consumer acts under a stronger identity;
+6. **boundary impact:** a benign marker proves the resulting capability;
+7. **durable finding:** remediation and regression tests survive update/reboot.
+
+Publish only the highest proven rung and list the missing preconditions for the
+next one.
 
 ## References
 

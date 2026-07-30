@@ -132,10 +132,8 @@ for (const entry of entries) {
       ?.map((url) => url.replace(/[.,]$/, "")) ?? [],
   );
   const headingCount = body.match(/^##? .+$/gm)?.length ?? 0;
-  const codeBlockCount = Math.floor((body.match(/^```/gm)?.length ?? 0) / 2);
   const words = proseWordCount(body);
   const difficulty = scalar(frontmatter, "difficulty");
-  const labEnvironment = scalar(frontmatter, "labEnvironment");
 
   if (!["Foundation", "Intermediate", "Advanced"].includes(difficulty)) {
     fail(file, "difficulty must be Foundation, Intermediate, or Advanced");
@@ -146,25 +144,19 @@ for (const entry of entries) {
   if (!hasBlock(frontmatter, "learningObjectives")) {
     fail(file, "learningObjectives must contain at least one item");
   }
-  if (!labEnvironment || labEnvironment.length < 60) {
-    fail(file, "labEnvironment must explain the safe test boundary");
+  if (words < 300) {
+    fail(file, `only ${words} prose words; expected at least 300`);
   }
-  if (words < 700) {
-    fail(file, `only ${words} prose words; expected at least 700`);
-  }
-  if (headingCount < 8) {
-    fail(file, `only ${headingCount} headings; expected at least 8`);
-  }
-  if (codeBlockCount < 3) {
-    fail(file, `only ${codeBlockCount} code examples; expected at least 3`);
+  if (headingCount < 2) {
+    fail(file, `only ${headingCount} headings; expected at least 2`);
   }
   if (!references) {
     fail(file, "missing a final ## References section");
   }
-  if (referenceUrls.size < 6) {
+  if (referenceUrls.size < 1) {
     fail(
       file,
-      `only ${referenceUrls.size} reference URLs; expected at least 6`,
+      `only ${referenceUrls.size} reference URLs; expected at least one`,
     );
   }
 

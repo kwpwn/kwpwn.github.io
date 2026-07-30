@@ -11,6 +11,9 @@ tags:
   - static analysis
   - reverse engineering
 author: "kwpwn"
+content_type: "concept"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 topic: "malware-c2"
 track: "static-analysis"
@@ -340,6 +343,115 @@ Record whether:
 7. Select dynamic sensors that can confirm or reject each hypothesis.
 8. Keep parser errors as evidence; malformed structure can be intentional or
    accidental.
+
+## Treat the parser as a security boundary
+
+A parser converts attacker-controlled bytes into offsets, counts, and sizes.
+Every conversion is a trust boundary. The safest implementation makes each
+boundary visible instead of hiding arithmetic inside pointer casts.
+
+For a table at file offset `base`, with `count` entries of `entry_size`, validate
+the multiplication before validating the final range:
+
+```text
+count <= MAX_COUNT
+entry_size != 0
+count <= (file_size - base) / entry_size
+table_size = count * entry_size
+base <= file_size
+table_size <= file_size - base
+```
+
+The subtraction form avoids accepting a wrapped `base + table_size`. Apply the
+same discipline to the DOS-to-NT-header offset, optional-header length, section
+table, data-directory index, import descriptors, thunk arrays, resource tree,
+and debug records. A NUL-terminated string also needs a bounded search inside
+the mapped region; finding its first byte is not enough.
+
+Keep parser outcomes more precise than `valid` or `invalid`:
+
+| Outcome | Meaning | Analyst action |
+| --- | --- | --- |
+| well formed and supported | all required ranges validated | continue semantic triage |
+| well formed but unsupported | structure is bounded, feature is unknown | preserve bytes and report the limitation |
+| truncated | a declared range exceeds available bytes | stop that branch; keep other independent facts |
+| contradictory | two fields cannot both describe the file | record both values and reject the dependent claim |
+| resource limit | counts or nesting exceed the parser policy | report a controlled refusal, not a crash |
+
+This vocabulary prevents a parser limitation from becoming a claim that
+Windows will reject the image. The operating-system loader, signature verifier,
+debugger, and third-party parser do not necessarily consume identical regions
+or apply identical policy.
+
+## Loader view, file view, and certificate view
+
+Most directories contain RVAs because their contents participate in the loaded
+image. The attribute certificate table is an important exception: its entry is
+interpreted as a file offset and size, and the certificate data is not mapped
+as normal image content. Debug data can also require careful treatment because
+the directory record can describe both an RVA and a raw file location.
+
+Overlays create another file-versus-image distinction. Bytes after the last
+claimed raw section may be installer payload, appended configuration, a
+signature-related region, padding, or unrelated data. The existence of an
+overlay is an observation. Calling it a packer or hidden payload requires
+format-aware parsing and, ideally, dynamic confirmation.
+
+Record these views separately:
+
+- **file view:** exact byte ranges, hashes, overlay, certificate region;
+- **image view:** headers and sections that the loader maps, including
+  zero-filled virtual tails;
+- **runtime view:** actual image base, relocations applied, resolved imports,
+  memory protections, and dynamically obtained APIs.
+
+The distinction explains why hashing a memory dump rarely equals hashing the
+original file and why a raw offset should never be added directly to a runtime
+image base.
+
+## Worked triage: high entropy in a signed installer
+
+Suppose a signed executable has one large high-entropy section, sparse imports,
+and an overlay. A weak report labels it packed and malicious. A stronger report
+tests alternatives:
+
+1. Verify the file hash, signature result, chain policy, and timestamp. Record
+   the tool and policy; do not reduce the result to "signed."
+2. Parse the section table with bounds checks and identify exactly which bytes
+   contribute to the entropy measurement.
+3. Determine whether the overlay belongs to the certificate table, a known
+   installer container, or an unclassified region.
+4. Compare import hypotheses with strings, resources, and entry-point code.
+   Sparse imports can reflect runtime resolution, a small bootstrapper, or a
+   toolchain choice.
+5. Run the file only in the controlled lab. Capture image loads, child
+   processes, file writes, and network activity.
+6. Recalculate hashes for extracted child files and relate them to their
+   creator and timestamp.
+7. Use a negative comparison: inspect a known-good release built with the same
+   packaging system.
+
+A publishable conclusion might be: "The outer image is a signed bootstrapper
+whose high-entropy region is extracted into two signed child packages during
+the lab run." If extraction was not observed, retain "likely packed or
+compressed" as a hypothesis rather than upgrading it to fact.
+
+## Version and toolchain record
+
+PE fields are a documented contract, but their interpretation still needs
+environment context. Record:
+
+- parser version and limits;
+- host architecture and whether the sample is PE32 or PE32+;
+- file hash and acquisition source;
+- Windows build used for loading;
+- signature verification API/tool, revocation policy, and network availability;
+- symbol or type source for any non-public structure;
+- discrepancies among at least two independent parsers.
+
+The analysis passes review when every displayed RVA maps to one validated
+region, every string read is bounded, parser errors are retained, and dynamic
+claims cite runtime evidence rather than imports alone.
 
 ## References
 

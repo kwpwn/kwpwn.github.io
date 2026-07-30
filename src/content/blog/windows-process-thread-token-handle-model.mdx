@@ -12,6 +12,9 @@ tags:
   - access tokens
   - handles
 author: "kwpwn"
+content_type: "concept"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 topic: "windows-internals"
 track: "processes-execution"
@@ -298,6 +301,119 @@ This one model supports many later topics:
 - object lifetime: which pointer or handle kept the target alive?
 - malware analysis: which process made the network connection, and which thread
   performed the action?
+
+## Add time to the model
+
+The four objects do not describe one permanent identity. Their relationships
+change over time:
+
+```text
+T0 process starts with primary token P
+T1 thread begins request using P
+T2 thread impersonates client token I
+T3 thread opens object; handle H receives rights checked against I
+T4 thread reverts to P
+T5 code uses H; H keeps its original granted access
+T6 H closes; object may remain alive through other references
+```
+
+At T5, inspecting only the current process token misses the identity that
+caused the open. Conversely, seeing a powerful token attached to a thread does
+not prove that a particular handle was opened with it. A research timeline must
+record the token effective at the authorization decision and the access mask
+stored in the resulting handle.
+
+| Question | Snapshot evidence | Temporal evidence |
+| --- | --- | --- |
+| who owns the process? | primary token | process creation and token changes |
+| who is this thread acting as? | thread token or fallback to primary | impersonate/revert interval |
+| what can this handle do? | granted access | identity and desired access at open |
+| why is the object still alive? | handle/reference counts | open, duplicate, close, reference events |
+
+## Worked case: an impersonating worker
+
+Build a benign local server that receives a request from a test client,
+impersonates the client, opens a marker file for read, reverts, and returns the
+marker hash. Give the server's primary identity access to the file but deny it
+to the client.
+
+Run A should fail while impersonating because the effective thread token is the
+client token. Run B removes impersonation and should succeed under the server's
+primary token. Run C opens a different file that the client is allowed to read,
+then reverts and uses the already-open handle; the read can succeed because the
+handle carries the access granted at open.
+
+Capture:
+
+- process and thread IDs with start times;
+- primary and impersonation token user/group/integrity data;
+- impersonation level;
+- desired access and open result;
+- resulting handle granted access;
+- impersonate and revert boundaries;
+- file DACL and before/after identity used for the request.
+
+The lab teaches two separate rules. An impersonating thread can have both the
+server's primary token and the client's impersonation token, and authorization
+usually uses the effective thread context. After a handle is granted, reverting
+does not cause Windows to rerun the original DACL check for every ordinary
+handle use.
+
+## IDs are observations, not ownership
+
+A PID or TID identifies a live execution object only within a time interval.
+Windows can reuse numeric IDs after termination. A numeric handle is meaningful
+only inside its owning process handle table, and the same value can later refer
+to a different entry. Kernel pointers are capture-local observations and can be
+reused after an object is freed.
+
+Use compound identifiers in evidence:
+
+```text
+process = {pid, creation_time, image_hash, boot_id/session}
+thread  = {tid, process_identity, creation_time}
+handle  = {owning_process_identity, value, observation_time, granted_access}
+token   = {token_id/statistics, type, impersonation_level, observation_time}
+```
+
+Sensor-provided process GUIDs are valuable correlation keys but remain sensor
+artifacts, not kernel object identities. Preserve the raw source that created
+them.
+
+## Handle transfer changes the graph
+
+Inheritance and duplication do not copy an object. They create another
+handle-table entry that references the same object, potentially with a reduced
+access mask:
+
+- inheritance is selected at handle creation and process creation;
+- `DuplicateHandle` names a source process/table entry and a target process;
+- the duplicate can request the same or a permitted subset of access;
+- closing one entry does not close the others;
+- IPC protocols that transmit a bare numeric value without duplication are
+  usually transmitting meaningless data to another process.
+
+When reviewing a broker or sandbox boundary, identify who duplicates the
+handle, which target process receives it, which rights are granted, and whether
+the target can convert that right into a stronger operation. The security
+decision may be in the broker's handle-selection logic rather than the target
+object DACL.
+
+## Version and debugger discipline
+
+Public process, thread, token, and handle APIs provide the durable concepts.
+Internal `EPROCESS`, `ETHREAD`, token, and handle-table layouts vary by build
+and architecture. Use matching symbols and debugger extensions, record the
+Windows build, and avoid copying offsets from a prior release.
+
+The lesson passes review when every action names:
+
+- the process and exact thread that performed it;
+- primary versus effective impersonation token;
+- desired versus granted access;
+- handle owner process and lifetime;
+- object type and lifetime evidence;
+- build/symbol scope for every kernel observation.
 
 ## References
 

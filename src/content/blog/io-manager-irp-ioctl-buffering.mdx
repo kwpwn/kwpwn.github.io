@@ -12,6 +12,9 @@ tags:
   - IOCTL
   - driver security
 author: "kwpwn"
+content_type: "concept"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 topic: "windows-internals"
 track: "io-drivers"
@@ -345,6 +348,129 @@ dequeued, and completed states.
 - IRP completed twice;
 - cancel routine races with worker completion;
 - object pointer used after dereference.
+
+## Build the request trust-boundary map
+
+Review an IOCTL as a chain of transformations, not as one dispatch function:
+
+```text
+untrusted handle opener
+  -> device-object access check
+  -> IOCTL access-bit check
+  -> I/O manager buffer representation
+  -> dispatch or queue callback
+  -> embedded lengths, offsets, handles, and identifiers
+  -> privileged kernel or device operation
+  -> completion status and initialized output
+```
+
+For each arrow, record who owns the memory, which mode supplied the value, how
+long it remains valid, and which component performs the next check. This map
+finds bugs that a line-by-line audit can miss, such as a validated header queued
+asynchronously while its embedded pointer still refers to mutable user memory.
+
+| Input element | Required question |
+| --- | --- |
+| top-level buffer | which transfer method produced this address? |
+| byte length | was multiplication/addition checked before the range check? |
+| embedded offset | is it relative to the validated buffer and fully contained? |
+| user handle | was type and requested access checked with caller mode? |
+| object identifier | can it name an object outside the caller's authority? |
+| output length | is every reported byte initialized on every success path? |
+| asynchronous context | what reference or copy keeps each object alive? |
+
+## Worked review: versioned buffered query
+
+Consider a benign `METHOD_BUFFERED` query with this conceptual contract:
+
+```text
+REQUEST {
+  Size
+  Version
+  ItemCount
+  ItemsOffset
+}
+
+RESPONSE {
+  Size
+  Version
+  RequiredSize
+  ItemCount
+  Items[]
+}
+```
+
+A disciplined review follows the data:
+
+1. Require `InputBufferLength` to cover the fixed header before reading any
+   field.
+2. Copy the fixed header to a local variable if later code can modify the
+   shared system buffer.
+3. Accept only documented versions and a `Size` appropriate for that version.
+4. Check `ItemCount <= (InputBufferLength - ItemsOffset) / item_size` after
+   proving `ItemsOffset <= InputBufferLength`.
+5. Calculate required output size with checked arithmetic.
+6. If the output is too small, return the required size only through a
+   documented, initialized field and use the intended status.
+7. Initialize the entire output range that will be reported.
+8. Set `IoStatus.Information` to the exact initialized byte count, never the
+   caller's output length.
+9. Complete exactly once, or transfer ownership to a queue with an explicit
+   cancellation/lifetime contract.
+
+The negative test set should include zero length, header minus one, exact
+header, unsupported version, offset before the header, offset at the end,
+count multiplication near overflow, exact output, and output one byte short.
+The test oracle is not merely "no crash": it includes status, bytes returned,
+unchanged guard bytes, and absence of uninitialized data.
+
+## METHOD_NEITHER needs a time dimension
+
+With `METHOD_NEITHER`, validating an address once is insufficient. The I/O
+manager passes original user virtual addresses. Microsoft documents that safe
+access requires the appropriate probe in the requesting thread context and
+exception handling because mappings or protections can change.
+
+The review must ask:
+
+- is the code still in the requestor's process context?
+- can the request pend or move to a worker?
+- is the buffer probed for the direction in which it is actually accessed?
+- is data copied once, or checked and then read again from mutable memory?
+- is every access that can fault inside the correct exception boundary?
+- would a buffered or MDL-backed contract remove the lifetime ambiguity?
+
+This is both a memory-safety and an authorization concern. A user can change a
+pointer target or embedded selector between validation and use. Prefer an
+immutable kernel copy of the validated request when the contract permits it.
+
+## WDM, KMDF, and version scope
+
+KMDF changes the request API and can make buffer retrieval and cancellation
+ownership clearer, but it does not invent authorization or semantic bounds.
+The reviewer must still recover the IOCTL definition, device security,
+requested access, input/output contract, embedded objects, queue execution
+level, and downstream privileged operation.
+
+Record:
+
+- driver file hash, signer, version, build timestamp, and loaded path;
+- Windows build, architecture, VBS/HVCI state, and relevant device hardware;
+- device interface and security descriptor;
+- whether the request reached WDM dispatch directly or a framework callback;
+- IOCTL code decoded into device type, function, method, and access;
+- Driver Verifier settings and debugger evidence for each failing boundary.
+
+Do not carry an offset, undocumented structure layout, or observed dispatch
+path to another build without revalidation.
+
+## Review acceptance gate
+
+The audit is complete only when all reachable IOCTLs have a caller model,
+access model, buffer/lifetime model, checked arithmetic review, initialized
+output review, completion/cancellation review, and a boundary test corpus. A
+crash is an observation; exploitability requires a separate proof of attacker
+control, reachability, reliability, and security impact.
 
 ## References
 

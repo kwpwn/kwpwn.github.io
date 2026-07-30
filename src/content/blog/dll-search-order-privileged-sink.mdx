@@ -11,6 +11,9 @@ tags:
   - Windows loader
   - Procmon
 author: "kwpwn"
+content_type: "concept"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 topic: "windows-privesc"
 track: "execution-persistence"
@@ -289,6 +292,126 @@ malice. Developer build trees and plugin systems can be legitimate.
 - ship and test manifests deliberately;
 - baseline module paths and signatures for privileged services;
 - regression-test dependency resolution after hardening.
+
+## Model resolution as a reachability graph
+
+A bare DLL name is only the first node. A useful claim follows the complete
+path:
+
+```text
+privileged process
+  -> load request and loader mode
+  -> candidate directory order
+  -> first candidate that satisfies resolution
+  -> file or package permissions
+  -> architecture and image validation
+  -> module initialization
+  -> privileged effect
+```
+
+Each edge can break the chain. A writable directory that appears late in the
+search order is irrelevant if a valid earlier copy always exists. A missing
+name is irrelevant if the path is never reached on the tested execution. A
+controllable file is irrelevant if its architecture is wrong or policy blocks
+it. A load is not yet elevation unless the loading process has a stronger
+security context and the actor can trigger that path.
+
+Maintain two evidence columns:
+
+| Producer-side capability | Consumer-side behavior |
+| --- | --- |
+| actor can create/replace an exact path | process requests the relevant base name |
+| access check is performed with the actor's real token | loader searches that directory before a trusted match |
+| path remains controllable at trigger time | image is accepted and mapped |
+| file survives installer/repair behavior | privileged code path reaches the load |
+
+This split prevents a common false positive: proving a missing DLL with an
+elevated audit tool while never proving that a standard user can create the
+candidate.
+
+## Loader state that changes the answer
+
+There is no universal static list called "the DLL search order." Record the
+state that selects the algorithm:
+
+- packaged or unpackaged process;
+- full path, relative path containing a directory, or base name only;
+- module already loaded under that base name;
+- KnownDLL handling where applicable;
+- safe-search-mode policy;
+- `SetDefaultDllDirectories`, `AddDllDirectory`, or `SetDllDirectory` calls;
+- `LoadLibraryEx` flags;
+- application directory, current directory, and effective `PATH`;
+- side-by-side manifests, API-set resolution, and redirection behavior;
+- child process inheriting environment or affected process-wide state.
+
+Process-wide search configuration creates a concurrency concern. A trace that
+captures only the final `LoadLibrary` call can miss an earlier thread changing
+the directory set. Capture process startup and the configuration calls, or
+state that this part is unverified.
+
+## Worked validation: privileged and unprivileged twins
+
+Build two harmless toy applications from the same source. Both load
+`labplugin.dll` by base name and call a function that writes a marker containing
+the process integrity level and module path. Run one as the normal test user
+and one through a deliberately configured lab service account. Do not use a
+system service or replace a real product DLL.
+
+1. Capture a baseline with no plugin in the candidate test directory.
+2. Record every `NAME NOT FOUND` and the eventual outcome in Process Monitor.
+3. Place a benign, correctly signed/local-build plugin in a directory writable
+   by the test user.
+4. Repeat and record the exact loaded path with process/module telemetry.
+5. Harden both applications with an absolute trusted path or explicit
+   `LOAD_LIBRARY_SEARCH_*` policy.
+6. Repeat: the writable candidate should no longer be selected.
+7. Add an earlier trusted copy as a negative control. The writable later copy
+   should be ignored.
+8. Run the access check under the standard user's token, not the service's or
+   administrator's token.
+
+The experiment demonstrates resolution and remediation. A real-product report
+still needs the product version/hash, service identity, trigger reachability,
+directory/file DACL, earlier candidates, loader configuration, and policy
+state. The marker plugin does not establish arbitrary code execution in an
+unrelated product.
+
+## Version and packaging caveats
+
+Search behavior has changed across Windows releases and differs between
+packaged and unpackaged applications. Safe DLL search mode, altered search
+paths, package dependency graphs, manifests, API sets, KnownDLLs, and
+application compatibility can all affect the observed result. Publish the
+tested build and process model rather than presenting one ordered list as
+timeless.
+
+For evidence, prefer:
+
+- direct module-load path from the target process;
+- the load call and flags from source, symbols, stack, or disassembly;
+- process-wide directory configuration observed before the load;
+- filesystem access checks for the low-privileged actor;
+- paired vulnerable/hardened runs;
+- a negative run where an earlier trusted candidate prevents the load.
+
+## Claim ladder
+
+Use the narrowest proven statement:
+
+1. **resolution anomaly:** the process requests a base name and searches an
+   unexpected directory;
+2. **controllable candidate:** the low-privileged actor can create the exact
+   path that would be selected;
+3. **load primitive:** the target maps the benign lab module from that path;
+4. **privileged load:** the mapping occurs in a stronger security context;
+5. **boundary impact:** the loaded module performs a harmless marker action
+   proving that context;
+6. **real-world applicability:** version, trigger, policy, and installer state
+   match the affected deployment.
+
+Stopping at the correct rung makes the report more credible than calling every
+failed DLL lookup a hijack.
 
 ## References
 

@@ -12,6 +12,9 @@ tags:
   - WebSocket
   - detection engineering
 author: "kwpwn"
+content_type: "concept"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 topic: "malware-c2"
 track: "c2-operations"
@@ -294,6 +297,89 @@ Collection gaps:
 - preserve raw timestamps and sensor-loss counters;
 - validate detections against benign updaters, browsers, chat clients, and
   management agents.
+
+## Put message semantics before the carrier
+
+A transport trace cannot explain a protocol by itself. HTTP, WebSocket, and DNS
+describe how bytes move; the application still decides what those bytes mean.
+Start the analysis with four independent questions:
+
+| Question | Evidence that can answer it | Common overclaim |
+| --- | --- | --- |
+| How is one logical message delimited? | length field, JSON boundary, WebSocket message, DNS transaction | treating one TCP packet as one message |
+| How is work identified? | stable task ID, sequence number, request token | matching only on time proximity |
+| What makes delivery complete? | explicit acknowledgement, terminal result, timeout policy | assuming an HTTP 200 means the task ran |
+| What happens after uncertainty? | retry trace, duplicate result, reconnect behavior | calling every repeated request a new task |
+
+This ordering matters because carriers can transform framing. An HTTP body can
+span several TCP segments. A WebSocket message can span frames, and RFC 6455
+allows intermediaries to coalesce or split frames when extension rules permit
+it. A DNS name is a sequence of length-delimited labels, not an arbitrary
+unbounded string. Detection logic should therefore operate on the highest
+reliably reconstructed layer, and record when that layer is unavailable.
+
+## Failure semantics are part of the protocol
+
+The most informative trace is often a failed one. Build a small fault matrix in
+the offline simulator and change only one condition per run:
+
+| Fault | Questions to answer | Useful telemetry |
+| --- | --- | --- |
+| response is lost after the server accepted work | is the same task delivered again; is execution deduplicated? | task ID, attempt number, host action count |
+| client restarts before reporting | is pending state durable; does identity survive restart? | process start, local state access, reconnect identity |
+| result is larger than the carrier limit | is it chunked, rejected, truncated, or switched to another route? | message sizes, error code, result hash |
+| requests arrive out of order | is ordering global, per client, or absent? | sequence number and receive timestamp |
+| clock moves backwards | are deadlines based on wall time or monotonic duration? | both clock sources and timeout decision |
+
+Do not infer exactly-once execution merely because one clean run produced one
+result. Networks normally create uncertainty between "accepted" and
+"acknowledged." A stronger design uses an idempotency key or task identifier,
+persists the terminal state, and makes duplicate handling observable. A
+stronger analysis proves this behavior by replaying the same identifier after
+an intentionally lost acknowledgement.
+
+## Worked analysis: updater or tasking protocol?
+
+Consider a process that makes an HTTPS request every five minutes and
+occasionally downloads a larger response. Periodicity and asymmetry are not
+enough to classify it. A defensible analysis proceeds as follows:
+
+1. **Document the observation.** Record process image, signer, parent,
+   destination, connection times, byte counts, HTTP method if visible, and
+   sensor coverage. These are facts.
+2. **Form competing hypotheses.** H1 is a software updater; H2 is a management
+   agent; H3 is a tasking client. None is yet a conclusion.
+3. **Look for application identity.** Determine whether a stable installation
+   ID, version, or task ID appears in accessible host state or decoded lab
+   traffic. Do not defeat encryption on a system you do not own.
+4. **Correlate the response with host action.** A downloaded package followed
+   by signature verification and an installer child supports H1. A small
+   structured instruction followed by a variable child process and a
+   correlated result supports H2 or H3, but still does not establish intent.
+5. **Run negative controls.** Block the destination in the lab, return an empty
+   queue, replay a task ID, and restart the client. Record what changes and
+   what remains constant.
+6. **State the narrow conclusion.** For example: "The client implements
+   authenticated polling with durable task identifiers and produces host
+   actions correlated to returned objects." Product identity or malicious
+   intent requires separate evidence.
+
+The value of the case study is the method: one network shape can support
+several legitimate and malicious explanations. Process-aware host evidence and
+controlled failure tests eliminate alternatives more reliably than a domain,
+URI, user-agent, or timing signature.
+
+## Review gate
+
+An analysis of a C2-like transport is ready to publish only when it includes:
+
+- the logical message boundary and maximum observed size;
+- identity, ordering, acknowledgement, retry, and duplicate semantics;
+- at least one clean run, one fault-injected run, and one negative control;
+- a mapping from each conclusion to network, host, IPC, or file evidence;
+- benign software used to challenge each proposed detection;
+- explicit collection gaps, including encrypted fields and dropped events;
+- wording that separates protocol capability from operator intent.
 
 ## References
 

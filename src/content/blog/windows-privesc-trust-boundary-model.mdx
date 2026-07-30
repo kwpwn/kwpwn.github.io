@@ -11,6 +11,9 @@ tags:
   - access control
   - methodology
 author: "kwpwn"
+content_type: "concept"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 topic: "windows-privesc"
 track: "foundations"
@@ -260,6 +263,167 @@ Remediation:
 ```
 
 This format prevents a long tool transcript from hiding the core argument.
+
+## Think in capabilities, not technique names
+
+Privilege escalation chains become easier to reason about when each step is a
+capability with explicit input and output:
+
+```text
+low-privileged actor
+  -> control primitive
+  -> namespace/object reached
+  -> privileged consumer
+  -> sensitive sink
+  -> stronger capability
+```
+
+The control primitive may be small. It does not need to be "arbitrary code
+execution":
+
+| Primitive | What it permits | Missing proof before elevation |
+| --- | --- | --- |
+| arbitrary file create | place a new file at a chosen reachable path | a privileged consumer selects that path |
+| arbitrary file overwrite | change existing content | signature/policy/locking and consumer execution |
+| arbitrary file delete | remove a chosen file | deletion changes a privileged decision or creates a replacement window |
+| arbitrary directory create/delete | alter namespace topology | traversal, ACL inheritance, and privileged lookup behavior |
+| reparse/link control | redirect a path resolution step | privileged operation follows it without a safe-open defense |
+| registry value/key write | alter configuration state | privileged component reads the field and trusts its format |
+| service configuration right | change an SCM-managed property | trigger and stronger service identity |
+| DACL/owner write | grant a later access right | object type, inheritance, and usable follow-on operation |
+| token impersonation | temporarily act in another security context | impersonation level and a useful operation under that token |
+| privileged handle | use rights already granted to an object | handle type, access mask, lifetime, and reachable sink |
+
+This table also explains why ACL bugs deserve their own vulnerability class.
+The memory is safe; the authorization policy is not. A service DACL that grants
+`SERVICE_CHANGE_CONFIG`, a writable service registry key, or a directory DACL
+that permits replacement can expose different primitives and must be tested
+against different consumers.
+
+## Classify authorization failures precisely
+
+Avoid the vague label "bad permissions." Identify the failing rule:
+
+- **overbroad allow ACE:** an untrusted SID receives a dangerous object-specific
+  right;
+- **missing deny/restriction boundary:** a policy expected to constrain a
+  brokered or sandboxed identity does not;
+- **unsafe inherited ACE:** a parent directory/key grants a child capability
+  the installer did not intend;
+- **owner/write-DACL exposure:** the actor can rewrite authorization even when
+  the immediate operation is denied;
+- **confused-deputy authorization:** a privileged consumer checks the wrong
+  identity or authorizes one object then operates on another;
+- **impersonation/reversion error:** work occurs under the server token when the
+  client's effective identity should apply;
+- **TOCTOU in authorization:** a checked path, handle, token, or descriptor can
+  change before use;
+- **policy representation mismatch:** Win32 path, native path, WOW64 view,
+  registry view, or canonicalization causes the check and use to name different
+  objects.
+
+For each class, preserve the token, exact desired access, object type, security
+descriptor, generic mapping, result, and time of check/use.
+
+## Worked chain: service DACL without destructive execution
+
+Use the disposable service from the service-permissions lesson and prove the
+chain in safe increments:
+
+1. **Baseline actor:** capture a non-elevated token and show that opening the
+   service for `SERVICE_CHANGE_CONFIG` is denied.
+2. **Controlled primitive:** add one lab ACE and show the same exact request
+   succeeds. Change only a benign display-name marker, then restore it.
+3. **Privileged consumer:** document that the SCM owns service configuration
+   and record the service's configured identity; do not redirect its binary.
+4. **Reachability control:** show that the test user still lacks start/stop
+   rights. This prevents the report from silently assuming a trigger.
+5. **Negative control:** remove the ACE and prove the exact configuration open
+   is denied again.
+6. **Remediation:** compare SDDL before/after and confirm normal service health.
+
+The result is intentionally narrow: a standard user gained service
+configuration capability in the lab. The documented `SERVICE_CHANGE_CONFIG`
+right is dangerous because it can alter executable configuration, but this lab
+does not claim that a real protected service was replaced or executed.
+
+This pattern generalizes. Demonstrate the primitive with a harmless marker,
+prove the consumer and sink separately, and never substitute a dangerous final
+action for missing evidence.
+
+## Score evidence and impact separately
+
+Use two independent ratings:
+
+**Evidence confidence**
+
+- E0: assertion or tool label only;
+- E1: one observation without actor/negative control;
+- E2: exact access and controlled input reproduced;
+- E3: primitive joined to consumer and sink with negative controls;
+- E4: repeated across relevant builds with remediation regression.
+
+**Impact capability**
+
+- I0: information only;
+- I1: denial or non-security configuration change;
+- I2: protected data/object influence;
+- I3: action under a stronger local security context;
+- I4: durable administrative/system control or equivalent boundary loss.
+
+Do not let high potential impact compensate for weak evidence. A report can be
+E3/I1, proving a strong but low-impact configuration primitive, or E1/I4,
+describing a serious theoretical chain that still needs validation.
+
+## Research decision record
+
+For every candidate, write:
+
+```text
+Observed:
+  Raw fact, source, timestamp, build
+
+Actor:
+  Effective token, integrity, groups, privileges, sandbox/container state
+
+Primitive:
+  Exact object and granted operation
+
+Consumer:
+  Component, identity, and trigger
+
+Sink:
+  Security-relevant operation and target
+
+Controls:
+  Positive, negative, alternate benign explanation
+
+Version scope:
+  Windows/product build, policy, architecture
+
+Conclusion:
+  Highest proven capability, E/I rating
+
+Falsification:
+  Result that would reject the chain
+```
+
+This record keeps complex chains reviewable and makes gaps visible before a
+case study is published.
+
+## Professional review gate
+
+A privilege-escalation claim is ready only when:
+
+- the starting token is captured rather than described as merely "user";
+- the primitive names an exact object and operation;
+- access is proven under the real actor, not an elevated audit process;
+- the privileged consumer and trigger are observed;
+- the sink crosses a defined security boundary;
+- positive and negative controls isolate causality;
+- version, policy, architecture, and product hashes are recorded;
+- remediation removes the primitive and passes functional regression;
+- the conclusion stops at the highest demonstrated capability.
 
 ## References
 

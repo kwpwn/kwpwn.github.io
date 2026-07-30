@@ -12,6 +12,9 @@ tags:
   - WOW64
   - native API
 author: "kwpwn"
+content_type: "concept"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 topic: "windows-internals"
 track: "telemetry-runtime"
@@ -277,6 +280,114 @@ versions.
 - mixing 32-bit and 64-bit structures in WOW64;
 - treating `phnt` structure definitions as a version-independent contract;
 - publishing a field offset without the build, architecture, and symbol source.
+
+## Track provenance at every boundary
+
+`PreviousMode` is useful because it records how the current thread most
+recently entered kernel mode, but it is not a taint engine for every nested
+field. A review should track provenance explicitly:
+
+| Value | Origin to establish | Required treatment |
+| --- | --- | --- |
+| top-level user buffer | syscall or IOCTL caller | probe/capture according to API contract |
+| embedded pointer | bytes inside a captured structure | validate separately; avoid check/use races |
+| handle | user or kernel handle table and granted access | reference with correct mode, type, and access |
+| kernel-local buffer | trusted allocation owned by driver | keep lifetime and initialization correct |
+| structure layout | native, WOW64, or versioned information class | select and validate the matching layout |
+
+A kernel caller choosing a Zw routine says that the parameters are from a
+trusted kernel source. It must not be used to relabel a raw user pointer as
+trusted. Microsoft documents that user-mode calls to the Nt and Zw names are
+handled as untrusted user requests; the meaningful distinction appears for
+kernel-mode callers.
+
+## Repeatable debugger experiment
+
+Use a disposable VM with matching symbols and a small program that performs a
+documented native query against its own process.
+
+1. Record the exact Windows build, architecture, process bitness, ntdll hash,
+   and public symbol status.
+2. Break on the exported ntdll routine and capture the native arguments.
+3. Step only far enough to identify the architecture-specific service
+   transition; do not publish a service number as a stable interface.
+4. Break on the corresponding kernel implementation using symbols.
+5. Inspect the current thread's requestor history/`PreviousMode` and the
+   caller-supplied buffer range.
+6. Continue to the manager that owns the requested information.
+7. Record returned status, required length, bytes written, and user-mode API
+   interpretation.
+8. Repeat with a deliberately undersized buffer and confirm the documented
+   failure/length behavior.
+
+The undersized request is a negative control: it shows that the observed
+validation belongs to the same path instead of merely showing that the clean
+query works. Repeat the experiment from a 32-bit process on a 64-bit host and
+compare the user-facing structure and transition path without assuming that
+the native and compatibility layouts are identical.
+
+## Information classes need a version ledger
+
+An information-class number is not enough documentation. Keep one row per
+tested environment:
+
+```text
+class name/number:
+caller bitness:
+target bitness:
+Windows build:
+input structure and size:
+output structure and size:
+required access:
+success status:
+short-buffer status:
+symbol/header source:
+observed fields:
+unsupported or contradictory fields:
+```
+
+Public Microsoft documentation is the primary contract where available.
+System Informer's `phnt` and NtDoc are valuable research indexes, but they are
+secondary descriptions assembled across versions. Validate non-public fields
+against the target's symbols, disassembly, and controlled observations.
+
+Do not infer field support just because a header contains a definition.
+Different builds may reject a class, accept only a prefix, return a different
+length, gate it by access or policy, or populate fields conditionally. A
+successful query on one build confirms that one environment, not every Windows
+release.
+
+## Worked case: native versus WOW64 observation
+
+Suppose a 32-bit inspector queries a 64-bit target and reports a pointer-like
+field. Three hypotheses compete:
+
+- the API intentionally returns a 32-bit compatibility representation;
+- the call is translated to a native structure and converted on return;
+- the tool parsed native bytes with the wrong 32-bit definition.
+
+Resolve them by capturing the user buffer before and after the call, recording
+the returned length, tracing the compatibility transition, and running a
+native 64-bit build of the same inspector. Compare semantic fields such as
+identifier and status before comparing pointer widths. If the layouts disagree,
+report two observed contracts; do not "fix" the output with an undocumented
+cast.
+
+The publishable conclusion should name the caller/target bitness and build:
+"On build X, the 32-bit caller received layout A and the native caller received
+layout B for class C." Anything broader remains a hypothesis until repeated.
+
+## Evidence grades
+
+- **Documented:** the behavior is stated by Microsoft for the relevant API.
+- **Observed:** matching symbols and a controlled trace show the behavior on
+  the recorded build.
+- **Inferred:** disassembly or related classes suggest a behavior not directly
+  exercised.
+- **Unverified:** a secondary header names a field that has not been validated.
+
+This grading is especially important for system calls because stable public
+API behavior can sit above implementation details that move between builds.
 
 ## References
 

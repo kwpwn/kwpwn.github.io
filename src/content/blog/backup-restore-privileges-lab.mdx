@@ -11,6 +11,9 @@ tags:
   - SeRestorePrivilege
   - access tokens
 author: "kwpwn"
+content_type: "lab"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 topic: "windows-privesc"
 track: "credentials-recovery"
@@ -278,6 +281,110 @@ Defenders should focus on assignment and use:
 
 An enabled privilege in a token is context, not proof of misuse. A defensible
 detection joins identity, unusual target, process lineage, timing, and operation.
+
+## Decompose the access decision
+
+Do not treat a successful open as evidence that a privilege was used. The same
+request can succeed because the DACL already grants access, the caller owns the
+object, the file is opened with backup intent while an applicable privilege is
+enabled, or the test accidentally ran elevated.
+
+Capture the decision as a matrix:
+
+| Variable | Values worth testing |
+| --- | --- |
+| token | privilege absent, present-disabled, present-enabled |
+| object DACL | ordinary read/write allowed, denied to test identity |
+| open options | normal semantics, documented backup semantics |
+| requested access | metadata only, content read, content write |
+| caller | standard interactive token, dedicated lab account |
+| path | ordinary file, protected test file, directory, reparse boundary |
+
+Change one cell at a time. The strongest demonstration is differential:
+
+1. the protected test file cannot be opened for the requested operation with
+   the privilege disabled;
+2. the same token enables the named privilege and retries the same operation;
+3. the operation succeeds only when the documented backup/restore semantics
+   are used;
+4. disabling the privilege again restores the denial;
+5. an ordinary file remains accessible in all expected control runs.
+
+Record the `AdjustTokenPrivileges` return value **and** `GetLastError`.
+Successful return does not mean every requested privilege was assigned; the
+documented `ERROR_NOT_ALL_ASSIGNED` result distinguishes a privilege missing
+from the token from a privilege that was present and enabled.
+
+## Worked lab: protected marker, not credential material
+
+Create a dedicated local lab account and a directory that contains a harmless
+text marker. Apply a DACL that denies ordinary content access to that account
+while leaving the administrator recovery path intact. Before changing
+permissions, export the original security descriptor so cleanup is
+deterministic.
+
+Run four observations and keep the file contents constant:
+
+| Run | Privilege state | Open behavior | Expected interpretation |
+| --- | --- | --- | --- |
+| A | disabled | ordinary read | denied by the object access check |
+| B | enabled | ordinary read | may remain denied; privilege presence does not rewrite every API contract |
+| C | enabled | documented backup semantics | content retrieval can bypass the ordinary DACL path |
+| D | disabled again | same as C | denied, establishing the privilege dependency |
+
+For a restore-side exercise, use a second disposable marker and validate only a
+benign metadata/content restoration into the lab directory. Do not overwrite a
+service binary, authentication database, boot file, or another security
+principal's profile. Preserve before/after hashes, owner, DACL, attributes, and
+timestamps so the report says exactly which property changed.
+
+Add two negative controls:
+
+- repeat the operation under a token that does not contain the privilege and
+  confirm that enabling it reports `ERROR_NOT_ALL_ASSIGNED`;
+- repeat against a path reached through a reparse point after refusing the
+  traversal, proving that the lab helper does not silently follow an
+  attacker-controlled namespace change.
+
+This proves the primitive without turning the lesson into a credential-access
+recipe.
+
+## Filesystem and version scope
+
+The user-right names are stable policy concepts, but observed behavior also
+depends on the filesystem, API, open flags, object type, filter drivers, and
+Windows build. Keep these claims separate:
+
+- **documented:** `SeBackupPrivilege` can permit retrieval of file content even
+  when the file security descriptor would not normally grant access;
+- **documented:** `SeRestorePrivilege` can bypass ordinary checks for some
+  restore-oriented writes;
+- **environment-dependent:** which metadata, alternate streams, reparse data,
+  encryption state, or remote-share behavior the selected API preserves;
+- **not established by the token alone:** that any sensitive target is
+  reachable or that a privileged consumer will use restored content.
+
+Test local NTFS and any other relevant filesystem separately. A remote share
+adds server-side authorization and protocol behavior; do not generalize a
+local result to SMB. Record edition, build, filesystem, volume policy, API,
+flags, account rights, token state, and any minifilter that can affect the
+operation.
+
+## Evidence and reporting gate
+
+| Claim | Minimum evidence |
+| --- | --- |
+| privilege is assigned | token enumeration or policy record |
+| privilege is enabled | token state immediately before the operation |
+| ordinary access is denied | exact access request and error under a control run |
+| privileged semantics changed the result | paired run with one variable changed |
+| object content or metadata changed | before/after hash and security metadata |
+| escalation is possible | separate proof of a higher-privileged consumer and controlled input |
+
+A high-quality report stops at the strongest proven row. If the lab establishes
+only protected-file retrieval, say so. The additional claim "this produces
+elevation" requires evidence for a writable or readable target, a privileged
+consumer, a trigger, and a security boundary crossed.
 
 ## References
 

@@ -34,6 +34,62 @@ const researchTrackSchema = z.enum([
   "kernel-platform",
 ]);
 
+const contentTypeSchema = z.enum([
+  "concept",
+  "vulnerability",
+  "service-dossier",
+  "lab",
+  "research-note",
+  "reference",
+  "interactive-atlas",
+]);
+
+const reviewStatusSchema = z.enum([
+  "draft",
+  "preliminary",
+  "reviewed",
+  "confirmed",
+  "superseded",
+  "archived",
+]);
+
+const evidenceLevelSchema = z.enum([
+  "documented",
+  "observed",
+  "inferred",
+  "hypothesis",
+  "mixed",
+  "unverified",
+]);
+
+const sourceSchema = z.object({
+  title: z.string().min(1),
+  url: z.string().url(),
+  type: z.enum([
+    "official-docs",
+    "official-header",
+    "official-advisory",
+    "cve-record",
+    "symbols",
+    "source-code",
+    "research",
+    "academic",
+    "poc",
+    "other",
+  ]),
+  supports: z.array(z.string()).default([]),
+  reliability: z
+    .enum(["primary", "supporting", "context-only"])
+    .default("supporting"),
+  accessed_at: z.coerce.date().optional(),
+  version_caveat: z.string().optional(),
+});
+
+const changelogEntrySchema = z.object({
+  date: z.coerce.date(),
+  summary: z.string().min(1),
+});
+
 const blog = defineCollection({
   loader: glob({
     pattern: "**/*.{md,mdx}",
@@ -41,13 +97,32 @@ const blog = defineCollection({
     generateId: ({ entry }) => entry.replace(/\.[^/.]+$/, ""),
   }),
   schema: z.object({
-    title: z.string(),
-    description: z.string(),
+    title: z.string().min(1),
+    description: z.string().min(1),
     locale: localeSchema,
     publishDate: z.date(),
     updatedAt: z.coerce.date().optional(),
+    reviewed_at: z.coerce.date().optional(),
     draft: z.boolean().default(false),
     featured: z.boolean().default(false),
+    content_type: contentTypeSchema.default("concept"),
+    status: reviewStatusSchema.default("preliminary"),
+    evidence_level: evidenceLevelSchema.default("unverified"),
+    reviewers: z.array(z.string()).default([]),
+    estimated_reading_time: z.number().int().positive().optional(),
+    windows_versions: z.array(z.string().min(1)).default([]),
+    windows_builds: z
+      .array(z.string().regex(/^(?:10\.0\.)?\d{4,5}(?:\.\d+)?$/))
+      .default([]),
+    architectures: z
+      .array(z.enum(["x86", "x64", "arm64", "wow64", "unknown"]))
+      .default([]),
+    cves: z.array(z.string().regex(/^CVE-\d{4}-\d{4,}$/i)).default([]),
+    sources: z.array(sourceSchema).default([]),
+    related_concepts: z.array(z.string()).default([]),
+    related_articles: z.array(z.string()).default([]),
+    related_labs: z.array(z.string()).default([]),
+    changelog: z.array(changelogEntrySchema).default([]),
     tags: z.array(z.string()).default([]),
     author: z.string().default("Admin"),
     authorId: z.string().optional(),

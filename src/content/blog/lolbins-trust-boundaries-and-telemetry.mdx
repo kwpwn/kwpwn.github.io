@@ -11,6 +11,9 @@ tags:
   - "execution persistence"
   - "Research Notes"
 author: "Kwpwn"
+content_type: "concept"
+status: "preliminary"
+evidence_level: "unverified"
 toc: true
 wide: false
 topic: "windows-privesc"
@@ -34,110 +37,136 @@ learningObjectives:
 labEnvironment: "Use a disposable Windows 11 virtual machine with a standard-user test account and a separate administrator account. Inspect only resources you create or systems you are explicitly authorized to assess. The exercises collect configuration and telemetry; they do not deploy an escalation payload."
 ---
 
-> **Quick answer:** A living-off-the-land binary is a legitimate signed utility whose flexible behavior can cross a security boundary when supplied attacker-controlled input.
+> **Quick answer:** A living-off-the-land binary is a legitimate signed utility whose flexible behavior can cross a security boundary when supplied attacker-controlled input. The conclusion becomes defensible only when the remaining boundary, constraint, and evidence stages are verified on the named build and identity.
 
-## Why this matters
+## Scope and evidence contract
 
-This lesson treats local elevation as a verifiable trust-boundary chain. It does not begin with a payload. It begins with the caller's real token, the object the caller can influence, the privileged component that consumes that object, and the operation that would produce a stronger security context.
+This lesson treats local elevation as a verifiable trust-boundary chain. It does not begin with a payload. It begins with the caller's real token, the object the caller can influence, the privileged component that consumes that object, and the operation that would produce a stronger security context. Applied to **LOLBins: Trust Boundaries, Reachability, and Telemetry**, this method begins with the concrete statement that a living-off-the-land binary is a legitimate signed utility whose flexible behavior can cross a security boundary when supplied attacker-controlled input.
 
-For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, start with one practical question: Which lower-privileged input can reach which privileged consumer, under what exact configuration, and what evidence would disprove the chain? The rest
-of this lesson answers it in a repeatable order. You will first build a
-small mental model, then identify the conditions that can invalidate it, and
-finally collect read-only evidence in a controlled lab.
+This document treats **LOLBins: Trust Boundaries, Reachability, and Telemetry** as a mechanism to reconstruct, not a label to memorize. Its curriculum placement is windows-privesc lesson 14 in execution-persistence; malware-c2 lesson 16 in execution-persistence. That placement helps navigation; it does not imply that the behavior belongs to one security domain or that every environment exposes the same path.
 
-The curriculum placement is windows-privesc lesson 14 in execution-persistence; malware-c2 lesson 16 in execution-persistence. That placement is navigation,
-not a claim that the mechanism belongs to only one research area.
+The **LOLBins: Trust Boundaries, Reachability, and Telemetry** track-specific focus is: A persistence location is a stored edge to a future consumer. Prove writer control, resolution precedence, trigger recurrence, consumer identity, and resulting execution context. The practical objective for this article is to differentiate writable configuration from a recurring execution chain and document the first point where stronger authority is actually gained.
 
-## The mental model
+Before using any internal field, configuration value, event, or public write-up as evidence for **LOLBins: Trust Boundaries, Reachability, and Telemetry**, record the target's Windows edition, version, build and revision, architecture, symbol status, relevant policy and mitigation state, execution identity, and collection time. The confidence vocabulary below prevents this specific lesson from hiding uncertainty behind polished prose:
 
-Use this flow as the shortest useful map:
+| State | Meaning in this lesson |
+| --- | --- |
+| **CONFIRMED** | Current-target evidence proves the claim and the expected negative control changes the result. |
+| **LIKELY** | Multiple sources support the claim, but one decisive low-risk observation remains unavailable. |
+| **UNVERIFIED** | The statement is plausible but depends on public references, a decompiler view, a scanner label, another build, or an untested configuration. |
+| **REJECTED** | Current evidence or a control contradicts the proposed mechanism. |
+
+## Architecture at a glance
+
+Use this flow as the shortest complete map:
 
 > **lower-privileged actor → controlled input → privileged consumer → trigger → measurable effect**
 
-A writable object is only the first edge. The chain is incomplete until the privileged consumer, trigger, resulting context, and negative control are all known.
+A writable object is only the first edge. The chain is incomplete until the privileged consumer, trigger, resulting context, and negative control are all known. In **LOLBins: Trust Boundaries, Reachability, and Telemetry**, the four stages resolve to starting state → privilege decision → reachability → proof, and each stage must point to the mechanism statement and evidence in the table below.
 
-| Step | Working model |
-| --- | --- |
-| 1. **Starting state** | A living-off-the-land binary is a legitimate signed utility whose flexible behavior can cross a security boundary when supplied attacker-controlled input. |
-| 2. **Privilege decision** | a catalog entry is a hypothesis, not evidence that every argument works on every build. |
-| 3. **Reachability** | application control, network policy, child-process rules, user writable paths, and parent context determine reachability. |
-| 4. **Proof** | detection should model unusual data flow and execution chains rather than blocking filenames without context. |
+| Stage | Mechanism on this topic | Strongest first evidence |
+| --- | --- | --- |
+| 1. **Starting state** | A living-off-the-land binary is a legitimate signed utility whose flexible behavior can cross a security boundary when supplied attacker-controlled input. | Exact registry key, file, COM class, task, service, or startup location |
+| 2. **Privilege decision** | a catalog entry is a hypothesis, not evidence that every argument works on every build. | Writer identity plus before/after content and ACL evidence |
+| 3. **Reachability** | application control, network policy, child-process rules, user writable paths, and parent context determine reachability. | Resolution, parsing, bitness, environment, and dependency behavior |
+| 4. **Proof** | detection should model unusual data flow and execution chains rather than blocking filenames without context. | Trigger event, consumer process tree, resulting token, and cleanup proof |
 
-Do not try to memorize the table as terminology. Read it as a chain. Start with
-the state that exists, locate the component that makes the important decision,
-check the condition that permits or blocks the transition, and name the evidence
-that would remain if the explanation were correct.
+For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, the table is a causal chain rather than a checklist of unrelated facts. Trace it backward from each proof observation to the actor and owned state, then forward through the privilege decision decision, transition, cleanup, and failure path.
+
+## Mechanism deep dive
+
+### 1. Starting state
+
+**Mechanism claim.** A living-off-the-land binary is a legitimate signed utility whose flexible behavior can cross a security boundary when supplied attacker-controlled input.
+
+For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, this stage is where the write-up must become concrete. Capture the caller's actual token and the exact object the caller controls. Do not substitute an administrator-shell result or a scanner label. The relevant evidence source for this stage is **exact registry key, file, com class, task, service, or startup location**. Preserve the complete result rather than copying only the field that appears to support the hypothesis.
+
+**What can invalidate this starting state stage.** For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, The standard-user token lacks the claimed control, or the controlled object is not the object used by the consumer. Treat that result as useful evidence because it narrows this article's mechanism and prevents the lead from becoming a universal security claim.
+
+**Review question for starting state.** Can another researcher identify the actor or owner, exact object or artifact, deciding component, required state, and timestamp for this stage of **LOLBins: Trust Boundaries, Reachability, and Telemetry**? If not, this specific mechanism claim remains **UNVERIFIED**.
+
+### 2. Privilege decision
+
+**Mechanism claim.** a catalog entry is a hypothesis, not evidence that every argument works on every build.
+
+For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, this stage is where the write-up must become concrete. Locate the stronger component that makes the decisive access, parsing, loading, authentication, or execution decision. The relevant evidence source for this stage is **writer identity plus before/after content and acl evidence**. Preserve the complete result rather than copying only the field that appears to support the hypothesis.
+
+**What can invalidate this privilege decision stage.** For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, The privileged component never reads, resolves, authenticates, loads, or executes the controlled material. Treat that result as useful evidence because it narrows this article's mechanism and prevents the lead from becoming a universal security claim.
+
+**Review question for privilege decision.** Can another researcher identify the actor or owner, exact object or artifact, deciding component, required state, and timestamp for this stage of **LOLBins: Trust Boundaries, Reachability, and Telemetry**? If not, this specific mechanism claim remains **UNVERIFIED**.
+
+### 3. Reachability
+
+**Mechanism claim.** application control, network policy, child-process rules, user writable paths, and parent context determine reachability.
+
+For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, this stage is where the write-up must become concrete. Prove the caller can reach the consumer and trigger on this host without borrowing the privilege the finding is supposed to obtain. The relevant evidence source for this stage is **resolution, parsing, bitness, environment, and dependency behavior**. Preserve the complete result rather than copying only the field that appears to support the hypothesis.
+
+**What can invalidate this reachability stage.** For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, Policy, ACL, path precedence, session, architecture, service state, or trigger timing blocks the chain. Treat that result as useful evidence because it narrows this article's mechanism and prevents the lead from becoming a universal security claim.
+
+**Review question for reachability.** Can another researcher identify the actor or owner, exact object or artifact, deciding component, required state, and timestamp for this stage of **LOLBins: Trust Boundaries, Reachability, and Telemetry**? If not, this specific mechanism claim remains **UNVERIFIED**.
+
+### 4. Proof
+
+**Mechanism claim.** detection should model unusual data flow and execution chains rather than blocking filenames without context.
+
+For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, this stage is where the write-up must become concrete. Join configuration and runtime evidence, then remove one prerequisite and confirm that the predicted privileged transition disappears. The relevant evidence source for this stage is **trigger event, consumer process tree, resulting token, and cleanup proof**. Preserve the complete result rather than copying only the field that appears to support the hypothesis.
+
+**What can invalidate this proof stage.** For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, The same effect remains after the required condition is removed, or the resulting context is not stronger than the starting token. Treat that result as useful evidence because it narrows this article's mechanism and prevents the lead from becoming a universal security claim.
+
+**Review question for proof.** Can another researcher identify the actor or owner, exact object or artifact, deciding component, required state, and timestamp for this stage of **LOLBins: Trust Boundaries, Reachability, and Telemetry**? If not, this specific mechanism claim remains **UNVERIFIED**.
 
 ## Key terms in plain language
 
-These are the terms that carry the most meaning in this lesson. Read them once
-before continuing; later sections use them precisely rather than as loose
-synonyms.
+The terms below are intentionally scoped to **LOLBins: Trust Boundaries, Reachability, and Telemetry**. They should not be used as synonyms: each names a different object, policy, boundary, or kind of evidence.
 
-| Term | Plain-language meaning |
+| Term | Precise working meaning |
 | --- | --- |
 | **Mechanism** | The concrete state, component, decision, and transition that produce an observable result. |
-| **Trust boundary** | A point where data or control crosses into a component with different authority or assumptions. |
-| **Evidence** | A recorded observation with enough identity, time, build, and provenance to support or challenge a claim. |
-| **Negative control** | A repeat of the experiment with one required condition removed, used to test causality. |
+| **Trust boundary** | A point where data or control crosses into a component with different authority, ownership, or assumptions. |
+| **Evidence** | A recorded observation with enough identity, time, build, provenance, and collection context to support or challenge a claim. |
+| **Negative control** | A repeat of the experiment with one required condition removed, used to test causality and alternate explanations. |
 
-## Important distinctions
+When public documentation and debugger terminology for **LOLBins: Trust Boundaries, Reachability, and Telemetry** differ, retain both names and state which source supplied each one. Any debugger field used in this lesson is evidence for the recorded build, not automatically a stable ABI or security contract.
 
-- Writable does not automatically mean exploitable; the privileged consumer must actually read or execute the controlled material.
-- Evidence collected from an administrator console does not establish what the standard-user token can reach.
-- A dangerous configuration and a reachable elevation path are different claims and should be reported separately.
+## Version and environment scope
 
-These distinctions are useful because superficially similar observations can
-come from different mechanisms. Write the narrower claim first. Broaden it only
-when a second source of evidence supports the same transition.
+Packaged activation, COM lookup, loader search, task schema, autorun policy, service hardening, and application control can change reachability across systems. For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, the version-sensitive statement that must be rechecked first is: application control, network policy, child-process rules, user writable paths, and parent context determine reachability.
 
-## What can change the answer
+Record the following **LOLBins: Trust Boundaries, Reachability, and Telemetry** dimensions before comparing two systems or importing an exploitability conclusion from another target:
 
-| Dimension | Record | Question to ask |
+| Dimension | Minimum record | Why it can change the answer |
 | --- | --- | --- |
-| Identity | User SID, groups, privileges, integrity, process and thread token | Did the test run as the actor named in the claim? |
-| Build | Edition, architecture, build, cumulative update, native or WoW64 view | Does the cited behavior or structure belong to this build? |
-| Policy | Effective value and its local, domain, MDM, or runtime source | Is the visible setting actually enforced here? |
-| Reachability | ACL, namespace, endpoint, path, interface, session, and trigger | Can the actor reach the decision point without borrowed privilege? |
-| Lifetime | Creation, use, asynchronous work, cancellation, teardown, and cleanup | Was the observed state still valid when it was consumed? |
-| Sensor health | Provider, channel, filter, retention, clock, and collection status | Would the sensor have recorded a benign control? |
+| Operating system | Edition, version, build, revision, update level | Code paths, defaults, layouts, services, telemetry, and mitigations change through servicing. |
+| Architecture | x86, x64, ARM64, native or WoW64 view | Pointer width, calling convention, structure view, redirection, and available mitigations differ. |
+| Identity | User and group SIDs, integrity, privileges, process token, thread token, session | The actor that can observe a condition may not be the actor that can reach or trigger it. |
+| Policy | Effective local/domain/MDM/runtime source and enforcement mode | A visible registry value or UI setting may be overridden, merged, audited, or inactive. |
+| Mitigations | VBS/HVCI, CFG/CET, DEP, ASLR, application control, PPL, sandbox policy as relevant | Exploitability and observability depend on actual opt-in, hardware, boot, and process state. |
+| Symbols and tools | PDB identity, symbol path, debugger/parser/collector version | Offsets, names, schemas, and decoded fields are meaningful only with matching provenance. |
+| Sensor health | Provider/session/channel, filters, loss, clock, retention, forwarding | Missing telemetry cannot support absence until a benign control proves the collection path. |
+| Lifetime | Creation, references, asynchronous work, cancellation, teardown, cleanup | Stale handles, reused identifiers, queued callbacks, and delayed consumers can change object identity. |
 
-A result without these dimensions is a screenshot, not yet a reproducible
-finding. Unknown values should remain explicitly unknown; they should not be
-silently promoted to assumptions.
+Unknown values in a **LOLBins: Trust Boundaries, Reachability, and Telemetry** decision record must remain explicitly **unknown**. Do not fill this article's gaps with defaults copied from documentation or another researcher's machine.
 
-## Build an evidence plan
+## Evidence matrix
 
-Work from the claim to the sensor before running tools:
+For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, work from each mechanism claim to the least-invasive evidence source before choosing a tool:
 
-1. **Baseline the actor and system.** Record identity, build, policy, time, and
-   the exact object or specimen.
-2. **Predict one observable transition.** State what should change if the model
-   is correct and what should remain unchanged if it is wrong.
-3. **Choose the least-invasive source.** Prefer documented queries, ACL and
-   configuration inspection, version-matched symbols, offline parsing, and
-   event collection.
-4. **Prove the sensor works.** Generate a benign event whose outcome is already
-   known.
-5. **Remove one prerequisite.** Repeat with a deliberately different test
-   object, identity, policy, or trigger.
-6. **Join independent evidence.** Configuration plus runtime evidence is
-   stronger than either source alone.
-7. **Assign confidence.** Use confirmed, supported, tentative, rejected, or
-   unknown and explain why.
+| Claim stage | Preferred evidence | Observation that supports the claim | Observation that falsifies or narrows it |
+| --- | --- | --- | --- |
+| Starting state | Exact registry key, file, COM class, task, service, or startup location | A living-off-the-land binary is a legitimate signed utility whose flexible behavior can cross a security boundary when supplied attacker-controlled input. | The standard-user token lacks the claimed control, or the controlled object is not the object used by the consumer. |
+| Privilege decision | Writer identity plus before/after content and ACL evidence | a catalog entry is a hypothesis, not evidence that every argument works on every build. | The privileged component never reads, resolves, authenticates, loads, or executes the controlled material. |
+| Reachability | Resolution, parsing, bitness, environment, and dependency behavior | application control, network policy, child-process rules, user writable paths, and parent context determine reachability. | Policy, ACL, path precedence, session, architecture, service state, or trigger timing blocks the chain. |
+| Proof | Trigger event, consumer process tree, resulting token, and cleanup proof | detection should model unusual data flow and execution chains rather than blocking filenames without context. | The same effect remains after the required condition is removed, or the resulting context is not stronger than the starting token. |
 
-This sequence keeps the experiment safe and makes the final explanation easier
-to review. It also reveals exactly which missing observation blocks a stronger
-conclusion.
+For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, a screenshot of one promising field is weaker than a reproducible evidence bundle. Preserve raw commands, complete output, exit status, actor token, object identity, timestamps, build, symbol or decoder provenance, and both controls named above.
 
 ## Safe guided lab
 
-Use a disposable Windows 11 virtual machine with a standard-user test account and a separate administrator account. Inspect only resources you create or systems you are explicitly authorized to assess. The exercises collect configuration and telemetry; they do not deploy an escalation payload.
+Use a disposable Windows 11 virtual machine with a standard-user test account and a separate administrator account. Inspect only resources you create or systems you are explicitly authorized to assess. The exercises collect configuration and telemetry; they do not deploy an escalation payload. The **LOLBins: Trust Boundaries, Reachability, and Telemetry** exercise is limited to the read-only inspection probe and controls described below.
 
-### Step 1 — capture the baseline
+### 1. Establish the baseline
 
-Run the baseline in the identity and architecture named in the hypothesis. Save
-the output with a timestamp if the result will be compared across snapshots.
+Run the **LOLBins: Trust Boundaries, Reachability, and Telemetry** baseline from the identity and architecture named in the hypothesis. Use a fresh snapshot or purpose-built test object for this mechanism and save the output with an ISO-8601 timestamp.
 
 ```powershell
 # Run from a standard-user PowerShell console
@@ -147,12 +176,16 @@ Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, BuildNum
 Get-Date -Format o
 ```
 
-### Step 2 — inspect this mechanism
+Baseline acceptance criteria for **LOLBins: Trust Boundaries, Reachability, and Telemetry**:
 
-The following probe is read-only. Replace placeholders only with a process,
-file, object, trace, or VM that belongs to the lab. An elevated debugger may be
-needed to observe system state; that observation does not prove that a standard
-user can cause the same transition.
+- the **LOLBins: Trust Boundaries, Reachability, and Telemetry** execution identity and Windows build are visible in the saved record;
+- the test object, file, process, endpoint, provider, or specimen belongs to the lab;
+- relevant policy and mitigation values are captured before the observation;
+- no production secret, unknown binary, persistence payload, or destructive trigger is introduced.
+
+### 2. Inspect the topic-specific mechanism
+
+The **LOLBins: Trust Boundaries, Reachability, and Telemetry** probe below is read-only. Replace placeholders only with a process, file, object, trace, or VM that belongs to the authorized lab. If an elevated debugger is needed to observe this mechanism, record that elevation separately; it does not prove a standard user can cause the same transition.
 
 ```text
 Get-AuthenticodeSignature "$env:SystemRoot\System32\certutil.exe"
@@ -161,79 +194,83 @@ Get-Item "$env:SystemRoot\System32\certutil.exe" |
 # Compare observed behavior with the exact binary hash and OS build.
 ```
 
-Interpret the output using the four rows in the mental model. Preserve the
-complete command, output, execution identity, time, exit status, Windows build,
-and symbol or policy provenance.
+Interpret the **LOLBins: Trust Boundaries, Reachability, and Telemetry** output against starting state, privilege decision, reachability, proof rather than a tool's severity label. If a field or command is unavailable on this target, record that as a version/tool result and do not import the missing value from another build.
 
-### Step 3 — write the decision record
+### 3. Run a positive and negative control
+
+For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, the positive control keeps every required precondition and predicts the proof observation. The negative control changes exactly one relevant variable—actor identity, object ACL, policy, architecture/view, consumer state, trigger, network response, or sensor configuration—while the remaining lab state stays stable.
+
+| Control | Change | Expected result |
+| --- | --- | --- |
+| Positive | Preserve all four mechanism stages | The predicted transition appears in the primary and at least one corroborating source. |
+| Negative | Remove one required condition | The transition disappears or changes in the way predicted by the model. |
+| Sensor health | Generate a benign event with a known result | The collector records and decodes it without unexplained loss. |
+| Cleanup | Revert the test object and repeat inspection | Persistent state returns to baseline and no queued work remains. |
+
+### 4. Write the decision record
 
 ```text
+Title: LOLBins: Trust Boundaries, Reachability, and Telemetry
 Claim:
+Target: edition | version | build.revision | architecture
+Identity: process token | thread token | integrity | privileges | session
 Starting state:
 Decision boundary:
 Required condition:
-Observed evidence:
-Alternative explanation:
+Observed transition:
+Primary evidence:
+Corroborating evidence:
+Contradictory evidence:
 Benign control:
 Negative control:
-Build, identity, and policy:
-Confidence: confirmed | supported | tentative | rejected | unknown
+Version and policy caveats:
+Cleanup result:
+Confidence: CONFIRMED | LIKELY | UNVERIFIED | REJECTED
+Next experiment and falsification criterion:
 ```
 
-The lab is complete when the control changes the predicted evidence. A dramatic
-tool label is not a completion criterion.
+The **LOLBins: Trust Boundaries, Reachability, and Telemetry** lab is complete only when the controls explain its evidence. A dramatic tool label, isolated event, writable path, suspicious string, or debugger field cannot substitute for the four-stage mechanism.
 
-## Worked example: from clue to conclusion
+## Worked case-study method
 
-A scanner reports a possible elevation path after finding one suspicious permission or policy value. Treat that first clue as a lead rather than a conclusion.
-Review it through four checkpoints:
+A scanner reports a possible elevation path after finding one suspicious permission or policy value. For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, treat that clue as a lead and review it through the same four stages:
 
-1. **Starting state:** verify this concrete claim — A living-off-the-land binary is a legitimate signed utility whose flexible behavior can cross a security boundary when supplied attacker-controlled input.
-2. **Decision boundary:** identify and observe the component or access decision
-   described here — a catalog entry is a hypothesis, not evidence that every argument works on every build.
-3. **Required condition:** test whether the recorded build and configuration
-   satisfy this constraint — application control, network policy, child-process rules, user writable paths, and parent context determine reachability.
-4. **Proof:** demand the joined evidence described here — detection should model unusual data flow and execution chains rather than blocking filenames without context.
+1. **Starting state:** verify the current-target statement that A living-off-the-land binary is a legitimate signed utility whose flexible behavior can cross a security boundary when supplied attacker-controlled input.
+2. **Privilege decision:** identify the component and decision described by this claim: a catalog entry is a hypothesis, not evidence that every argument works on every build.
+3. **Reachability:** test the build, identity, policy, lifetime, and configuration constraint: application control, network policy, child-process rules, user writable paths, and parent context determine reachability.
+4. **Proof:** demand the joined observation described here: detection should model unusual data flow and execution chains rather than blocking filenames without context.
 
-The case is **confirmed** only when the state, boundary, condition, and resulting
-evidence agree and a negative control removes the expected transition. It is
-**supported** when most links agree but one low-risk observation is unavailable.
-It remains **tentative** when the privileged consumer, runtime behavior, sensor
-health, or version context is inferred rather than observed. If the control does
-not change the result, revise or reject the model.
+For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, stop at the strongest supported conclusion. If starting state and privilege decision are proven but reachability is not, report a **dangerous condition** or **research lead**, not confirmed impact. If runtime evidence agrees but the sensor-health control fails, lower confidence. If the negative control does not change the result, revise this mechanism before collecting more screenshots.
 
-That decision language is intentionally plain. It tells the next reader what is
-known, what still needs testing, and which experiment would change the answer.
+A publication-quality **LOLBins: Trust Boundaries, Reachability, and Telemetry** case study should include a target table, causal diagram, exact evidence excerpts, competing explanations, version scope, mitigation interaction, cleanup, limitations, and direct references. A second researcher must be able to reproduce this mechanism without relying on the original author's private intuition.
 
 ## Detection and hardening
 
-- Record the writer identity and the exact object changed.
+- For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, record the writer identity and the exact object changed.
 - Correlate that change with the privileged consumer and its trigger.
-- Alert on the joined transition, not on a utility name by itself.
+- Alert on the joined transition rather than a utility name by itself.
 - Harden the earliest reachable edge: permissions, policy, trigger, or consumer identity.
 
-Detection should follow the mechanism rather than one filename, command line,
-framework label, or structure offset. Hardening should break the earliest edge
-that is both reachable and operationally safe to change. Re-run the benign and
-negative controls after the change so that “mitigated” means the expected
-transition actually disappeared.
+For the **LOLBins: Trust Boundaries, Reachability, and Telemetry** detection model, correlate exact registry key, file, com class, task, service, or startup location, writer identity plus before/after content and acl evidence, resolution, parsing, bitness, environment, and dependency behavior, trigger event, consumer process tree, resulting token, and cleanup proof. Join its state change to consumer activity and resulting effect within a justified time window, then document required fields, clock source, exclusions, expected volume, sensor-health control, and what this analytic cannot prove.
 
-## Common mistakes
+Hardening **LOLBins: Trust Boundaries, Reachability, and Telemetry** should break the earliest edge that is both reachable and operationally safe to change. After changing the relevant permission, policy, service exposure, execution control, authentication, egress, or telemetry path, repeat this lesson's controls. **Mitigated** means the predicted transition no longer occurs under the original preconditions—not merely that a setting changed.
 
-- Starting with a tool or technique name and fitting every observation to it.
-- Copying an offset, default, or policy claim without the source build and
-  configuration.
-- Confusing an object that can be modified with a consumer that will use the
-  modified state.
-- Treating missing telemetry as absence without a sensor-health test.
-- Testing from an administrator or debugger context and assigning the same
-  reachability to a standard user.
-- Showing only the positive case and therefore never establishing causality.
-- Omitting cleanup, teardown, failure behavior, or the lifetime of asynchronous
-  work.
+## Failure modes and review checklist
 
-When a write-up avoids these mistakes, it becomes useful even after tools,
-product names, and Windows builds change.
+Use this checklist when reviewing a draft of **LOLBins: Trust Boundaries, Reachability, and Telemetry**:
+
+- Does the opening of **LOLBins: Trust Boundaries, Reachability, and Telemetry** state the exact target, actor, object or artifact, consumer, constraint, and result?
+- Are documented facts, current-target observations, and implementation inferences labeled separately?
+- Does every internal structure, event schema, default, or policy claim carry build and source provenance?
+- Is a handle or identifier kept separate from the underlying object and its lifetime?
+- Is writable or suspicious state kept separate from consumer reachability and actual execution?
+- Are static capability, configured capability, and behavior observed in one execution reported at different confidence levels?
+- Does a benign control prove the sensor, and does a negative control test causality?
+- Are cancellation, teardown, cleanup, failure behavior, and asynchronous work included?
+- Are mitigations recorded as effective target state rather than assumed from product version?
+- Could another researcher falsify the conclusion using the retained evidence?
+
+A **LOLBins: Trust Boundaries, Reachability, and Telemetry** draft that cannot answer these questions is not finished, regardless of its word count or number of screenshots.
 
 ## Takeaways
 
@@ -242,43 +279,51 @@ product names, and Windows builds change.
 - **Reachability:** application control, network policy, child-process rules, user writable paths, and parent context determine reachability.
 - **Proof:** detection should model unusual data flow and execution chains rather than blocking filenames without context.
 
-If those four statements can be explained in your own words, connected to a
-specific build, and tested with a negative control, you understand the mechanism
-well enough to continue into deeper implementation or exploitability research.
+The durable **LOLBins: Trust Boundaries, Reachability, and Telemetry** skill is not remembering one command. It is connecting each of this lesson's four mechanism statements to a target-specific observation, explaining what would disprove it, and repeating the test without silently changing the trust boundary.
 
 ## Check your understanding
 
 <details>
-  <summary>Can you explain the mechanism without naming a tool?</summary>
-  A strong answer follows the complete flow: lower-privileged actor → controlled input → privileged consumer → trigger → measurable effect. It names the owner,
-  actor, controlled state, decision point, condition, result, and evidence.
+  <summary>Can you explain LOLBins: Trust Boundaries, Reachability, and Telemetry without naming a tool?</summary>
+  A strong answer follows lower-privileged actor → controlled input → privileged consumer → trigger → measurable effect. It names the owner or actor, controlled state, deciding component, required condition, transition, lifetime, and evidence.
 </details>
 
 <details>
-  <summary>What result would make you reject the current model?</summary>
-  Reject or revise it when the predicted transition survives removal of a
-  required condition, when the consumer cannot be reached by the stated actor,
-  or when an independent source contradicts the claimed state.
+  <summary>Which fact is most likely to change across Windows versions?</summary>
+  For **LOLBins: Trust Boundaries, Reachability, and Telemetry**, start with this track warning: Packaged activation, COM lookup, loader search, task schema, autorun policy, service hardening, and application control can change reachability across systems. Then
+  replace the assumption with a current-target observation tied to
+  **A living-off-the-land binary is a legitimate signed utility whose flexible behavior can cross a security boundary when supplied attacker-controlled input**.
 </details>
 
-## Source coverage
+<details>
+  <summary>What result would make you reject the model?</summary>
+  Reject or revise the **LOLBins: Trust Boundaries, Reachability, and Telemetry** model when its predicted transition survives
+  removal of a required condition, the stated actor cannot reach
+  **a catalog entry is a hypothesis, not evidence that every argument works on every build**, object identity or lifetime is wrong, or an
+  independent healthy source contradicts the claimed state.
+</details>
 
-This lesson consolidates the following Yunolay material into one local,
-mechanism-first document. The links are retained so that claims can be compared
-with their original context.
+## Limitations and next research
 
-- [Living off the Land: Abusing LOLBAS Binaries on Windows](https://yunolay.com/lolbas-living-off-the-land/)
-- [Living-off-the-Land Binaries (LOLBins) for Evasion](https://yunolay.com/living-off-the-land-binaries-lolbins-for-evasion/)
+This **LOLBins: Trust Boundaries, Reachability, and Telemetry** document does not claim that every Windows edition, patch level, architecture, policy set, hardware configuration, or product integration behaves identically. Its read-only lab is not exploitability proof, attribution, or a production authorization decision. The next useful experiment is the smallest safe observation that can move one named starting state/privilege decision/reachability/proof stage from **UNVERIFIED** to **LIKELY** or **CONFIRMED**, or reject it cleanly.
 
 ## References
 
-1. https://yunolay.com/lolbas-living-off-the-land/
-2. https://yunolay.com/living-off-the-land-binaries-lolbins-for-evasion/
-3. https://learn.microsoft.com/windows/security/identity-protection/access-control/access-control
-4. https://learn.microsoft.com/windows/win32/secauthz/access-control
-5. https://learn.microsoft.com/windows-server/identity/ad-ds/manage/understand-security-identifiers
-6. https://learn.microsoft.com/sysinternals/
-7. https://learn.microsoft.com/windows/security/application-security/application-control/windows-defender-application-control/
-8. https://attack.mitre.org/tactics/TA0004/
-9. https://www.microsoft.com/msrc/security-guidance
-10. https://github.com/gtworek/Priv2Admin
+### Source coverage and reliability
+
+The **LOLBins: Trust Boundaries, Reachability, and Telemetry** lesson consolidates the source material below. These pages and repositories provide context but cannot override current-target evidence. Any public structure layout, ReactOS/Wine behavior, debugger screenshot, blog-derived claim, or cross-build offset used here remains **UNVERIFIED** until checked against the tested binary, symbols, documented API, dump, or runtime trace.
+
+| Source | Type | How it is used |
+| --- | --- | --- |
+| [Living off the Land: Abusing LOLBAS Binaries on Windows](https://yunolay.com/lolbas-living-off-the-land/) | Original lesson source | Establishes the source article's terminology and examples; re-check claims against primary documentation and the tested build. |
+| [Living-off-the-Land Binaries (LOLBins) for Evasion](https://yunolay.com/living-off-the-land-binaries-lolbins-for-evasion/) | Original lesson source | Establishes the source article's terminology and examples; re-check claims against primary documentation and the tested build. |
+| [learn.microsoft.com/windows/security/identity-protection/access-control/access-control](https://learn.microsoft.com/windows/security/identity-protection/access-control/access-control) | Microsoft documentation | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [learn.microsoft.com/windows/win32/secauthz/access-control](https://learn.microsoft.com/windows/win32/secauthz/access-control) | Microsoft documentation | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [learn.microsoft.com/windows-server/identity/ad-ds/manage/understand-security-identifiers](https://learn.microsoft.com/windows-server/identity/ad-ds/manage/understand-security-identifiers) | Microsoft documentation | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [learn.microsoft.com/sysinternals/](https://learn.microsoft.com/sysinternals/) | Microsoft documentation | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [learn.microsoft.com/windows/security/application-security/application-control/windows-defender-application-control/](https://learn.microsoft.com/windows/security/application-security/application-control/windows-defender-application-control/) | Microsoft documentation | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [attack.mitre.org/tactics/TA0004/](https://attack.mitre.org/tactics/TA0004/) | Knowledge base | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [www.microsoft.com/msrc/security-guidance](https://msrc.microsoft.com/update-guide/) | Research reference | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+| [github.com/gtworek/Priv2Admin](https://github.com/gtworek/Priv2Admin) | Source repository | Use for contracts, terminology, tooling, or comparative context; it is not proof of the current target by itself. |
+
+Accessed: **2026-07-28**.
