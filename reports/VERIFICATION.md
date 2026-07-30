@@ -91,6 +91,23 @@ or experiment result was filled by inference.
 
 ## Deployment
 
-GitHub Pages compatibility is implemented in `.github/workflows/deploy.yml`.
-Production deployment and smoke-test results are added here only after the
-verified commit is pushed and the Pages workflow completes.
+The functional release commit `76fb3c7` was pushed to `main`.
+
+| Remote gate | Result | Evidence |
+| --- | --- | --- |
+| GitHub Pages | Pass | [Deploy to GitHub Pages run 30558583863](https://github.com/kwpwn/kwpwn.github.io/actions/runs/30558583863) completed successfully. |
+| GitHub CI | Pass | [CI run 30558582241](https://github.com/kwpwn/kwpwn.github.io/actions/runs/30558582241) completed successfully. |
+| Skills verification | Pass | [Skills Verification run 30558578561](https://github.com/kwpwn/kwpwn.github.io/actions/runs/30558578561) completed successfully. |
+
+The deployed production site was then exercised in installed Windows Chrome:
+
+- Home, article directory, representative article, and arbitrary-file-delete
+  concept routes returned HTTP 200 with the expected unique title and H1.
+- Pagefind JavaScript returned HTTP 200. Searching `ALPC` returned 36 results
+  grouped as lessons, concepts, services, and references.
+- The representative article contained exactly one library navigation, one TOC,
+  one learning-outcomes heading, one prerequisites heading, and one safe-lab
+  heading.
+- Representative desktop routes and the 390px article had zero horizontal page
+  overflow.
+- No page error or console error was observed during the production smoke test.
