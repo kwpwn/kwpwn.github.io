@@ -2,16 +2,24 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 import BaseLayout from "./BaseLayout.astro";
 import SEO from "../components/seo/SEO.astro";
+import Breadcrumbs from "../components/seo/Breadcrumbs.astro";
 import { type Locale } from "../lib/site-config";
 import { canonicalUrl, jsonLdFAQ } from "../lib/seo";
 import { resolveRoute } from "../i18n/routes";
 import { t } from "../i18n/ui";
 import { siteConfig } from "../config/site.config";
 import {
+  getResearchTopic,
+  getResearchTopicPosts,
+} from "../lib/research-topics";
+import {
+  ArticleEvidence,
   ArticleGuide,
   ArticleHero,
+  ArticleLibraryNav,
+  ArticlePager,
+  ArticleTools,
   RelatedPosts,
-  ShareButtons,
   TableOfContents,
 } from "../components/blog/index";
 
@@ -28,7 +36,6 @@ export interface Props {
 }
 
 const { post, locale, headings = [] } = Astro.props as Props;
-
 const publishDate = new Date(post.data.publishDate);
 const updatedDate = post.data.updatedAt
   ? new Date(post.data.updatedAt)
@@ -36,10 +43,47 @@ const updatedDate = post.data.updatedAt
 const tags = post.data.tags ?? [];
 const tocEnabled =
   siteConfig.articleFeatures.toc.enabled && post.data.toc !== false;
+const allPosts = await getCollection("blog");
+const topic = post.data.topic ? getResearchTopic(post.data.topic) : undefined;
+const orderedTopicPosts = topic
+  ? getResearchTopicPosts(allPosts, topic.id)
+  : [];
+const topicIndex = orderedTopicPosts.findIndex(
+  (candidate) => candidate.id === post.id,
+);
+const previousPost =
+  topicIndex > 0 ? orderedTopicPosts[topicIndex - 1] : undefined;
+const nextPost =
+  topicIndex >= 0 && topicIndex < orderedTopicPosts.length - 1
+    ? orderedTopicPosts[topicIndex + 1]
+    : undefined;
+const breadcrumbItems = topic
+  ? [
+      {
+        label: "Learning paths",
+        href: resolveRoute(locale, "/topics/"),
+      },
+      {
+        label: topic.shortTitle,
+        href: resolveRoute(locale, `/topics/${topic.id}/`),
+      },
+      {
+        label: post.data.title,
+        href: canonicalUrl(locale, `/blog/${post.id}`),
+      },
+    ]
+  : [
+      { label: "Articles", href: resolveRoute(locale, "/blogs/") },
+      {
+        label: post.data.title,
+        href: canonicalUrl(locale, `/blog/${post.id}`),
+      },
+    ];
+
 const jsonLd = [
   {
     "@context": "https://schema.org",
-    "@type": "BlogPosting",
+    "@type": "TechArticle",
     headline: post.data.title,
     description: post.data.description,
     datePublished: publishDate.toISOString(),
@@ -50,6 +94,9 @@ const jsonLd = [
     },
     mainEntityOfPage: canonicalUrl(locale, `/blog/${post.id}`),
     inLanguage: locale,
+    articleSection: topic?.shortTitle ?? "Windows security research",
+    keywords: tags.join(", "),
+    citation: post.data.sources.map((source: { url: string }) => source.url),
   },
   ...(post.data.faqs?.length
     ? [
@@ -62,8 +109,6 @@ const jsonLd = [
       ]
     : []),
 ];
-
-const allPosts = await getCollection("blog");
 ---
 
 <BaseLayout
@@ -90,43 +135,30 @@ const allPosts = await getCollection("blog");
   />
 
   <article class="blog-layout container">
-    <ArticleHero post={post} locale={locale} />
-    <ArticleGuide post={post} />
-
-    {
-      tocEnabled && siteConfig.articleFeatures.toc.layout === "inline" && (
-        <TableOfContents
-          headings={headings}
-          layout="inline"
-          maxDepth={siteConfig.articleFeatures.toc.maxDepth}
-          minHeadings={siteConfig.articleFeatures.toc.minHeadings}
-          title={t(locale, "blog.toc")}
-          locale={locale}
-        />
-      )
-    }
-
-    {
-      tocEnabled && siteConfig.articleFeatures.toc.layout === "sidebar" && (
-        <div class="blog-layout__toc-mobile">
-          <TableOfContents
-            headings={headings}
-            layout="inline"
-            maxDepth={siteConfig.articleFeatures.toc.maxDepth}
-            minHeadings={siteConfig.articleFeatures.toc.minHeadings}
-            title={t(locale, "blog.toc")}
-            locale={locale}
-          />
-        </div>
-      )
-    }
-
     <div
-      class={`blog-layout__content${tocEnabled && siteConfig.articleFeatures.toc.layout === "sidebar" ? " blog-layout__content--with-toc" : ""}`}
+      class:list={[
+        "blog-layout__shell",
+        !tocEnabled && "blog-layout__shell--without-toc",
+      ]}
     >
+      <ArticleLibraryNav
+        currentPost={post}
+        allPosts={allPosts}
+        locale={locale}
+      />
+
+      <div class="blog-layout__intro">
+        <div data-pagefind-ignore>
+          <Breadcrumbs crumbs={breadcrumbItems} />
+        </div>
+        <ArticleHero post={post} locale={locale} />
+        <ArticleEvidence post={post} />
+        <ArticleGuide post={post} />
+      </div>
+
       {
-        tocEnabled && siteConfig.articleFeatures.toc.layout === "sidebar" && (
-          <aside class="blog-layout__toc blog-layout__toc--sidebar blog-layout__toc--desktop">
+        tocEnabled && (
+          <aside class="blog-layout__toc">
             <TableOfContents
               headings={headings}
               layout="sidebar"
@@ -139,150 +171,181 @@ const allPosts = await getCollection("blog");
         )
       }
 
-      <div
-        class:list={[
-          "blog-layout__article prose prose-gray dark:prose-invert max-w-none",
-          post.data.wide && "blog-layout__article--wide",
-        ]}
-      >
-        <slot />
+      <div class="blog-layout__body">
+        <div
+          class:list={[
+            "blog-layout__article prose prose-gray dark:prose-invert",
+            post.data.wide && "blog-layout__article--wide",
+          ]}
+        >
+          <slot />
+        </div>
+
+        <ArticleTools post={post} />
+
+        <div data-pagefind-ignore>
+          <ArticlePager
+            previous={previousPost}
+            next={nextPost}
+            locale={locale}
+          />
+          <RelatedPosts
+            currentPost={post}
+            allPosts={allPosts}
+            locale={locale}
+          />
+        </div>
       </div>
     </div>
-
-    <ShareButtons
-      url={canonicalUrl(locale, `/blog/${post.id}`)}
-      title={post.data.title}
-      locale={locale}
-    />
-
-    <RelatedPosts currentPost={post} allPosts={allPosts} locale={locale} />
-
-    <nav class="blog-layout__back" aria-label="Return to article collection">
-      <a
-        href={post.data.topic
-          ? resolveRoute(locale, `/topics/${post.data.topic}/`)
-          : resolveRoute(locale, "/")}
-      >
-        <span aria-hidden="true">&larr;</span>
-        {post.data.topic ? "Back to the topic" : t(locale, "blog.backToBlog")}
-      </a>
-    </nav>
   </article>
 </BaseLayout>
 
 <style>
   .blog-layout {
-    display: grid;
-    gap: var(--space-xl);
-    max-width: 68rem;
-    padding-block: var(--space-xl);
+    max-width: var(--container-max);
+    padding-block: var(--space-xl) var(--space-3xl);
   }
 
-  .blog-layout__content {
+  .blog-layout__shell {
     display: grid;
-    gap: var(--space-xl);
+    grid-template-columns:
+      minmax(13rem, var(--library-nav-width))
+      minmax(0, var(--article-measure))
+      minmax(11rem, var(--article-toc-width));
+    grid-template-areas:
+      "library intro toc"
+      "library body toc";
+    gap: var(--space-xl) var(--library-rail-gap);
     align-items: start;
+    justify-content: center;
   }
 
-  .blog-layout__content--with-toc {
-    grid-template-columns: minmax(0, 45rem) minmax(12rem, 14rem);
-    justify-content: space-between;
+  .blog-layout__shell--without-toc {
+    grid-template-columns:
+      minmax(13rem, var(--library-nav-width))
+      minmax(0, var(--article-measure));
+    grid-template-areas:
+      "library intro"
+      "library body";
   }
 
-  /*
-   * The TOC <aside> is first in the DOM (so it appears at the top on mobile),
-   * but on desktop the article must own the wide column and the TOC sits in a
-   * narrow right rail. Explicit placement makes this independent of DOM order.
-   */
-  .blog-layout__content--with-toc .blog-layout__article {
-    grid-column: 1;
-    grid-row: 1;
-    min-width: 0;
-  }
-
-  .blog-layout__content--with-toc .blog-layout__toc--sidebar {
-    grid-column: 2;
-    grid-row: 1;
+  :global(.article-library-nav) {
+    grid-area: library;
     position: sticky;
-    top: 5.5rem;
-    max-height: calc(100vh - 7rem);
+    top: calc(var(--header-height) + var(--space-lg));
+    max-height: calc(100vh - var(--header-height) - var(--space-xl));
     overflow-y: auto;
   }
 
-  .blog-layout__toc-mobile {
-    display: none;
+  .blog-layout__intro {
+    grid-area: intro;
+    display: grid;
+    gap: var(--space-xl);
+    min-width: 0;
   }
 
-  /* Compact reading measure for dense technical material. */
+  .blog-layout__toc {
+    grid-area: toc;
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-lg));
+    max-height: calc(100vh - var(--header-height) - var(--space-xl));
+    overflow-y: auto;
+  }
+
+  .blog-layout__body {
+    grid-area: body;
+    display: grid;
+    gap: var(--space-2xl);
+    min-width: 0;
+  }
+
   .blog-layout__article {
-    max-width: 72ch;
+    width: 100%;
+    max-width: var(--measure-reading);
+    min-width: 0;
   }
 
   .blog-layout__article--wide {
-    max-width: none;
+    max-width: var(--measure-reading-wide);
   }
 
-  .blog-layout__back a {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-xs);
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-full);
-    color: var(--color-text-primary);
-    text-decoration: none;
-    font-weight: var(--font-weight-semibold);
-    font-size: var(--text-sm);
-    transition:
-      border-color 0.15s ease,
-      background 0.15s ease;
-  }
-
-  .blog-layout__back a:hover {
-    border-color: var(--color-text-secondary);
-    background: var(--color-bg-secondary);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .blog-layout__back a {
-      transition: none;
-    }
-  }
-
-  @media (max-width: 64rem) {
-    .blog-layout__content--with-toc {
-      grid-template-columns: 1fr;
+  @media (max-width: 79.99rem) {
+    .blog-layout__shell {
+      grid-template-columns:
+        minmax(0, var(--article-measure))
+        minmax(11rem, var(--article-toc-width));
+      grid-template-areas:
+        "library library"
+        "intro toc"
+        "body toc";
     }
 
-    .blog-layout__content--with-toc .blog-layout__article,
-    .blog-layout__content--with-toc .blog-layout__toc--sidebar {
-      grid-column: 1;
-      grid-row: auto;
+    .blog-layout__shell--without-toc {
+      grid-template-columns: minmax(0, var(--article-measure));
+      grid-template-areas:
+        "library"
+        "intro"
+        "body";
     }
 
-    .blog-layout__content--with-toc .blog-layout__article {
-      max-width: none;
-    }
-
-    .blog-layout__content--with-toc .blog-layout__toc--sidebar {
+    :global(.article-library-nav) {
       position: static;
       max-height: none;
-      overflow-y: visible;
+      overflow: visible;
+    }
+  }
+
+  @media (max-width: 63.99rem) {
+    .blog-layout {
+      padding-block: var(--space-lg) var(--space-2xl);
     }
 
-    .blog-layout__toc--desktop {
+    .blog-layout__shell,
+    .blog-layout__shell--without-toc {
+      grid-template-columns: minmax(0, var(--article-measure));
+      grid-template-areas:
+        "library"
+        "intro"
+        "toc"
+        "body";
+      gap: var(--space-lg);
+    }
+
+    .blog-layout__toc {
+      position: static;
+      max-height: none;
+      overflow: visible;
+    }
+  }
+
+  @media print {
+    :global(.header),
+    :global(.footer),
+    :global(.article-library-nav),
+    .blog-layout__toc,
+    .blog-layout__intro > [data-pagefind-ignore],
+    .blog-layout__body > [data-pagefind-ignore] {
       display: none;
     }
 
-    .blog-layout__toc-mobile {
+    .blog-layout {
+      max-width: none;
+      padding: 0;
+    }
+
+    .blog-layout__shell,
+    .blog-layout__shell--without-toc {
       display: block;
     }
-  }
 
-  @media (max-width: 48rem) {
-    .blog-layout {
-      gap: var(--space-lg);
-      padding-block: var(--space-lg);
+    .blog-layout__intro,
+    .blog-layout__body {
+      display: block;
+    }
+
+    .blog-layout__article,
+    .blog-layout__article--wide {
+      max-width: none;
     }
   }
 </style>

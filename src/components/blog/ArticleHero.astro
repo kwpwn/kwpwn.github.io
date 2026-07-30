@@ -15,11 +15,19 @@ export interface Props {
 
 const { post, locale = post.data.locale } = Astro.props as Props;
 const publishDate = new Date(post.data.publishDate);
+const updatedDate = post.data.updatedAt
+  ? new Date(post.data.updatedAt)
+  : undefined;
 const reading = getBlogReadingStats(post.body ?? "", post.data.format);
 const topic = post.data.topic ? getResearchTopic(post.data.topic) : undefined;
 const dateLabel = publishDate.toLocaleDateString("en-US", {
   year: "numeric",
   month: "long",
+  day: "numeric",
+});
+const updatedLabel = updatedDate?.toLocaleDateString("en-US", {
+  year: "numeric",
+  month: "short",
   day: "numeric",
 });
 ---
@@ -48,6 +56,19 @@ const dateLabel = publishDate.toLocaleDateString("en-US", {
       <span class="article-hero__author">{post.data.author}</span>
       <span class="article-hero__dot" aria-hidden="true">&middot;</span>
       <time datetime={publishDate.toISOString()}>{dateLabel}</time>
+      {
+        updatedDate && updatedDate.getTime() !== publishDate.getTime() && (
+          <>
+            <span class="article-hero__dot" aria-hidden="true">
+              &middot;
+            </span>
+            <span>
+              Updated{" "}
+              <time datetime={updatedDate.toISOString()}>{updatedLabel}</time>
+            </span>
+          </>
+        )
+      }
       <span class="article-hero__dot" aria-hidden="true">&middot;</span>
       <span>
         {
@@ -80,7 +101,7 @@ const dateLabel = publishDate.toLocaleDateString("en-US", {
   .article-hero {
     display: grid;
     gap: var(--space-xl);
-    margin-bottom: var(--space-xl);
+    margin-bottom: 0;
   }
 
   .article-hero__content {

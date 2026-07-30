@@ -8,7 +8,7 @@ test.describe("navigation chrome", () => {
     // Positive proof we're on this site, not a colliding dev server on 4321
     await expect(page.locator(".logo").first()).toHaveAttribute(
       "aria-label",
-      "Blogs",
+      "KWPWN Research Library",
       { timeout: 30_000 },
     );
     await expect(page.locator(".header__list a").first()).toBeVisible({
@@ -42,6 +42,29 @@ test.describe("navigation chrome", () => {
     await expect(dialog).not.toBeVisible({ timeout: 30_000 });
   });
 
+  test("search uses the local full-text index and keyboard navigation", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.keyboard.press("Control+k");
+
+    const input = page.locator("[data-search-input]");
+    await input.fill("ALPC");
+    await expect(page.locator("[data-search-status]")).toContainText(
+      "results found",
+      { timeout: 30_000 },
+    );
+    await expect(
+      page.locator("[data-search-results] h3", { hasText: "Concepts" }),
+    ).toBeVisible();
+
+    await input.press("ArrowDown");
+    await expect(page.locator("[data-search-results] a").first()).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#search-modal")).not.toBeVisible();
+  });
+
   test("mobile menu toggle opens the panel", async ({ page }) => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width: 375, height: 800 });
@@ -52,5 +75,36 @@ test.describe("navigation chrome", () => {
     await expect(toggle).toHaveAttribute("aria-expanded", "true", {
       timeout: 30_000,
     });
+    await page.keyboard.press("Escape");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(toggle).toBeFocused();
+  });
+
+  test("concept pages provide one handbook nav and one local table of contents", async ({
+    page,
+  }) => {
+    await page.goto("/windows-security-concepts/arbitrary-file-delete/", {
+      waitUntil: "domcontentloaded",
+    });
+
+    await expect(page.locator(".logo")).toBeVisible();
+    await expect(page.locator(".header__desktop-nav")).toBeVisible();
+    await expect(page.locator(".header__actions")).toBeVisible();
+    await expect(
+      page.getByRole("complementary", { name: "Handbook navigation" }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByRole("complementary", { name: "On this page" }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByText("Evidence status:", { exact: false }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(0);
   });
 });

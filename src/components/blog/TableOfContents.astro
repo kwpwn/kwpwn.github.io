@@ -20,9 +20,7 @@ export interface Props {
 
 const {
   headings,
-  layout = siteConfig.articleFeatures.toc.layout === "sidebar"
-    ? "sidebar"
-    : "inline",
+  layout = "sidebar",
   maxDepth = siteConfig.articleFeatures.toc.maxDepth,
   minHeadings = siteConfig.articleFeatures.toc.minHeadings,
   title,
@@ -37,156 +35,193 @@ const show = visibleHeadings.length >= minHeadings;
 
 {
   show && (
-    <nav class={`toc toc--${layout}`} aria-label="Table of contents">
-      {layout === "inline" ? (
-        <details>
-          <summary>{title ?? t(locale, "blog.toc")}</summary>
-          <ul>
-            {visibleHeadings.map((heading) => (
-              <li class={`toc__item toc__item--depth-${heading.depth}`}>
-                <a href={`#${heading.slug}`} data-heading={heading.slug}>
-                  {heading.text}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : (
-        <>
-          <p class="toc__title">{title ?? t(locale, "blog.toc")}</p>
-          <ul>
-            {visibleHeadings.map((heading) => (
-              <li class={`toc__item toc__item--depth-${heading.depth}`}>
-                <a href={`#${heading.slug}`} data-heading={heading.slug}>
-                  {heading.text}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+    <nav
+      class={`toc toc--${layout}`}
+      aria-label="Table of contents"
+      data-toc-root
+      data-pagefind-ignore
+    >
+      <details data-toc-details data-layout={layout}>
+        <summary>
+          <span>{title ?? t(locale, "blog.toc")}</span>
+          <span class="toc__count">{visibleHeadings.length}</span>
+        </summary>
+        <ol>
+          {visibleHeadings.map((heading) => (
+            <li class={`toc__item toc__item--depth-${heading.depth}`}>
+              <a href={`#${heading.slug}`} data-heading={heading.slug}>
+                {heading.text}
+              </a>
+            </li>
+          ))}
+        </ol>
+      </details>
     </nav>
   )
 }
 
 <script>
-  const headings = [
-    ...document.querySelectorAll<HTMLElement>("[data-heading]"),
-  ];
-  const links = new Map(
-    headings.map((link) => [link.getAttribute("data-heading"), link]),
-  );
-  const sections = [
-    ...document.querySelectorAll<HTMLElement>(
-      "h2[id], h3[id], h4[id], h5[id], h6[id]",
-    ),
-  ];
+  const root = document.querySelector<HTMLElement>("[data-toc-root]");
+  const details = root?.querySelector<HTMLDetailsElement>("[data-toc-details]");
+  const compactLayout = window.matchMedia("(max-width: 63.99rem)");
 
-  if (headings.length && sections.length && "IntersectionObserver" in window) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const link = links.get(entry.target.id);
-          if (!link) return;
-          if (entry.isIntersecting) {
-            headings.forEach((heading) =>
-              heading.classList.remove("is-active"),
-            );
-            link.classList.add("is-active");
-          }
-        });
-      },
-      { rootMargin: "0px 0px -60% 0px", threshold: 0.1 },
+  const syncTableOfContents = () => {
+    if (!details || details.dataset.layout !== "sidebar") return;
+    if (compactLayout.matches) {
+      if (!details.dataset.compactInitialized) {
+        details.open = false;
+        details.dataset.compactInitialized = "true";
+      }
+      return;
+    }
+
+    details.open = true;
+    delete details.dataset.compactInitialized;
+  };
+
+  syncTableOfContents();
+  compactLayout.addEventListener("change", syncTableOfContents);
+
+  if (root) {
+    const links = [
+      ...root.querySelectorAll<HTMLAnchorElement>("[data-heading]"),
+    ];
+    const linksById = new Map(
+      links.map((link) => [link.getAttribute("data-heading"), link]),
     );
+    const sections = [
+      ...document.querySelectorAll<HTMLElement>(
+        ".blog-layout__article h2[id], .blog-layout__article h3[id], .blog-layout__article h4[id]",
+      ),
+    ];
 
-    sections.forEach((section) => observer.observe(section));
+    if (links.length && sections.length && "IntersectionObserver" in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries.find((entry) => entry.isIntersecting);
+          if (!visible) return;
+          const active = linksById.get(visible.target.id);
+          if (!active) return;
+          links.forEach((link) => {
+            link.classList.remove("is-active");
+            link.removeAttribute("aria-current");
+          });
+          active.classList.add("is-active");
+          active.setAttribute("aria-current", "location");
+        },
+        { rootMargin: "-15% 0px -70% 0px", threshold: 0 },
+      );
+
+      sections.forEach((section) => observer.observe(section));
+    }
   }
 </script>
 
 <style>
-  /* Inline variant: collapsible card placed above the article. */
-  .toc--inline {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    background: var(--color-bg-secondary);
-  }
-
-  .toc--inline details {
-    padding: var(--space-sm) var(--space-md);
-  }
-
-  /* Sidebar variant: light right-rail, no heavy card. */
-  .toc--sidebar {
-    padding-left: var(--space-md);
-    border-left: 1px solid var(--color-border);
-  }
-
-  .toc summary,
-  .toc__title {
-    font-weight: 700;
-    list-style: none;
+  .toc details > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    color: var(--muted-foreground);
     cursor: pointer;
-  }
-
-  .toc__title {
-    margin: 0 0 var(--space-sm);
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
     letter-spacing: var(--tracking-wide);
+    list-style: none;
     text-transform: uppercase;
-    color: var(--color-text-secondary);
   }
 
-  .toc ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  .toc details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .toc__count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    color: var(--foreground);
+    font-size: var(--text-xs);
+  }
+
+  .toc ol {
     display: grid;
     gap: var(--spacing-1);
+    margin: var(--space-sm) 0 0;
+    padding: 0;
+    list-style: none;
   }
 
   .toc__item--depth-3 {
-    padding-left: var(--space-md);
+    padding-left: var(--space-sm);
   }
 
   .toc__item--depth-4,
   .toc__item--depth-5,
   .toc__item--depth-6 {
     padding-left: var(--space-lg);
-    font-size: var(--text-xs);
   }
 
   .toc a {
     display: block;
-    padding-block: var(--spacing-1);
-    color: var(--color-text-secondary);
+    padding: var(--spacing-1) var(--space-xs);
+    border-left: 2px solid transparent;
+    color: var(--muted-foreground);
     font-size: var(--text-xs);
+    line-height: var(--leading-snug);
     text-decoration: none;
-    line-height: 1.4;
-    transition: color 0.15s ease;
   }
 
   .toc a:hover {
-    color: var(--color-text-primary);
-  }
-
-  .toc--sidebar a {
-    border-left: 2px solid transparent;
-    margin-left: calc(var(--spacing-1) / -2);
-    padding-left: var(--space-sm);
+    color: var(--foreground);
   }
 
   .toc a.is-active {
-    color: var(--color-text-primary);
-    font-weight: 700;
+    border-left-color: var(--link);
+    color: var(--link);
+    font-weight: var(--font-weight-semibold);
   }
 
-  .toc--sidebar a.is-active {
-    border-left-color: var(--color-text-primary);
+  .toc--inline {
+    padding: var(--space-md);
+    border: 1px solid var(--border);
   }
 
-  .toc a:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-    border-radius: var(--radius-xs);
+  @media (min-width: 64rem) {
+    .toc--sidebar details > ol {
+      display: grid;
+    }
+
+    .toc--sidebar details > summary {
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .toc--sidebar .toc__count {
+      display: none;
+    }
+  }
+
+  @media (max-width: 63.99rem) {
+    .toc--sidebar {
+      border-block: 1px solid var(--border);
+    }
+
+    .toc--sidebar details > summary {
+      min-height: 2.75rem;
+      color: var(--foreground);
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      letter-spacing: var(--tracking-normal);
+      text-transform: none;
+    }
+
+    .toc--sidebar ol {
+      padding-bottom: var(--space-md);
+    }
   }
 </style>

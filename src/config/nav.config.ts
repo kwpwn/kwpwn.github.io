@@ -7,7 +7,7 @@ export interface NavItem {
 }
 
 export const mainNav: NavItem[] = [
-  { href: "/", labelKey: "nav.home" },
+  { href: "/", labelKey: "nav.learn" },
   {
     href: "/topics/",
     labelKey: "nav.topics",
@@ -24,14 +24,27 @@ export const mainNav: NavItem[] = [
     ],
   },
   {
-    href: "/windows-security-concepts/",
-    labelKey: "nav.windowsSecurityConcepts",
+    href: "/windows-service-vulnerabilities/",
+    labelKey: "nav.vulnerabilities",
   },
   {
-    href: "/windows-service-vulnerabilities/",
-    labelKey: "nav.windowsServiceAtlas",
+    href: "/windows-security-concepts/",
+    labelKey: "nav.reference",
+    children: [
+      {
+        href: "/windows-security-concepts/",
+        labelKey: "nav.conceptHandbook",
+      },
+      {
+        href: "/windows-service-vulnerabilities/",
+        labelKey: "nav.windowsServiceAtlas",
+      },
+    ],
   },
-  { href: "/blogs/", labelKey: "nav.blogs" },
+  {
+    href: "/windows-security-concepts/research-evidence/",
+    labelKey: "nav.researchPractice",
+  },
 ] as const;
 
 export const footerNav = {

@@ -1,0 +1,184 @@
+---
+import type { CollectionEntry } from "astro:content";
+
+export interface Props {
+  post: CollectionEntry<"blog">;
+}
+
+const { post } = Astro.props as Props;
+
+const contentTypeLabels = {
+  concept: "Concept lesson",
+  vulnerability: "Vulnerability write-up",
+  "service-dossier": "Service dossier",
+  lab: "Lab guide",
+  "research-note": "Research note",
+  reference: "Reference",
+  "interactive-atlas": "Interactive atlas",
+} as const;
+
+const statusLabels = {
+  draft: "Draft",
+  preliminary: "Preliminary",
+  reviewed: "Reviewed",
+  confirmed: "Confirmed",
+  superseded: "Superseded",
+  archived: "Archived",
+} as const;
+
+const evidenceLabels = {
+  documented: "Documented",
+  observed: "Observed",
+  inferred: "Inference",
+  hypothesis: "Hypothesis",
+  mixed: "Mixed evidence",
+  unverified: "Not yet verified",
+} as const;
+
+const statusDescriptions = {
+  draft: "This draft is incomplete and may change substantially.",
+  preliminary:
+    "This article has not completed independent technical review. Build-dependent claims must be reproduced before use.",
+  reviewed:
+    "The article has completed an editorial evidence review; individual observations remain limited to their stated environment.",
+  confirmed:
+    "The article is marked confirmed only for the claims and target evidence identified in its source coverage.",
+  superseded:
+    "A newer article or evidence set replaces this material. Keep it for historical context only.",
+  archived:
+    "This material is retained for reference and is not actively maintained.",
+} as const;
+
+const contentType = post.data.content_type as keyof typeof contentTypeLabels;
+const reviewStatus = post.data.status as keyof typeof statusLabels;
+const evidenceLevel = post.data.evidence_level as keyof typeof evidenceLabels;
+
+const scope =
+  post.data.windows_builds.length > 0
+    ? post.data.windows_builds.join(", ")
+    : post.data.windows_versions.length > 0
+      ? post.data.windows_versions.join(", ")
+      : "Windows scope not yet verified";
+
+const reviewedDate = post.data.reviewed_at
+  ? new Date(post.data.reviewed_at)
+  : undefined;
+---
+
+<section
+  class={`article-evidence article-evidence--${reviewStatus}`}
+  aria-labelledby="article-evidence-title"
+>
+  <div class="article-evidence__summary">
+    <p class="article-evidence__eyebrow" id="article-evidence-title">
+      Research status
+    </p>
+    <p class="article-evidence__statement">
+      <strong>{statusLabels[reviewStatus]}</strong>
+      <span aria-hidden="true">&mdash;</span>
+      {statusDescriptions[reviewStatus]}
+    </p>
+  </div>
+
+  <dl class="article-evidence__facts">
+    <div>
+      <dt>Type</dt>
+      <dd>{contentTypeLabels[contentType]}</dd>
+    </div>
+    <div>
+      <dt>Evidence</dt>
+      <dd>{evidenceLabels[evidenceLevel]}</dd>
+    </div>
+    <div>
+      <dt>Scope</dt>
+      <dd>{scope}</dd>
+    </div>
+    <div>
+      <dt>Last reviewed</dt>
+      <dd>
+        {
+          reviewedDate ? (
+            <time datetime={reviewedDate.toISOString()}>
+              {reviewedDate.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </time>
+          ) : (
+            "Not yet reviewed"
+          )
+        }
+      </dd>
+    </div>
+  </dl>
+</section>
+
+<style>
+  .article-evidence {
+    display: grid;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    border-left: 3px solid var(--muted-foreground);
+    background: var(--muted);
+  }
+
+  .article-evidence--confirmed,
+  .article-evidence--reviewed {
+    border-left-color: var(--link);
+  }
+
+  .article-evidence__eyebrow,
+  .article-evidence__statement,
+  .article-evidence__facts {
+    margin: 0;
+  }
+
+  .article-evidence__eyebrow {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .article-evidence__statement {
+    margin-top: var(--space-xs);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .article-evidence__facts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+
+  .article-evidence__facts div {
+    min-width: 0;
+  }
+
+  .article-evidence__facts dt {
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+  }
+
+  .article-evidence__facts dd {
+    margin: var(--spacing-1) 0 0;
+    overflow-wrap: anywhere;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  @media (max-width: 48rem) {
+    .article-evidence__facts {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .article-evidence__facts {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

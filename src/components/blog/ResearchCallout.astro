@@ -1,0 +1,85 @@
+---
+export type ResearchCalloutType =
+  | "note"
+  | "important"
+  | "warning"
+  | "build-specific"
+  | "evidence"
+  | "hypothesis"
+  | "pitfall";
+
+export interface Props {
+  type?: ResearchCalloutType;
+  title?: string;
+}
+
+const { type = "note", title } = Astro.props;
+const labels: Record<ResearchCalloutType, string> = {
+  note: "Note",
+  important: "Important",
+  warning: "Warning",
+  "build-specific": "Build-specific",
+  evidence: "Evidence",
+  hypothesis: "Hypothesis",
+  pitfall: "Pitfall",
+};
+const label = title ?? labels[type];
+---
+
+<aside class={`research-callout research-callout--${type}`} aria-label={label}>
+  <p class="research-callout__label">{label}</p>
+  <div class="research-callout__content">
+    <slot />
+  </div>
+</aside>
+
+<style>
+  .research-callout {
+    --callout-color: var(--info);
+
+    margin-block: var(--space-xl);
+    padding: var(--space-md) var(--space-lg);
+    border-inline-start: 3px solid var(--callout-color);
+    background: color-mix(in srgb, var(--callout-color) 7%, var(--background));
+  }
+
+  .research-callout--important {
+    --callout-color: var(--primary);
+  }
+
+  .research-callout--warning,
+  .research-callout--hypothesis {
+    --callout-color: var(--warning);
+  }
+
+  .research-callout--build-specific {
+    --callout-color: var(--muted-foreground);
+  }
+
+  .research-callout--evidence {
+    --callout-color: var(--success);
+  }
+
+  .research-callout--pitfall {
+    --callout-color: var(--destructive);
+  }
+
+  .research-callout__label {
+    margin: 0 0 var(--space-xs);
+    color: var(--foreground);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+  }
+
+  .research-callout__content {
+    color: var(--foreground);
+  }
+
+  .research-callout__content > :global(:first-child) {
+    margin-top: 0;
+  }
+
+  .research-callout__content > :global(:last-child) {
+    margin-bottom: 0;
+  }
+</style>

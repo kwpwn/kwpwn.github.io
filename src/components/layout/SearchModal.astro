@@ -14,28 +14,60 @@ const { locale = "en" } = Astro.props as Props;
 <dialog
   id="search-modal"
   class="search-modal"
-  aria-label={t(locale, "search.title")}
+  aria-labelledby="search-modal-title"
+  data-pagefind-ignore
 >
   <div class="search-modal__panel">
-    <div class="search-modal__header">
-      <span class="search-modal__eyebrow">
-        <Icon name="lucide:search" class="search-modal__eyebrow-icon" />
-        <h2 class="search-modal__title">{t(locale, "search.title")}</h2>
-      </span>
+    <header class="search-modal__header">
+      <div>
+        <p class="search-modal__eyebrow">Library search</p>
+        <h2 id="search-modal-title" class="search-modal__title">
+          Find a lesson, concept, service, CVE, lab, or reference
+        </h2>
+      </div>
       <button
         type="button"
         class="search-modal__close"
         data-search-close
         aria-label={t(locale, "aria.closeModal")}
       >
-        <kbd class="search-modal__kbd">Esc</kbd>
-        <Icon name="lucide:x" class="search-modal__close-icon" />
+        <kbd>Esc</kbd>
+        <Icon name="lucide:x" aria-hidden="true" />
       </button>
-    </div>
+    </header>
 
     {
       isProd ? (
-        <div class="search-modal__ui" data-pagefind-ui />
+        <div class="search-modal__search">
+          <label for="library-search-input">Search the research library</label>
+          <div class="search-modal__input-wrap">
+            <Icon name="lucide:search" aria-hidden="true" />
+            <input
+              id="library-search-input"
+              type="search"
+              inputmode="search"
+              placeholder="Try “ALPC”, “SeImpersonatePrivilege”, or “CVE-2021-34527”"
+              autocomplete="off"
+              spellcheck="false"
+              aria-controls="library-search-results"
+              aria-describedby="library-search-status"
+              data-search-input
+            />
+          </div>
+          <p
+            id="library-search-status"
+            class="search-modal__status"
+            aria-live="polite"
+            data-search-status
+          >
+            Type at least two characters to search the local index.
+          </p>
+          <div
+            id="library-search-results"
+            class="search-modal__results"
+            data-search-results
+          />
+        </div>
       ) : (
         <p class="search-modal__fallback">{t(locale, "search.devFallback")}</p>
       )
@@ -44,232 +76,457 @@ const { locale = "en" } = Astro.props as Props;
 </dialog>
 
 <script is:inline>
-  const dialog = document.getElementById("search-modal");
-  const triggers = document.querySelectorAll("[data-search-trigger]");
-  const closeButton = dialog?.querySelector("[data-search-close]");
-  // The mount point only exists in production builds (Pagefind index).
-  const pagefindMount = dialog?.querySelector("[data-pagefind-ui]");
-  let pagefindInitialized = false;
-  let pagefindLoading = null;
+  {
+    const dialog = document.getElementById("search-modal");
+    const closeButton = dialog?.querySelector("[data-search-close]");
+    const input = dialog?.querySelector("[data-search-input]");
+    const status = dialog?.querySelector("[data-search-status]");
+    const resultsRoot = dialog?.querySelector("[data-search-results]");
+    const groupOrder = [
+      "Lessons",
+      "Concepts",
+      "CVEs",
+      "Services",
+      "Labs",
+      "References",
+    ];
 
-  // Load the Pagefind UI bundle + styles on demand, the first time search is
-  // opened, so they never weigh on initial page load (TBT / unused JS).
-  const loadPagefind = () => {
-    if (pagefindLoading) return pagefindLoading;
-    pagefindLoading = new Promise((resolve) => {
-      const css = document.createElement("link");
-      css.rel = "stylesheet";
-      css.href = "/pagefind/pagefind-ui.css";
-      document.head.appendChild(css);
+    let activeTrigger = null;
+    let pagefindPromise = null;
+    let searchTimer = null;
+    let searchSequence = 0;
 
-      const script = document.createElement("script");
-      script.src = "/pagefind/pagefind-ui.js";
-      script.onload = () => resolve();
-      script.onerror = () => resolve();
-      document.head.appendChild(script);
-    });
-    return pagefindLoading;
-  };
+    const loadPagefind = () => {
+      if (!pagefindPromise) {
+        pagefindPromise = import("/pagefind/pagefind.js");
+      }
+      return pagefindPromise;
+    };
 
-  const openSearch = async () => {
-    if (!dialog || typeof dialog.showModal !== "function") {
-      return;
-    }
+    const classifyResult = (result, query) => {
+      const url = result.url.toLowerCase();
+      const title = String(result.meta?.title || "").toLowerCase();
+      const isCveQuery = /^cve-\d{4}-\d{4,}$/i.test(query.trim());
 
-    dialog.showModal();
+      if (url.startsWith("/blog/")) {
+        return /(?:^|[-/])(lab|workflow)(?:[-/]|$)/.test(url) ||
+          /\blab\b/.test(title)
+          ? "Labs"
+          : "Lessons";
+      }
+      if (url.includes("/windows-security-concepts/")) return "Concepts";
+      if (url.includes("/windows-service-vulnerabilities/targets/")) {
+        return isCveQuery ? "CVEs" : "Services";
+      }
+      if (url.includes("/windows-service-vulnerabilities/")) return "Services";
+      return "References";
+    };
 
-    if (!pagefindMount) return;
+    const appendExcerpt = (target, excerpt) => {
+      const template = document.createElement("template");
+      template.innerHTML = excerpt;
 
-    await loadPagefind();
-
-    if (window.PagefindUI && !pagefindInitialized) {
-      pagefindInitialized = true;
-      window.__pagefindUI = new window.PagefindUI({
-        element: "[data-pagefind-ui]",
-        showSubResults: true,
-        autofocus: true,
+      template.content.childNodes.forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE && node.nodeName === "MARK") {
+          const mark = document.createElement("mark");
+          mark.textContent = node.textContent;
+          target.append(mark);
+        } else {
+          target.append(document.createTextNode(node.textContent || ""));
+        }
       });
-    }
-  };
+    };
 
-  const closeSearch = () => {
-    if (dialog?.open) {
-      dialog.close();
-    }
-  };
+    const createResult = (result) => {
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      const title = document.createElement("strong");
+      const excerpt = document.createElement("span");
+      const path = document.createElement("small");
 
-  triggers.forEach((trigger) => {
-    trigger.addEventListener("click", openSearch);
-  });
+      link.href = result.url;
+      title.textContent = result.meta?.title || "Untitled result";
+      appendExcerpt(excerpt, result.excerpt || result.plain_excerpt || "");
+      path.textContent = new URL(result.url, window.location.origin).pathname;
 
-  closeButton?.addEventListener("click", closeSearch);
+      link.append(title, excerpt, path);
+      item.append(link);
+      return item;
+    };
 
-  dialog?.addEventListener("click", (event) => {
-    if (event.target === dialog) {
-      closeSearch();
-    }
-  });
+    const renderResults = (results, query) => {
+      if (!resultsRoot || !status) return;
+      resultsRoot.replaceChildren();
 
-  document.addEventListener("keydown", (event) => {
-    const isShortcut =
-      (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
-    if (isShortcut) {
+      if (!results.length) {
+        status.textContent = `No results for “${query}”.`;
+        return;
+      }
+
+      const groups = new Map(groupOrder.map((group) => [group, []]));
+      results.forEach((result) => {
+        groups.get(classifyResult(result, query))?.push(result);
+      });
+
+      let visibleCount = 0;
+      groupOrder.forEach((groupName) => {
+        const groupResults = groups.get(groupName)?.slice(0, 6) || [];
+        if (!groupResults.length) return;
+
+        const section = document.createElement("section");
+        const heading = document.createElement("h3");
+        const list = document.createElement("ol");
+        heading.textContent = groupName;
+        list.append(...groupResults.map(createResult));
+        section.append(heading, list);
+        resultsRoot.append(section);
+        visibleCount += groupResults.length;
+      });
+
+      status.textContent = `${results.length} results found. Showing the ${visibleCount} highest-ranked results by content type.`;
+    };
+
+    const runSearch = async (query) => {
+      if (!status || !resultsRoot) return;
+      const sequence = ++searchSequence;
+      const normalized = query.trim();
+
+      if (normalized.length < 2) {
+        resultsRoot.replaceChildren();
+        status.textContent =
+          "Type at least two characters to search the local index.";
+        return;
+      }
+
+      status.textContent = `Searching for “${normalized}”…`;
+
+      try {
+        const pagefind = await loadPagefind();
+        const response = await pagefind.search(normalized);
+        const details = await Promise.all(
+          response.results.slice(0, 36).map((result) => result.data()),
+        );
+        if (sequence === searchSequence) {
+          renderResults(details, normalized);
+        }
+      } catch (error) {
+        console.error("Search index failed to load", error);
+        if (sequence === searchSequence) {
+          resultsRoot.replaceChildren();
+          status.textContent =
+            "Search could not load. The local index may not have been built.";
+        }
+      }
+    };
+
+    const openSearch = () => {
+      if (!dialog || typeof dialog.showModal !== "function") return;
+      activeTrigger = document.activeElement;
+      if (!dialog.open) dialog.showModal();
+      window.requestAnimationFrame(() => input?.focus());
+      loadPagefind().catch(() => undefined);
+    };
+
+    const closeSearch = () => {
+      if (dialog?.open) dialog.close();
+    };
+
+    document.addEventListener("click", (event) => {
+      const trigger = event.target.closest?.("[data-search-trigger]");
+      if (trigger) openSearch();
+    });
+
+    closeButton?.addEventListener("click", closeSearch);
+
+    input?.addEventListener("input", () => {
+      window.clearTimeout(searchTimer);
+      searchTimer = window.setTimeout(() => runSearch(input.value), 120);
+    });
+
+    input?.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowDown") return;
+      const firstResult = resultsRoot?.querySelector("a");
+      if (firstResult) {
+        event.preventDefault();
+        firstResult.focus();
+      }
+    });
+
+    resultsRoot?.addEventListener("keydown", (event) => {
+      if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+      const links = [...resultsRoot.querySelectorAll("a")];
+      const current = links.indexOf(document.activeElement);
+      if (current < 0) return;
       event.preventDefault();
-      openSearch();
-    }
-  });
+
+      if (event.key === "ArrowDown") {
+        links[(current + 1) % links.length]?.focus();
+      } else if (current === 0) {
+        input?.focus();
+      } else {
+        links[current - 1]?.focus();
+      }
+    });
+
+    dialog?.addEventListener("click", (event) => {
+      if (event.target === dialog) closeSearch();
+    });
+
+    dialog?.addEventListener("close", () => {
+      if (activeTrigger instanceof HTMLElement) activeTrigger.focus();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      const isShortcut =
+        (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
+      if (isShortcut) {
+        event.preventDefault();
+        openSearch();
+      }
+    });
+  }
 </script>
 
 <style>
   .search-modal::backdrop {
-    background: color-mix(in srgb, var(--foreground) 45%, transparent);
-    backdrop-filter: blur(0.35rem);
+    background: color-mix(in oklab, var(--foreground) 45%, transparent);
   }
 
-  /* Command-palette placement: top-centered, not the UA default corner. */
   .search-modal {
     position: fixed;
-    inset-block-start: 9vh;
+    inset-block-start: var(--space-xl);
     inset-inline: 0;
-    margin-inline: auto;
-    margin-block: 0;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-2xl);
-    padding: 0;
-    width: min(40rem, calc(100vw - 2rem));
+    width: min(46rem, calc(100vw - 2 * var(--space-md)));
     max-width: none;
-    max-height: min(80vh, 42rem);
+    max-height: calc(100vh - 2 * var(--space-xl));
+    margin: 0 auto;
+    padding: 0;
     overflow: hidden;
-    background: var(--color-bg-primary);
-    color: var(--color-text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--background);
+    color: var(--foreground);
     box-shadow: var(--shadow-lg);
-  }
-
-  .search-modal[open] {
-    animation: search-modal-in 0.18s ease;
-  }
-
-  .search-modal[open]::backdrop {
-    animation: search-modal-fade 0.18s ease;
-  }
-
-  @keyframes search-modal-in {
-    from {
-      opacity: 0;
-      transform: translateY(-0.75rem) scale(0.98);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
-  @keyframes search-modal-fade {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
   }
 
   .search-modal__panel {
     display: flex;
     flex-direction: column;
     max-height: inherit;
-    padding: var(--space-md) var(--space-lg) var(--space-lg);
+    padding: var(--space-lg);
   }
 
   .search-modal__header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: var(--space-md);
-    padding-bottom: var(--space-sm);
-    margin-bottom: var(--space-md);
-    border-bottom: 1px solid var(--color-border);
+    gap: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--border);
   }
 
   .search-modal__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
-    color: var(--color-text-secondary);
-  }
-
-  .search-modal__eyebrow-icon {
-    width: 1.05rem;
-    height: 1.05rem;
+    margin: 0;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
   }
 
   .search-modal__title {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--color-text-primary);
+    margin: var(--space-xs) 0 0;
+    font-size: var(--text-xl);
+    line-height: var(--leading-snug);
   }
 
   .search-modal__close {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    height: 2rem;
-    padding-inline: 0.4rem 0.6rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-full);
-    background: transparent;
-    color: var(--color-text-secondary);
+    gap: var(--space-xs);
+    min-height: var(--control-md);
+    padding-inline: var(--space-sm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font: inherit;
     cursor: pointer;
-    transition:
-      border-color 0.15s ease,
-      color 0.15s ease,
-      background 0.15s ease;
   }
 
   .search-modal__close:hover {
-    border-color: var(--color-text-primary);
-    color: var(--color-text-primary);
-    background: var(--color-bg-secondary);
+    border-color: var(--link);
+    color: var(--link);
   }
 
-  .search-modal__close-icon {
-    width: 1rem;
-    height: 1rem;
+  .search-modal__close kbd {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
   }
 
-  .search-modal__kbd {
-    font-family: inherit;
-    font-size: 0.7rem;
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: 0.02em;
+  .search-modal__close :global(svg) {
+    width: var(--space-md);
+    height: var(--space-md);
   }
 
+  .search-modal__search {
+    display: grid;
+    min-height: 0;
+    padding-top: var(--space-md);
+  }
+
+  .search-modal__search > label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .search-modal__input-wrap {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-sm);
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding-inline: var(--space-md);
+    background: var(--background);
+  }
+
+  .search-modal__input-wrap:focus-within {
+    border-color: var(--link);
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .search-modal__input-wrap :global(svg) {
+    width: var(--space-lg);
+    height: var(--space-lg);
+    color: var(--muted-foreground);
+  }
+
+  .search-modal__input-wrap input {
+    width: 100%;
+    min-height: var(--control-lg);
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--foreground);
+    font: inherit;
+    font-size: var(--text-base);
+  }
+
+  .search-modal__input-wrap input::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  .search-modal__status,
   .search-modal__fallback {
-    margin: 0;
-    color: var(--color-text-secondary);
+    margin: var(--space-sm) 0 0;
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
   }
 
-  /* Theme the Pagefind UI to the design tokens (monochrome, on-system). */
-  .search-modal__ui {
-    --pagefind-ui-scale: 0.85;
-    --pagefind-ui-primary: var(--color-text-primary);
-    --pagefind-ui-text: var(--color-text-primary);
-    --pagefind-ui-background: var(--color-bg-primary);
-    --pagefind-ui-border: var(--color-border);
-    --pagefind-ui-tag: var(--color-bg-secondary);
-    --pagefind-ui-border-width: 1px;
-    --pagefind-ui-border-radius: var(--radius-lg);
-    --pagefind-ui-font: inherit;
-
+  .search-modal__results {
+    min-height: 0;
+    margin-top: var(--space-md);
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .search-modal[open],
-    .search-modal[open]::backdrop {
-      animation: none;
+  .search-modal__results :global(section + section) {
+    margin-top: var(--space-lg);
+  }
+
+  .search-modal__results :global(h3) {
+    margin: 0 0 var(--space-xs);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .search-modal__results :global(ol) {
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--border);
+    list-style: none;
+  }
+
+  .search-modal__results :global(li) {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .search-modal__results :global(a) {
+    display: grid;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .search-modal__results :global(a:hover),
+  .search-modal__results :global(a:focus-visible) {
+    background: var(--muted);
+  }
+
+  .search-modal__results :global(a:focus-visible),
+  .search-modal__close:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+
+  .search-modal__results :global(strong) {
+    font-size: var(--text-base);
+    line-height: var(--leading-snug);
+  }
+
+  .search-modal__results :global(span) {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .search-modal__results :global(mark) {
+    border-radius: var(--radius-xs);
+    background: var(--warning);
+    color: var(--warning-foreground);
+  }
+
+  .search-modal__results :global(small) {
+    overflow: hidden;
+    color: var(--link);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 40rem) {
+    .search-modal {
+      inset-block-start: var(--space-sm);
+      width: calc(100vw - 2 * var(--space-sm));
+      max-height: calc(100vh - 2 * var(--space-sm));
+    }
+
+    .search-modal__panel {
+      padding: var(--space-md);
+    }
+
+    .search-modal__title {
+      font-size: var(--text-lg);
+    }
+
+    .search-modal__close kbd {
+      display: none;
     }
   }
 </style>

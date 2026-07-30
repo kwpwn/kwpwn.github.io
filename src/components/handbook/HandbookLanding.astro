@@ -7,7 +7,6 @@ import {
 } from "../../data/windows-security-handbook";
 import Badge from "../ui/data-display/Badge/Badge.astro";
 import Card from "../ui/data-display/Card/Card.astro";
-import Button from "../ui/form/Button/Button.astro";
 import Icon from "../ui/primitives/Icon/Icon.astro";
 
 const groupIcons = {
@@ -73,62 +72,25 @@ const featuredConcepts = handbookConcepts.filter((concept) => concept.featured);
 
 <div class="handbook-landing">
   <nav class="handbook-landing__breadcrumb" aria-label="Breadcrumb">
-    <a href="/">Blogs</a>
+    <a href="/">Home</a>
     <span aria-hidden="true">/</span>
     <span aria-current="page">Windows Security Handbook</span>
   </nav>
 
   <header class="handbook-landing__hero">
     <div class="handbook-landing__hero-copy">
-      <Badge variant="outline" size="sm">Concept-first · Build-aware</Badge>
       <p class="handbook-landing__eyebrow">Windows Security Handbook</p>
-      <h1>Learn the system. Then reason about the bug.</h1>
+      <h1>Windows security concepts, connected and verifiable.</h1>
       <p class="handbook-landing__lead">
-        A practical handbook for Windows kernel, driver, service, IPC, and local
-        privilege-escalation research. Each topic explains the mental model,
-        capability, mechanics, audit questions, APIs, flags, and trusted
-        sources.
+        Use this reference to understand a primitive, subsystem, attack surface,
+        driver type, mitigation, or research method. Each concept separates
+        stable contracts from build-specific implementation evidence.
       </p>
       <div class="handbook-landing__actions">
-        <Button href="#learning-paths" size="lg">Choose a learning path</Button>
-        <Button href="/windows-api-cheatsheet/" variant="secondary" size="lg">
-          Open API &amp; flags
-        </Button>
-        <Button
-          href="/windows-security-case-studies/"
-          variant="ghost"
-          size="lg"
-        >
-          Browse case studies
-        </Button>
-        <Button
-          href="/windows-service-vulnerabilities/"
-          variant="ghost"
-          size="lg"
-        >
-          Explore service CVEs
-        </Button>
+        <a href="#handbook-search-heading">Find a concept</a>
+        <a href="/windows-api-cheatsheet/">Open API &amp; flags</a>
       </div>
     </div>
-
-    <aside
-      class="handbook-landing__release"
-      aria-label="Latest handbook addition"
-    >
-      <span class="handbook-landing__release-icon" aria-hidden="true">
-        <Icon name="lucide:key-round" size={22} />
-      </span>
-      <p class="handbook-landing__eyebrow">New concept</p>
-      <h2>Kernel driver gates and handshakes</h2>
-      <p>
-        Packet marker, session authorization, open-time policy, caller identity,
-        registry policy, and capability readiness are not the same security
-        claim.
-      </p>
-      <a href="/windows-security-concepts/driver-gates-and-handshakes/">
-        Read the concept <span aria-hidden="true">→</span>
-      </a>
-    </aside>
   </header>
 
   <section
@@ -376,10 +338,8 @@ const featuredConcepts = handbookConcepts.filter((concept) => concept.featured);
 
   .handbook-landing__hero {
     display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.55fr);
-    gap: var(--space-2xl);
-    align-items: end;
-    padding-bottom: var(--space-3xl);
+    max-width: var(--measure-reading-wide);
+    padding-bottom: var(--space-2xl);
     border-bottom: 1px solid var(--color-border);
   }
 
@@ -401,18 +361,19 @@ const featuredConcepts = handbookConcepts.filter((concept) => concept.featured);
   }
 
   .handbook-landing__hero h1 {
-    max-width: var(--container-wide);
+    max-width: 19ch;
     margin: 0;
-    font-size: var(--text-5xl);
+    font-size: var(--text-4xl);
+    line-height: var(--leading-tight);
     letter-spacing: var(--tracking-tight);
   }
 
   .handbook-landing__lead {
-    max-width: var(--container-wide);
+    max-width: var(--measure-reading);
     margin: 0;
     color: var(--color-text-secondary);
-    font-size: var(--text-lg);
-    line-height: var(--leading-relaxed);
+    font-size: var(--text-reading);
+    line-height: var(--leading-reading);
   }
 
   .handbook-landing__actions {
@@ -422,17 +383,24 @@ const featuredConcepts = handbookConcepts.filter((concept) => concept.featured);
     margin-top: var(--space-sm);
   }
 
-  .handbook-landing__release {
-    display: grid;
-    gap: var(--space-md);
-    padding: var(--space-xl);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-2xl);
-    background: var(--color-bg-secondary);
-    box-shadow: var(--shadow-sm);
+  .handbook-landing__actions a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--control-md);
+    padding-inline: var(--space-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--foreground);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
   }
 
-  .handbook-landing__release-icon,
+  .handbook-landing__actions a:hover {
+    border-color: var(--link);
+    color: var(--link);
+  }
+
   .handbook-topic__icon {
     display: inline-flex;
     align-items: center;
@@ -444,8 +412,6 @@ const featuredConcepts = handbookConcepts.filter((concept) => concept.featured);
     background: var(--color-bg-primary);
   }
 
-  .handbook-landing__release h2,
-  .handbook-landing__release p,
   .handbook-topic h3,
   .handbook-topic p,
   .handbook-path h3,
@@ -453,17 +419,6 @@ const featuredConcepts = handbookConcepts.filter((concept) => concept.featured);
     margin: 0;
   }
 
-  .handbook-landing__release h2 {
-    font-size: var(--text-xl);
-  }
-
-  .handbook-landing__release > p:not(.handbook-landing__eyebrow) {
-    color: var(--color-text-secondary);
-    font-size: var(--text-sm);
-    line-height: var(--leading-relaxed);
-  }
-
-  .handbook-landing__release > a,
   .handbook-topic > a,
   .handbook-landing__section-head > a {
     font-weight: var(--font-weight-semibold);

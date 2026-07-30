@@ -92,9 +92,9 @@ export const siteConfig: SiteConfig = {
   /* Core configuration — single source of truth for canonical/OG/sitemap/llms.txt.
    * Replace with your production domain when forking this template. */
   url: process.env.SITE_URL ?? "https://kwpwn.github.io",
-  name: "Blogs",
+  name: "KWPWN Research Library",
   description:
-    "Personal notes, articles, and things worth sharing.",
+    "Evidence-led notes on Windows internals, privilege boundaries, malware analysis, and vulnerability research.",
   author: "kwpwn",
   email: "",
   authorImage: "/images/author.jpg",

@@ -69,6 +69,8 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
   --color-warning: var(--warning);
@@ -162,6 +164,7 @@ body {
   font-family: var(--font-sans);
   color: var(--foreground);
   background-color: var(--background);
+  font-size: var(--text-base);
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -184,7 +187,7 @@ h6 {
 .prose {
   counter-reset: article-section;
   color: var(--foreground);
-  max-width: 72ch;
+  max-width: var(--measure-reading);
   font-size: var(--text-reading);
   line-height: var(--leading-reading);
 }
@@ -266,12 +269,10 @@ h6 {
 
 .prose blockquote {
   margin: var(--space-lg) 0;
-  padding: var(--space-md) var(--space-lg);
-  border: 1px solid var(--border);
-  border-left-width: var(--spacing-1);
-  border-radius: var(--radius-lg);
+  padding: var(--space-xs) 0 var(--space-xs) var(--space-md);
+  border-left: 2px solid var(--foreground);
   color: var(--foreground);
-  background: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .prose blockquote > :first-child {
@@ -283,13 +284,17 @@ h6 {
 }
 
 .prose table {
+  display: block;
   width: 100%;
+  max-width: 100%;
   margin-block: var(--space-lg);
   border: 1px solid var(--border);
   border-spacing: 0;
   border-radius: var(--radius-lg);
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
 }
 
 .prose th,
@@ -338,14 +343,14 @@ h6 {
 }
 
 .prose a {
-  color: var(--primary);
+  color: var(--link);
   text-decoration: underline;
   text-underline-offset: 2px;
   overflow-wrap: anywhere;
 }
 
 .prose a:hover {
-  color: var(--primary-hover);
+  color: var(--link-hover);
 }
 
 .prose img {
@@ -362,25 +367,25 @@ pre {
   border: 1px solid var(--border);
 }
 
-pre code {
-  font-family: var(--font-mono);
-  font-size: inherit;
-}
-
 code {
   font-family: var(--font-mono);
   font-size: var(--text-code-sm);
+}
+
+/* Inline code only. Code inside a preformatted block inherits the Shiki theme. */
+.prose :not(pre) > code {
   background: var(--muted);
-  padding: 0.15em 0.35em;
+  padding: 0.125em 0.3em;
   border-radius: var(--radius-sm);
   font-weight: var(--font-weight-normal);
 }
 
-/* Inline code in prose (inside paragraphs) */
-.prose code:not(pre code) {
-  background: var(--muted);
-  padding: 0.125em 0.3em;
-  border-radius: var(--radius-sm);
+pre code {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 /* List bullets */

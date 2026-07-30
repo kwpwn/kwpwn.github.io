@@ -1,8 +1,12 @@
 export { default as BlogCard } from "./BlogCard.astro";
 export { default as ArticleHero } from "./ArticleHero.astro";
 export { default as ArticleGuide } from "./ArticleGuide.astro";
+export { default as ArticleEvidence } from "./ArticleEvidence.astro";
+export { default as ArticleLibraryNav } from "./ArticleLibraryNav.astro";
+export { default as ArticlePager } from "./ArticlePager.astro";
+export { default as ArticleTools } from "./ArticleTools.astro";
+export { default as ResearchCallout } from "./ResearchCallout.astro";
 export { default as TableOfContents } from "./TableOfContents.astro";
-export { default as ShareButtons } from "./ShareButtons.astro";
 export { default as RelatedPosts } from "./RelatedPosts.astro";
 export { default as TagList } from "./TagList.astro";
 export { default as BlogImageSVG } from "./BlogImageSVG.astro";

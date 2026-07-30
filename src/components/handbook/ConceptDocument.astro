@@ -1,5 +1,6 @@
 ---
 import {
+  getConceptsForGroup,
   getHandbookGroup,
   handbookConceptBySlug,
   type HandbookConcept,
@@ -15,6 +16,7 @@ export interface Props {
 
 const { concept } = Astro.props as Props;
 const group = getHandbookGroup(concept.group);
+const groupConcepts = getConceptsForGroup(concept.group);
 const related = concept.related
   .map((slug) => handbookConceptBySlug.get(slug))
   .filter((item): item is HandbookConcept => Boolean(item));
@@ -26,7 +28,7 @@ const deepDive = buildConceptDeepDive(concept);
 
 <article class="concept-document">
   <nav class="concept-document__breadcrumb" aria-label="Breadcrumb">
-    <a href="/">Blogs</a>
+    <a href="/">Home</a>
     <span aria-hidden="true">/</span>
     <a href="/windows-security-concepts/">Handbook</a>
     <span aria-hidden="true">/</span>
@@ -52,6 +54,11 @@ const deepDive = buildConceptDeepDive(concept);
       <p class="concept-document__eyebrow">Windows security concept</p>
       <h1>{concept.title}</h1>
       <p class="concept-document__lead">{concept.summary}</p>
+      <p class="concept-document__evidence-status">
+        <strong>Evidence status:</strong> conceptual synthesis. Use the cited sources
+        for documented contracts and verify implementation-dependent behavior on the
+        Windows build you are studying.
+      </p>
     </div>
     <aside class="concept-document__quick-answer" aria-label="The short answer">
       <span aria-hidden="true"><Icon name="lucide:lightbulb" size={20} /></span>
@@ -63,6 +70,35 @@ const deepDive = buildConceptDeepDive(concept);
   </header>
 
   <div class="concept-document__layout">
+    <aside
+      class="concept-document__library"
+      aria-label="Handbook navigation"
+      data-pagefind-ignore
+    >
+      <details data-concept-library-details>
+        <summary>Browse the handbook</summary>
+        <nav aria-label="Handbook sections">
+          <p>Reference</p>
+          <a href="/windows-security-concepts/">Concept handbook</a>
+          <a href="/windows-api-cheatsheet/">Windows APIs and flags</a>
+          <a href="/windows-security-case-studies/">Case studies</a>
+          <a href="/windows-service-vulnerabilities/">Service Atlas</a>
+
+          <p>{group?.shortTitle ?? "Current topic"}</p>
+          {
+            groupConcepts.map((item) => (
+              <a
+                href={`/windows-security-concepts/${item.slug}/`}
+                aria-current={item.slug === concept.slug ? "page" : undefined}
+              >
+                {item.title}
+              </a>
+            ))
+          }
+        </nav>
+      </details>
+    </aside>
+
     <div class="concept-document__body">
       <section id="meaning" aria-labelledby="meaning-heading">
         <p class="concept-document__section-number">01 / Meaning</p>
@@ -355,7 +391,7 @@ const deepDive = buildConceptDeepDive(concept);
                 <ul>
                   {concept.sources.map((source) => (
                     <li>
-                      <a href={source.href} target="_blank" rel="noreferrer">
+                      <a href={source.href}>
                         <span>{source.title}</span>
                         <small>{source.kind}</small>
                       </a>
@@ -398,7 +434,11 @@ const deepDive = buildConceptDeepDive(concept);
       </section>
     </div>
 
-    <aside class="concept-document__rail" aria-label="On this page">
+    <aside
+      class="concept-document__rail"
+      aria-label="On this page"
+      data-pagefind-ignore
+    >
       <div>
         <p>On this page</p>
         <nav>
@@ -426,6 +466,18 @@ const deepDive = buildConceptDeepDive(concept);
     </aside>
   </div>
 </article>
+
+<script>
+  const details = document.querySelector<HTMLDetailsElement>(
+    "[data-concept-library-details]",
+  );
+  const compact = window.matchMedia("(max-width: 64rem)");
+  const syncDetails = () => {
+    if (details) details.open = !compact.matches;
+  };
+  syncDetails();
+  compact.addEventListener("change", syncDetails);
+</script>
 
 <style>
   .concept-document {
@@ -488,7 +540,8 @@ const deepDive = buildConceptDeepDive(concept);
   .concept-document h1 {
     max-width: var(--container-wide);
     margin: 0;
-    font-size: var(--text-5xl);
+    font-size: var(--text-4xl);
+    line-height: var(--leading-tight);
     letter-spacing: var(--tracking-tight);
   }
 
@@ -497,6 +550,16 @@ const deepDive = buildConceptDeepDive(concept);
     margin: 0;
     color: var(--color-text-secondary);
     font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+  }
+
+  .concept-document__evidence-status {
+    max-width: var(--container-wide);
+    margin: 0;
+    padding-left: var(--space-md);
+    border-left: var(--spacing-1) solid var(--border-strong);
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
     line-height: var(--leading-relaxed);
   }
 
@@ -529,6 +592,61 @@ const deepDive = buildConceptDeepDive(concept);
       minmax(0, 1fr) minmax(var(--container-narrow), 2.25fr)
       minmax(0, 0.75fr);
     gap: var(--space-2xl);
+  }
+
+  .concept-document__library {
+    grid-column: 1;
+    min-width: 0;
+  }
+
+  .concept-document__library details {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-lg));
+    max-height: calc(100vh - var(--header-height) - var(--space-xl));
+    overflow-y: auto;
+  }
+
+  .concept-document__library summary {
+    display: none;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+  }
+
+  .concept-document__library nav {
+    display: grid;
+    gap: var(--space-xs);
+  }
+
+  .concept-document__library nav p {
+    margin: var(--space-lg) 0 var(--space-xs);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .concept-document__library nav p:first-child {
+    margin-top: 0;
+  }
+
+  .concept-document__library nav a {
+    padding: var(--space-xs);
+    border-radius: var(--radius-sm);
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    text-decoration: none;
+  }
+
+  .concept-document__library nav a:hover {
+    color: var(--link);
+  }
+
+  .concept-document__library nav a[aria-current="page"] {
+    background: var(--muted);
+    color: var(--link);
+    font-weight: var(--font-weight-semibold);
   }
 
   .concept-document__body {
@@ -963,13 +1081,53 @@ const deepDive = buildConceptDeepDive(concept);
     }
 
     .concept-document__body,
+    .concept-document__library,
     .concept-document__rail {
       grid-column: 1;
     }
 
+    .concept-document__library {
+      grid-row: 1;
+    }
+
     .concept-document__rail {
       position: static;
-      grid-row: 1;
+      grid-row: 2;
+    }
+
+    .concept-document__body {
+      grid-row: 3;
+    }
+
+    .concept-document__library details {
+      position: static;
+      max-height: none;
+      overflow: visible;
+      padding-block: var(--space-sm);
+      border-block: 1px solid var(--border);
+    }
+
+    .concept-document__library summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: var(--control-md);
+    }
+
+    .concept-document__library summary::after {
+      content: "+";
+    }
+
+    .concept-document__library details[open] summary::after {
+      content: "−";
+    }
+
+    .concept-document__library nav {
+      padding-block: var(--space-md);
+    }
+
+    .concept-document__library details:not([open]) > nav {
+      display: none;
     }
 
     .concept-document__rail > div:first-child {

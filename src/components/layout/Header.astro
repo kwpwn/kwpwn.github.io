@@ -26,7 +26,9 @@ const contentPath = stripLocale(currentPath);
 const navLinks = mainNav.map((item) => ({
   ...item,
   href: resolveRoute(effectiveLocale, item.href),
-  active: contentPath === item.href,
+  active:
+    contentPath === item.href ||
+    (item.href !== "/" && contentPath.startsWith(item.href)),
 }));
 
 const githubUrl = siteConfig.socialLinks.find(
@@ -34,13 +36,13 @@ const githubUrl = siteConfig.socialLinks.find(
 )?.url;
 ---
 
-<header class="header" data-header>
+<header class="header" data-header data-pagefind-ignore>
   <div class="header__bar container">
     <Logo href={resolveRoute(effectiveLocale, "/")} />
 
     <nav
       class="header__desktop-nav"
-      aria-label={t(effectiveLocale, "nav.home")}
+      aria-label={t(effectiveLocale, "nav.primary")}
     >
       <ul class="header__list">
         {
@@ -84,8 +86,6 @@ const githubUrl = siteConfig.socialLinks.find(
           <a
             href={githubUrl}
             class="header__icon-button header__github"
-            target="_blank"
-            rel="noopener noreferrer"
             aria-label="View source on GitHub"
           >
             <Icon
@@ -103,7 +103,7 @@ const githubUrl = siteConfig.socialLinks.find(
         aria-label={t(effectiveLocale, "aria.searchButton")}
       >
         <Icon name="lucide:search" class="header__icon" aria-hidden="true" />
-        <kbd class="header__kbd">⌘K</kbd>
+        <kbd class="header__kbd">Ctrl K</kbd>
       </button>
       {showThemeToggle && <ThemeToggle locale={effectiveLocale} />}
       <button
@@ -129,7 +129,7 @@ const githubUrl = siteConfig.socialLinks.find(
   </div>
 
   <div id="header-mobile-menu" class="header__mobile" data-menu-panel hidden>
-    <nav aria-label={t(effectiveLocale, "nav.home")}>
+    <nav aria-label={t(effectiveLocale, "nav.primary")}>
       <ul class="header__mobile-list">
         {
           navLinks.map((item) => (
@@ -160,39 +160,41 @@ const githubUrl = siteConfig.socialLinks.find(
 </header>
 
 <script is:inline>
-  const header = document.querySelector("[data-header]");
-  const menuToggle = document.querySelector("[data-menu-toggle]");
-  const menuPanel = document.querySelector("[data-menu-panel]");
+  {
+    const header = document.querySelector("[data-header]");
+    const menuToggle = document.querySelector("[data-menu-toggle]");
+    const menuPanel = document.querySelector("[data-menu-panel]");
 
-  if (header && menuToggle && menuPanel) {
-    const syncMenu = (open) => {
-      menuToggle.setAttribute("aria-expanded", String(open));
-      menuPanel.hidden = !open;
-    };
+    if (header && menuToggle && menuPanel) {
+      const syncMenu = (open) => {
+        menuToggle.setAttribute("aria-expanded", String(open));
+        menuPanel.hidden = !open;
+        document.body.toggleAttribute("data-menu-open", open);
+      };
 
-    menuToggle.addEventListener("click", () => {
-      syncMenu(menuToggle.getAttribute("aria-expanded") !== "true");
-    });
+      menuToggle.addEventListener("click", () => {
+        const open = menuToggle.getAttribute("aria-expanded") !== "true";
+        syncMenu(open);
+        if (open) {
+          menuPanel.querySelector("a")?.focus();
+        }
+      });
 
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        syncMenu(false);
-      }
-    });
+      document.addEventListener("keydown", (event) => {
+        if (
+          event.key === "Escape" &&
+          menuToggle.getAttribute("aria-expanded") === "true"
+        ) {
+          syncMenu(false);
+          menuToggle.focus();
+        }
+      });
+
+      menuPanel.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => syncMenu(false));
+      });
+    }
   }
-
-  let lastScrollY = window.scrollY;
-  const updateScrollState = () => {
-    const currentY = window.scrollY;
-    header?.setAttribute(
-      "data-scrolled",
-      currentY > lastScrollY && currentY > 80 ? "down" : "up",
-    );
-    lastScrollY = currentY;
-  };
-
-  window.addEventListener("scroll", updateScrollState, { passive: true });
-  updateScrollState();
 </script>
 
 <style>
@@ -201,13 +203,7 @@ const githubUrl = siteConfig.socialLinks.find(
     top: 0;
     z-index: 50;
     border-bottom: 1px solid var(--color-border);
-    background: color-mix(in oklab, var(--color-bg-primary) 92%, transparent);
-    backdrop-filter: blur(14px);
-    transition: transform 0.2s ease;
-  }
-
-  .header[data-scrolled="down"] {
-    transform: translateY(-100%);
+    background: var(--color-bg-primary);
   }
 
   .header__bar {
@@ -322,7 +318,10 @@ const githubUrl = siteConfig.socialLinks.find(
     font: inherit;
     font-size: 0.8125rem;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease,
+      background-color 0.15s ease;
   }
 
   .header__search {
@@ -354,16 +353,11 @@ const githubUrl = siteConfig.socialLinks.find(
     border-color: var(--color-brand-primary);
     color: var(--color-brand-primary);
     background: var(--color-bg-secondary);
-    transform: scale(1.05);
   }
 
   .header__icon-button:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
-  }
-
-  .header__icon-button:active {
-    transform: scale(0.95);
   }
 
   .header__menu-button {
@@ -444,7 +438,7 @@ const githubUrl = siteConfig.socialLinks.find(
     gap: 0.35rem;
   }
 
-  @media (max-width: 60rem) {
+  @media (max-width: 70rem) {
     .header__desktop-nav {
       display: none;
     }

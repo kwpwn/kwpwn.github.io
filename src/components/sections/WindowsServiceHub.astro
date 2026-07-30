@@ -52,89 +52,41 @@ const topicRoute = (category: string) =>
   aria-labelledby="hub-title"
 >
   <header class="service-hub__hero">
-    <p class="service-hub__eyebrow">Windows vulnerability research portal</p>
-    <h1 id="hub-title">Research by topic. Investigate one target at a time.</h1>
+    <p class="service-hub__eyebrow">Vulnerabilities · Service dossiers</p>
+    <h1 id="hub-title">Windows Service Atlas</h1>
     <p class="service-hub__lede">
-      The atlas is split into focused pages so you never have to scroll through
-      thousands of unrelated records. Start with a security domain, open a
-      service target, then work through its theory, affected versions,
-      exploitation evidence, and qualified PoC leads.
+      Browse service families, their security boundaries, published CVEs,
+      advisories, affected-version evidence, and qualified public PoC leads.
+      Unknown or missing evidence remains explicitly unknown.
     </p>
     <div class="service-hub__actions">
-      <a href="#topics">Browse 12 research topics</a>
       <a href="#target-finder">Find a service target</a>
-      <a href={blogsPath}>View published blogs</a>
+      <a href="#topics">Browse research topics</a>
     </div>
   </header>
 
-  <section class="service-hub__metrics" aria-label="Catalog coverage">
-    <article>
-      <strong>{formatNumber(windowsServiceCatalog.meta.serviceCount)}</strong>
-      <span>target pages</span>
-    </article>
-    <article>
-      <strong>{formatNumber(windowsServiceCatalog.meta.uniqueCveCount)}</strong>
-      <span>unique CVEs</span>
-    </article>
-    <article>
-      <strong>{formatNumber(windowsServiceCatalog.meta.advisoryCount)}</strong>
-      <span>security advisories</span>
-    </article>
-    <article>
-      <strong
-        >{formatNumber(windowsServiceCatalog.meta.knownExploitedCount)}</strong
-      >
-      <span>known exploited</span>
-    </article>
-    <article>
-      <strong>{formatNumber(windowsServiceCatalog.meta.publicPocCount)}</strong>
-      <span>PoC leads</span>
-    </article>
-  </section>
-
-  <section class="service-hub__start" aria-labelledby="start-heading">
-    <div class="service-hub__section-heading">
-      <div>
-        <p class="service-hub__eyebrow">Pick the right entry point</p>
-        <h2 id="start-heading">Three ways to use the portal</h2>
-      </div>
-      <p>
-        The same evidence is exposed through human-readable pages and scoped
-        JSON endpoints. Missing disclosure or PoC evidence remains explicitly
-        unknown rather than being presented as proof of safety.
-      </p>
+  <dl class="service-hub__metrics" aria-label="Catalog snapshot">
+    <div>
+      <dt>Targets</dt>
+      <dd>{formatNumber(windowsServiceCatalog.meta.serviceCount)}</dd>
     </div>
-    <div class="service-hub__start-grid">
-      <article>
-        <span>01</span>
-        <h3>Learn a security domain</h3>
-        <p>
-          Topic pages explain trust boundaries, recurring bug patterns, audit
-          questions, lab workflow, and every Windows target in that domain.
-        </p>
-        <a href="#topics">Choose a topic</a>
-      </article>
-      <article>
-        <span>02</span>
-        <h3>Investigate one target</h3>
-        <p>
-          Target pages isolate one service family and contain its complete CVE,
-          advisory, version, build, exploitation, and PoC history.
-        </p>
-        <a href="#target-finder">Open target finder</a>
-      </article>
-      <article>
-        <span>03</span>
-        <h3>Consume structured evidence</h3>
-        <p>
-          Use the global dataset or smaller per-topic and per-target JSON files
-          for notebooks, diffing, dashboards, and local research tooling.
-        </p>
-        <a href="/data/windows-service-vulnerabilities.json">Open global JSON</a
-        >
-      </article>
+    <div>
+      <dt>Unique CVEs</dt>
+      <dd>{formatNumber(windowsServiceCatalog.meta.uniqueCveCount)}</dd>
     </div>
-  </section>
+    <div>
+      <dt>Advisories</dt>
+      <dd>{formatNumber(windowsServiceCatalog.meta.advisoryCount)}</dd>
+    </div>
+    <div>
+      <dt>Known exploited</dt>
+      <dd>{formatNumber(windowsServiceCatalog.meta.knownExploitedCount)}</dd>
+    </div>
+    <div>
+      <dt>PoC leads</dt>
+      <dd>{formatNumber(windowsServiceCatalog.meta.publicPocCount)}</dd>
+    </div>
+  </dl>
 
   <section
     class="service-hub__section"
@@ -480,7 +432,7 @@ const topicRoute = (category: string) =>
   }
   .service-hub__hero h1 {
     max-width: 20ch;
-    font-size: clamp(var(--text-4xl), 7vw, var(--text-5xl));
+    font-size: var(--text-4xl);
     letter-spacing: var(--tracking-tight);
     line-height: var(--leading-tight);
   }
@@ -495,8 +447,8 @@ const topicRoute = (category: string) =>
   .service-hub__lede {
     max-width: 74ch;
     color: var(--color-text-secondary);
-    font-size: var(--text-lg);
-    line-height: var(--leading-relaxed);
+    font-size: var(--text-reading);
+    line-height: var(--leading-reading);
   }
   .service-hub__actions,
   .service-hub__method div:last-child > div,
@@ -510,7 +462,7 @@ const topicRoute = (category: string) =>
   .service-hub__published a {
     padding: var(--space-sm) var(--space-md);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-md);
     background: var(--color-bg-secondary);
     color: var(--color-text-primary);
     font-size: var(--text-sm);
@@ -526,21 +478,24 @@ const topicRoute = (category: string) =>
   .service-hub__metrics {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: var(--space-sm);
+    margin: 0;
+    border-block: 1px solid var(--border);
   }
-  .service-hub__metrics article {
+  .service-hub__metrics div {
     display: grid;
     gap: var(--space-xs);
-    padding: var(--space-lg);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-xl);
-    background: var(--card);
+    padding: var(--space-md);
   }
-  .service-hub__metrics strong {
+  .service-hub__metrics div + div {
+    border-inline-start: 1px solid var(--border);
+  }
+  .service-hub__metrics dd {
+    order: -1;
     font-family: var(--font-mono);
-    font-size: var(--text-2xl);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
   }
-  .service-hub__metrics span {
+  .service-hub__metrics dt {
     color: var(--color-text-secondary);
     font-size: var(--text-xs);
   }
@@ -841,7 +796,7 @@ const topicRoute = (category: string) =>
     .service-hub__metrics {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .service-hub__metrics article:last-child {
+    .service-hub__metrics div:last-child {
       grid-column: 1 / -1;
     }
     .service-hub__topic-grid > a > p {

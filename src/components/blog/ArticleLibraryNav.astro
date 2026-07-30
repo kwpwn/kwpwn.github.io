@@ -1,0 +1,285 @@
+---
+import type { CollectionEntry } from "astro:content";
+import type { Locale } from "../../lib/site-config";
+import {
+  getResearchTopic,
+  getResearchTopicPlacement,
+  getResearchTopicPosts,
+  getTrackForPost,
+} from "../../lib/research-topics";
+import { resolveRoute } from "../../i18n/routes";
+
+export interface Props {
+  currentPost: CollectionEntry<"blog">;
+  allPosts: CollectionEntry<"blog">[];
+  locale: Locale;
+}
+
+const { currentPost, allPosts, locale } = Astro.props as Props;
+const topic = currentPost.data.topic
+  ? getResearchTopic(currentPost.data.topic)
+  : undefined;
+const topicPosts = topic ? getResearchTopicPosts(allPosts, topic.id) : [];
+const currentTrack = topic ? getTrackForPost(topic, currentPost) : undefined;
+const currentTrackPosts =
+  topic && currentTrack
+    ? topicPosts.filter(
+        (post) =>
+          getResearchTopicPlacement(post, topic.id)?.track === currentTrack.id,
+      )
+    : [];
+
+const libraryLinks = [
+  { href: "/topics/", label: "Learning paths" },
+  { href: "/windows-security-concepts/", label: "Concept handbook" },
+  {
+    href: "/windows-service-vulnerabilities/",
+    label: "Service Atlas",
+  },
+  { href: "/blogs/", label: "All articles" },
+];
+---
+
+<aside
+  class="article-library-nav"
+  aria-label="Library navigation"
+  data-pagefind-ignore
+>
+  <details class="article-library-nav__details" data-library-nav-details>
+    <summary>Browse the library</summary>
+    <div class="article-library-nav__panel">
+      <nav aria-label="Primary library sections">
+        <p class="article-library-nav__label">Library</p>
+        <ul class="article-library-nav__links">
+          {
+            libraryLinks.map((item) => (
+              <li>
+                <a href={resolveRoute(locale, item.href)}>{item.label}</a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      {
+        topic && (
+          <nav
+            class="article-library-nav__path"
+            aria-label={`${topic.shortTitle} learning path`}
+          >
+            <p class="article-library-nav__label">Current path</p>
+            <a
+              class="article-library-nav__path-title"
+              href={resolveRoute(locale, `/topics/${topic.id}/`)}
+            >
+              {topic.shortTitle}
+            </a>
+
+            <ul class="article-library-nav__tracks">
+              {topic.tracks.map((track) => (
+                <li>
+                  <a
+                    href={resolveRoute(
+                      locale,
+                      `/topics/${topic.id}/#${track.id}`,
+                    )}
+                    aria-current={
+                      currentTrack?.id === track.id ? "location" : undefined
+                    }
+                  >
+                    {track.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+
+            {currentTrack && currentTrackPosts.length > 0 && (
+              <div class="article-library-nav__lessons">
+                <p>{currentTrack.label}</p>
+                <ol>
+                  {currentTrackPosts.map((post) => (
+                    <li>
+                      <a
+                        href={resolveRoute(locale, `/blog/${post.id}/`)}
+                        aria-current={
+                          post.id === currentPost.id ? "page" : undefined
+                        }
+                      >
+                        {post.data.title}
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </nav>
+        )
+      }
+    </div>
+  </details>
+</aside>
+
+<script>
+  const details = document.querySelector<HTMLDetailsElement>(
+    "[data-library-nav-details]",
+  );
+  const compactLayout = window.matchMedia("(max-width: 79.99rem)");
+
+  const syncLibraryNavigation = () => {
+    if (!details) return;
+    if (compactLayout.matches) {
+      if (!details.dataset.compactInitialized) {
+        details.open = false;
+        details.dataset.compactInitialized = "true";
+      }
+      return;
+    }
+
+    details.open = true;
+    delete details.dataset.compactInitialized;
+  };
+
+  syncLibraryNavigation();
+  compactLayout.addEventListener("change", syncLibraryNavigation);
+</script>
+
+<style>
+  .article-library-nav {
+    min-width: 0;
+  }
+
+  .article-library-nav__details > summary {
+    display: none;
+  }
+
+  .article-library-nav__panel {
+    display: grid;
+    gap: var(--space-xl);
+  }
+
+  @media (min-width: 80rem) {
+    /*
+     * Keep desktop navigation present in the first rendered frame while the
+     * compact disclosure remains closed by default on smaller viewports.
+     */
+    .article-library-nav__details > .article-library-nav__panel {
+      display: grid;
+    }
+  }
+
+  .article-library-nav__label,
+  .article-library-nav__links,
+  .article-library-nav__tracks,
+  .article-library-nav__lessons p,
+  .article-library-nav__lessons ol {
+    margin: 0;
+  }
+
+  .article-library-nav__label,
+  .article-library-nav__lessons p {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .article-library-nav__links,
+  .article-library-nav__tracks,
+  .article-library-nav__lessons ol {
+    display: grid;
+    gap: var(--spacing-1);
+    margin-top: var(--space-sm);
+    padding: 0;
+    list-style: none;
+  }
+
+  .article-library-nav a {
+    display: block;
+    padding: var(--spacing-1) var(--space-xs);
+    border-radius: var(--radius-sm);
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    text-decoration: none;
+  }
+
+  .article-library-nav a:hover {
+    color: var(--foreground);
+    background: var(--muted);
+  }
+
+  .article-library-nav a[aria-current] {
+    color: var(--link);
+    background: var(--muted);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .article-library-nav__path {
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--border);
+  }
+
+  .article-library-nav__path-title {
+    margin-top: var(--space-xs);
+    color: var(--foreground) !important;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .article-library-nav__tracks {
+    padding-bottom: var(--space-lg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .article-library-nav__lessons {
+    margin-top: var(--space-lg);
+  }
+
+  .article-library-nav__lessons a {
+    font-size: var(--text-xs);
+  }
+
+  @media (max-width: 79.99rem) {
+    .article-library-nav__details {
+      border-block: 1px solid var(--border);
+    }
+
+    .article-library-nav__details > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 2.75rem;
+      cursor: pointer;
+      color: var(--foreground);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-semibold);
+      list-style: none;
+    }
+
+    .article-library-nav__details > summary::after {
+      content: "+";
+      color: var(--muted-foreground);
+      font-family: var(--font-mono);
+    }
+
+    .article-library-nav__details[open] > summary::after {
+      content: "−";
+    }
+
+    .article-library-nav__details > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .article-library-nav__panel {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding-block: 0 var(--space-lg);
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .article-library-nav__panel {
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+    }
+  }
+</style>

@@ -8,7 +8,10 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, extname, basename } from "node:path";
 import { siteConfig } from "./src/config/site.config";
 
-async function collectFiles(dir: string, extensions: string[]): Promise<string[]> {
+async function collectFiles(
+  dir: string,
+  extensions: string[],
+): Promise<string[]> {
   const results: string[] = [];
   const entries = await readdir(dir, { withFileTypes: true });
 
@@ -39,13 +42,18 @@ function parseFrontmatter(source: string) {
   }, {});
 }
 
-function validateDuplicates(entries: Array<{ id: string; data?: { uid?: string; locale?: string } }>, supportedLocales: string[]) {
+function validateDuplicates(
+  entries: Array<{ id: string; data?: { uid?: string; locale?: string } }>,
+  supportedLocales: string[],
+) {
   const seenIds = new Set<string>();
   const seenUids = new Map<string, string>();
 
   for (const entry of entries) {
     if (seenIds.has(entry.id)) {
-      console.warn(`[content-validation] Duplicate slug detected: "${entry.id}"`);
+      console.warn(
+        `[content-validation] Duplicate slug detected: "${entry.id}"`,
+      );
     } else {
       seenIds.add(entry.id);
     }
@@ -54,7 +62,9 @@ function validateDuplicates(entries: Array<{ id: string; data?: { uid?: string; 
     if (uid) {
       const previous = seenUids.get(uid);
       if (previous) {
-        console.warn(`[content-validation] Duplicate uid detected: "${uid}" (${previous} and ${entry.id})`);
+        console.warn(
+          `[content-validation] Duplicate uid detected: "${uid}" (${previous} and ${entry.id})`,
+        );
       } else {
         seenUids.set(uid, entry.id);
       }
@@ -62,7 +72,9 @@ function validateDuplicates(entries: Array<{ id: string; data?: { uid?: string; 
 
     const locale = entry.data?.locale;
     if (locale && !supportedLocales.includes(locale)) {
-      console.warn(`[content-validation] Unsupported locale "${locale}" on entry "${entry.id}"`);
+      console.warn(
+        `[content-validation] Unsupported locale "${locale}" on entry "${entry.id}"`,
+      );
     }
   }
 }
@@ -128,13 +140,42 @@ export default defineConfig({
   ],
   env: {
     schema: {
-      SITE_URL: envField.string({ context: "server", access: "public", default: "http://localhost:4321" }),
-      GOOGLE_SITE_VERIFICATION: envField.string({ context: "server", access: "public", optional: true }),
-      BING_SITE_VERIFICATION: envField.string({ context: "server", access: "public", optional: true }),
-      PUBLIC_GA_MEASUREMENT_ID: envField.string({ context: "client", access: "public", optional: true }),
-      PUBLIC_GTM_ID: envField.string({ context: "client", access: "public", optional: true }),
-      PUBLIC_CONSENT_ENABLED: envField.boolean({ context: "client", access: "public", optional: true, default: false }),
-      PUBLIC_PRIVACY_POLICY_URL: envField.string({ context: "client", access: "public", optional: true }),
+      SITE_URL: envField.string({
+        context: "server",
+        access: "public",
+        default: "http://localhost:4321",
+      }),
+      GOOGLE_SITE_VERIFICATION: envField.string({
+        context: "server",
+        access: "public",
+        optional: true,
+      }),
+      BING_SITE_VERIFICATION: envField.string({
+        context: "server",
+        access: "public",
+        optional: true,
+      }),
+      PUBLIC_GA_MEASUREMENT_ID: envField.string({
+        context: "client",
+        access: "public",
+        optional: true,
+      }),
+      PUBLIC_GTM_ID: envField.string({
+        context: "client",
+        access: "public",
+        optional: true,
+      }),
+      PUBLIC_CONSENT_ENABLED: envField.boolean({
+        context: "client",
+        access: "public",
+        optional: true,
+        default: false,
+      }),
+      PUBLIC_PRIVACY_POLICY_URL: envField.string({
+        context: "client",
+        access: "public",
+        optional: true,
+      }),
     },
   },
   vite: {
@@ -145,8 +186,8 @@ export default defineConfig({
   },
   markdown: {
     shikiConfig: {
-      theme: "github-dark",
-      wrap: true,
+      theme: "github-dark-high-contrast",
+      wrap: false,
     },
   },
   image: {

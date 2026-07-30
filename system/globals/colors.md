@@ -25,6 +25,7 @@ Always use a semantic token.
 | `--primary` / `--primary-foreground` | primary actions, emphasis (near-black ↔ near-white) |
 | `--secondary` / `--secondary-foreground` | secondary surfaces/buttons |
 | `--accent` / `--accent-foreground` | subtle highlights |
+| `--link` / `--link-hover` | the single restrained blue accent for links and current location |
 | `--muted` / `--muted-foreground` | muted surfaces / secondary text |
 | `--border` | hairlines, dividers, card borders |
 | `--ring` | focus ring |

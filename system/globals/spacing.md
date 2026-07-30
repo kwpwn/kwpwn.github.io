@@ -10,10 +10,12 @@ onto it (`xs`→8px, `sm`→12px, `md`→16px, `lg`→24px, `xl`→32px, `2xl`�
 
 ## Container
 
-- `.container`: centered, `max-width: var(--container-max)`, horizontal padding
+- `.container`: centered, `max-width: var(--container-max)` (90rem), horizontal padding
   `var(--container-px)`.
 - Page padding scales with breakpoint: mobile `px-4`, tablet `px-6`, desktop `px-8`.
-- Max content width ≈ `max-w-7xl`.
+- Documentation shells may use the full 90rem container. Their reading column
+  stays at `--article-measure` (48rem), with `--library-nav-width` and
+  `--article-toc-width` reserved for the two optional rails.
 
 ## Section rhythm
 

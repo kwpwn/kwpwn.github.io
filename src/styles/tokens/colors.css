@@ -32,6 +32,10 @@
   --accent-foreground: oklch(0.205 0 0deg);
   --accent-hover: oklch(0.94 0 0deg);
 
+  /* === Research accent — links, current location, and focus only === */
+  --link: oklch(0.44 0.12 250deg);
+  --link-hover: oklch(0.35 0.13 250deg);
+
   /* === Muted === */
   --muted: oklch(0.955 0.006 82deg);
 
@@ -85,11 +89,15 @@
   --accent-foreground: oklch(0.92 0.008 82deg);
   --accent-hover: oklch(0.445 0.012 70deg);
 
+  /* === Research accent — one restrained blue in dark mode === */
+  --link: oklch(0.8 0.09 245deg);
+  --link-hover: oklch(0.87 0.07 245deg);
+
   /* === Muted === */
   --muted: oklch(0.395 0.012 70deg);
 
-  /* 0.74 keeps secondary text >= WCAG AA (>=4.5:1) on dark muted bg */
-  --muted-foreground: oklch(0.75 0.008 82deg);
+  /* Keeps 11px secondary text >= WCAG AA on the darkest muted controls. */
+  --muted-foreground: oklch(0.8 0.008 82deg);
 
   /* === Border & Ring === */
   --border: oklch(0.47 0.012 70deg);

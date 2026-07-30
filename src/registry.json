@@ -201,17 +201,45 @@
       "i18nAware": false
     },
     {
+      "name": "ArticleEvidence",
+      "tier": "component",
+      "path": "src/components/blog/ArticleEvidence.astro",
+      "props": ["post"],
+      "i18nAware": false
+    },
+    {
+      "name": "ArticleLibraryNav",
+      "tier": "component",
+      "path": "src/components/blog/ArticleLibraryNav.astro",
+      "props": ["currentPost", "allPosts", "locale"],
+      "i18nAware": true
+    },
+    {
+      "name": "ArticlePager",
+      "tier": "component",
+      "path": "src/components/blog/ArticlePager.astro",
+      "props": ["previous", "next", "locale"],
+      "i18nAware": true
+    },
+    {
+      "name": "ArticleTools",
+      "tier": "component",
+      "path": "src/components/blog/ArticleTools.astro",
+      "props": ["post"],
+      "i18nAware": false
+    },
+    {
+      "name": "ResearchCallout",
+      "tier": "component",
+      "path": "src/components/blog/ResearchCallout.astro",
+      "props": ["type", "title"],
+      "i18nAware": false
+    },
+    {
       "name": "RelatedPosts",
       "tier": "component",
       "path": "src/components/blog/RelatedPosts.astro",
       "props": ["currentPost", "allPosts", "limit", "locale"],
-      "i18nAware": true
-    },
-    {
-      "name": "ShareButtons",
-      "tier": "component",
-      "path": "src/components/blog/ShareButtons.astro",
-      "props": ["url", "title", "locale"],
       "i18nAware": true
     },
     {

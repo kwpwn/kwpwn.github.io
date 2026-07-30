@@ -2,20 +2,20 @@
   "name": "blogs",
   "version": "1.0.0",
   "private": true,
-  "description": "A minimal personal blog deployed to GitHub Pages",
+  "description": "An evidence-led Windows security learning and research library",
   "license": "MIT",
   "packageManager": "pnpm@8.15.0",
   "type": "module",
   "engines": {
-    "node": "24.0.0",
-    "pnpm": "8.15.0"
+    "node": ">=24 <25",
+    "pnpm": ">=8.15 <9"
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/generate-media-manifest.cjs && node scripts/validate-handbook-depth.mjs",
+    "build": "astro build && pagefind --site dist && node scripts/generate-media-manifest.cjs && node scripts/validate-handbook-depth.mjs",
     "preview": "astro preview",
     "astro": "astro",
-    "lint": "pnpm run lint:js && pnpm run lint:css && pnpm run type-check && pnpm run check:kpis && pnpm run validate:topics && pnpm run validate:research && pnpm run validate:services && pnpm run validate:service-routes && pnpm run validate:handbook && pnpm run validate:i18n && pnpm run validate:secrets",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .astro --ignore-pattern .wrangler --ignore-pattern node_modules && stylelint src/styles/ && astro check && node scripts/check-kpis.mjs && node scripts/validate-research-topics.mjs && node scripts/validate-research-catalog.mjs && node scripts/validate-windows-service-catalog.mjs && node scripts/validate-windows-service-routes.mjs && node scripts/validate-handbook.mjs && node scripts/validate-content-integrity.mjs && node scripts/validate-i18n.js && node scripts/validate-secrets.cjs",
     "lint:js": "eslint . --ignore-pattern dist --ignore-pattern .astro --ignore-pattern .wrangler --ignore-pattern node_modules",
     "lint:css": "stylelint src/styles/",
     "check:kpis": "node scripts/check-kpis.mjs",
@@ -29,10 +29,13 @@
     "validate:i18n": "node scripts/validate-i18n.js",
     "validate:topics": "node scripts/validate-research-topics.mjs",
     "validate:research": "node scripts/validate-research-catalog.mjs",
+    "validate:content": "node scripts/validate-content-integrity.mjs",
     "validate:services": "node scripts/validate-windows-service-catalog.mjs",
     "validate:service-routes": "node scripts/validate-windows-service-routes.mjs",
     "sync:services": "node scripts/sync-windows-service-vulnerabilities.mjs",
-    "generate:topics": "node scripts/generate-yunolay-lessons.mjs --refresh",
+    "generate:topics": "node scripts/generate-yunolay-lessons.mjs",
+    "migrate:content-metadata": "node scripts/migrate-content-metadata.mjs",
+    "migrate:source-urls": "node scripts/migrate-source-urls.mjs",
     "validate:handbook": "node scripts/validate-handbook.mjs",
     "validate:secrets": "node scripts/validate-secrets.cjs"
   },
@@ -61,6 +64,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@astrojs/starlight": "^0.41.3",
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.1",
     "@types/node": "^26.1.1",

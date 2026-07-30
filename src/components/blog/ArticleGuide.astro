@@ -1,7 +1,6 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { getResearchTopic } from "../../lib/research-topics";
-import { Card } from "../ui";
 
 export interface Props {
   post: CollectionEntry<"blog">;
@@ -18,125 +17,79 @@ const hasGuide =
 
 {
   hasGuide && topic && (
-    <aside class="article-guide" aria-labelledby="article-guide-title">
-      <Card class="article-guide__card">
-        <div class="article-guide__head">
-          <div>
-            <p class="article-guide__eyebrow">Lesson map</p>
-            <h2 id="article-guide-title">What you will understand</h2>
-          </div>
-          <p class="article-guide__topic">
-            Part of the{" "}
-            <a href={`/topics/${topic.id}/`}>{topic.shortTitle} path</a>
-          </p>
+    <section class="article-guide" aria-labelledby="article-guide-title">
+      <header class="article-guide__head">
+        <div>
+          <p class="article-guide__eyebrow">Before you start</p>
+          <h2 id="article-guide-title">Learning brief</h2>
         </div>
+        <a class="article-guide__path" href={`/topics/${topic.id}/`}>
+          {topic.shortTitle} path
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+      </header>
 
-        {
-          post.data.learningObjectives.length > 0 && (
+      <div class="article-guide__body">
+        {post.data.learningObjectives.length > 0 && (
+          <section aria-labelledby="learning-outcomes-title">
+            <h3 id="learning-outcomes-title">What you will learn</h3>
             <ol class="article-guide__objectives">
               {post.data.learningObjectives.map((objective: string) => (
                 <li>{objective}</li>
               ))}
             </ol>
-          )
-        }
+          </section>
+        )}
 
-        <details class="article-guide__mobile-map">
-          <summary>Open lesson goals and lab notes</summary>
-          <div class="article-guide__mobile-map-body">
-            {
-              post.data.learningObjectives.length > 0 && (
-                <ol>
-                  {post.data.learningObjectives.map((objective: string) => (
-                    <li>{objective}</li>
-                  ))}
-                </ol>
-              )
-            }
-            {
-              post.data.prerequisites.length > 0 && (
-                <section>
-                  <h3>Prerequisites</h3>
-                  <ul>
-                    {post.data.prerequisites.map((prerequisite: string) => (
-                      <li>{prerequisite}</li>
-                    ))}
-                  </ul>
-                </section>
-              )
-            }
-            {
-              post.data.labEnvironment && (
-                <section>
-                  <h3>Safe lab boundary</h3>
-                  <p>{post.data.labEnvironment}</p>
-                </section>
-              )
-            }
-          </div>
-        </details>
+        <section aria-labelledby="prerequisites-title">
+          <h3 id="prerequisites-title">Prerequisites</h3>
+          {post.data.prerequisites.length > 0 ? (
+            <ul>
+              {post.data.prerequisites.map((prerequisite: string) => (
+                <li>{prerequisite}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>No formal prerequisites are listed for this lesson.</p>
+          )}
+        </section>
+      </div>
 
-        {
-          (post.data.prerequisites.length > 0 ||
-            post.data.labEnvironment) && (
-            <details class="article-guide__details">
-              <summary>Prerequisites and safe lab boundary</summary>
-              <div class="article-guide__details-body">
-                {post.data.prerequisites.length > 0 && (
-                  <section>
-                    <h3>Prerequisites</h3>
-                    <ul>
-                      {post.data.prerequisites.map((prerequisite: string) => (
-                        <li>{prerequisite}</li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
-                {post.data.labEnvironment && (
-                  <section>
-                    <h3>Safe lab boundary</h3>
-                    <p>{post.data.labEnvironment}</p>
-                  </section>
-                )}
-              </div>
-            </details>
-          )
-        }
-      </Card>
-    </aside>
+      {post.data.labEnvironment && (
+        <section
+          class="article-guide__boundary"
+          aria-labelledby="safe-lab-boundary-title"
+        >
+          <h3 id="safe-lab-boundary-title">Safe lab boundary</h3>
+          <p>{post.data.labEnvironment}</p>
+        </section>
+      )}
+    </section>
   )
 }
 
 <style>
   .article-guide {
-    margin-block: calc(var(--space-md) * -1) var(--space-lg);
-  }
-
-  :global(.article-guide__card.ui-card .ui-card__body) {
     display: grid;
     gap: var(--space-md);
-    padding: var(--space-lg) 0;
-  }
-
-  :global(.article-guide .article-guide__card.ui-card) {
-    border-right: 0;
-    border-left: 0;
-    border-radius: 0;
-    background: transparent;
+    margin-block: calc(var(--space-md) * -1) 0;
+    padding-block: var(--space-lg);
+    border-block: 1px solid var(--border);
   }
 
   .article-guide__head {
     display: flex;
     align-items: flex-start;
-    gap: var(--space-sm);
     justify-content: space-between;
+    gap: var(--space-lg);
   }
 
   .article-guide__eyebrow,
   .article-guide__head h2,
-  .article-guide__details h3,
-  .article-guide__details p,
-  .article-guide__topic {
+  .article-guide__body h3,
+  .article-guide__body p,
+  .article-guide__boundary h3,
+  .article-guide__boundary p {
     margin: 0;
   }
 
@@ -153,158 +106,77 @@ const hasGuide =
     font-size: var(--text-article-h3);
   }
 
-  .article-guide__objectives {
-    counter-reset: lesson-objective;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-md);
-    margin: 0;
-    padding: var(--space-md) 0 0;
-    border-top: 1px solid var(--border);
-    list-style: none;
-  }
-
-  .article-guide__objectives li {
-    counter-increment: lesson-objective;
-    min-width: 0;
-    color: var(--muted-foreground);
-    font-size: var(--text-xs);
-    line-height: var(--leading-normal);
-  }
-
-  .article-guide__objectives li::before {
-    content: "0" counter(lesson-objective);
-    display: block;
-    margin-bottom: var(--space-xs);
-    color: var(--foreground);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+  .article-guide__path {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--link);
+    font-size: var(--text-sm);
     font-weight: var(--font-weight-semibold);
+    text-underline-offset: var(--spacing-1);
   }
 
-  .article-guide__details {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    background: var(--card);
-  }
-
-  .article-guide__mobile-map {
-    display: none;
-  }
-
-  .article-guide__details summary {
-    padding: var(--space-sm) var(--space-md);
-    cursor: pointer;
-    font-size: var(--text-xs);
-    font-weight: var(--font-weight-semibold);
-  }
-
-  .article-guide__details summary:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-    border-radius: var(--radius-lg);
-  }
-
-  .article-guide__details-body {
+  .article-guide__body {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-md);
-    padding: 0 var(--space-md) var(--space-md);
+    grid-template-columns: minmax(0, 1.35fr) minmax(13rem, 0.65fr);
+    gap: var(--space-xl);
   }
 
-  .article-guide__details h3 {
-    font-size: var(--text-xs);
+  .article-guide__body h3,
+  .article-guide__boundary h3 {
+    font-size: var(--text-sm);
   }
 
-  .article-guide__details ul {
+  .article-guide__objectives,
+  .article-guide__body ul {
     display: grid;
     gap: var(--space-xs);
     margin: var(--space-sm) 0 0;
     padding-left: var(--space-lg);
     color: var(--muted-foreground);
-    font-size: var(--text-xs);
+    font-size: var(--text-sm);
     line-height: var(--leading-relaxed);
   }
 
-  .article-guide__details p {
+  .article-guide__body p,
+  .article-guide__boundary p {
     margin-top: var(--space-xs);
     color: var(--muted-foreground);
-    font-size: var(--text-xs);
+    font-size: var(--text-sm);
     line-height: var(--leading-relaxed);
   }
 
-  .article-guide__topic {
-    color: var(--muted-foreground);
-    font-size: var(--text-xs);
-    text-align: right;
+  .article-guide__boundary {
+    display: grid;
+    grid-template-columns: minmax(7rem, 0.25fr) minmax(0, 1fr);
+    gap: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
   }
 
-  .article-guide__topic a {
-    color: var(--foreground);
-    font-weight: var(--font-weight-semibold);
-    text-underline-offset: var(--space-xs);
+  .article-guide__boundary p {
+    margin-top: 0;
   }
 
   @media (max-width: 48rem) {
+    .article-guide {
+      padding-block: var(--space-md);
+    }
+
+    .article-guide__head,
+    .article-guide__body,
+    .article-guide__boundary {
+      grid-template-columns: 1fr;
+    }
+
     .article-guide__head {
-      align-items: stretch;
+      align-items: flex-start;
       flex-direction: column;
+      gap: var(--space-sm);
     }
 
-    .article-guide__topic {
-      display: none;
-      text-align: left;
-    }
-
-    .article-guide__objectives,
-    .article-guide__details {
-      display: none;
-    }
-
-    .article-guide__mobile-map {
-      display: block;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      background: var(--card);
-    }
-
-    .article-guide__mobile-map summary {
-      padding: var(--space-sm) var(--space-md);
-      cursor: pointer;
-      font-size: var(--text-xs);
-      font-weight: var(--font-weight-semibold);
-    }
-
-    .article-guide__mobile-map summary:focus-visible {
-      outline: 2px solid var(--ring);
-      outline-offset: 2px;
-      border-radius: var(--radius-lg);
-    }
-
-    .article-guide__mobile-map-body {
-      display: grid;
-      gap: var(--space-md);
-      padding: 0 var(--space-md) var(--space-md);
-      color: var(--muted-foreground);
-      font-size: var(--text-xs);
-      line-height: var(--leading-relaxed);
-    }
-
-    .article-guide__mobile-map-body ol,
-    .article-guide__mobile-map-body ul {
-      margin: 0;
-      padding-left: var(--space-lg);
-    }
-
-    .article-guide__mobile-map-body h3,
-    .article-guide__mobile-map-body p {
-      margin: 0;
-      font-size: var(--text-xs);
-    }
-
-    .article-guide__mobile-map-body p,
-    .article-guide__mobile-map-body ul {
-      margin-top: var(--space-xs);
+    .article-guide__body {
+      gap: var(--space-lg);
     }
   }
 </style>

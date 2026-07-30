@@ -1,0 +1,323 @@
+---
+import type { CollectionEntry } from "astro:content";
+
+export interface Props {
+  post: CollectionEntry<"blog">;
+}
+
+const { post } = Astro.props as Props;
+const sourceHref = `https://github.com/kwpwn/kwpwn.github.io/blob/main/src/content/blog/${post.id}.mdx`;
+const issueTitle = encodeURIComponent(`Content issue: ${post.data.title}`);
+const issueBody = encodeURIComponent(
+  `Page: https://kwpwn.github.io/blog/${post.id}/\n\nDescribe the incorrect, unclear, or unsupported claim:\n\n`,
+);
+const issueHref = `https://github.com/kwpwn/kwpwn.github.io/issues/new?title=${issueTitle}&body=${issueBody}`;
+---
+
+<div
+  class="article-progress"
+  aria-hidden="true"
+  data-reading-progress
+  data-pagefind-ignore
+>
+  <span></span>
+</div>
+
+<aside
+  class="article-tools"
+  aria-label="Article tools"
+  data-article-tools
+  data-article-id={post.id}
+  data-pagefind-ignore
+>
+  <button type="button" data-complete aria-pressed="false">
+    Mark lesson complete
+  </button>
+  <button type="button" data-print>Print</button>
+  <a href={sourceHref}>View source</a>
+  <a href={issueHref}>Report an issue</a>
+</aside>
+
+<script is:inline>
+  {
+    const tools = document.querySelector("[data-article-tools]");
+    const article = document.querySelector(".blog-layout__article");
+    const progress = document.querySelector("[data-reading-progress] span");
+
+    const updateProgress = () => {
+      if (!article || !progress) return;
+      const rect = article.getBoundingClientRect();
+      const start = window.scrollY + rect.top - window.innerHeight * 0.2;
+      const end = start + article.scrollHeight - window.innerHeight * 0.6;
+      const value = Math.min(
+        1,
+        Math.max(0, (window.scrollY - start) / Math.max(1, end - start)),
+      );
+      progress.style.transform = `scaleX(${value})`;
+    };
+
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("resize", updateProgress, { passive: true });
+    updateProgress();
+
+    if (tools) {
+      const articleId = tools.dataset.articleId;
+      const completeButton = tools.querySelector("[data-complete]");
+      const storageKey = `kwpwn:lesson:${articleId}`;
+
+      const syncCompletion = (complete) => {
+        completeButton?.setAttribute("aria-pressed", String(complete));
+        if (completeButton) {
+          completeButton.textContent = complete
+            ? "Lesson complete"
+            : "Mark lesson complete";
+        }
+      };
+
+      try {
+        syncCompletion(localStorage.getItem(storageKey) === "complete");
+      } catch {
+        syncCompletion(false);
+      }
+
+      completeButton?.addEventListener("click", () => {
+        const complete = completeButton.getAttribute("aria-pressed") !== "true";
+        try {
+          if (complete) {
+            localStorage.setItem(storageKey, "complete");
+          } else {
+            localStorage.removeItem(storageKey);
+          }
+        } catch {
+          // The control still reflects the current session if storage is blocked.
+        }
+        syncCompletion(complete);
+      });
+
+      tools
+        .querySelector("[data-print]")
+        ?.addEventListener("click", () => window.print());
+    }
+
+    article?.querySelectorAll("h2[id], h3[id]").forEach((heading) => {
+      if (heading.querySelector(".heading-anchor")) return;
+      const link = document.createElement("a");
+      link.className = "heading-anchor";
+      link.href = `#${heading.id}`;
+      link.setAttribute("aria-label", `Copy link to ${heading.textContent}`);
+      link.textContent = "#";
+      link.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(link.href);
+        } catch {
+          // The stable fragment still works when clipboard permission is denied.
+        }
+      });
+      heading.append(link);
+    });
+
+    article?.querySelectorAll("pre").forEach((pre) => {
+      if (pre.previousElementSibling?.matches(".code-tools")) return;
+      const code = pre.querySelector("code");
+      const languageClass = [...(code?.classList || [])].find((name) =>
+        name.startsWith("language-"),
+      );
+      const language =
+        pre.dataset.language ||
+        (languageClass ? languageClass.replace("language-", "") : "text");
+      const toolbar = document.createElement("div");
+      toolbar.className = "code-tools";
+      toolbar.setAttribute("data-pagefind-ignore", "");
+
+      const label = document.createElement("span");
+      label.textContent = language;
+
+      const actions = document.createElement("span");
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.textContent = "Copy";
+      copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(code?.textContent || "");
+          copy.textContent = "Copied";
+          window.setTimeout(() => {
+            copy.textContent = "Copy";
+          }, 1500);
+        } catch {
+          copy.textContent = "Copy unavailable";
+        }
+      });
+
+      const wrap = document.createElement("button");
+      wrap.type = "button";
+      wrap.textContent = "Wrap";
+      wrap.setAttribute("aria-pressed", "false");
+      wrap.addEventListener("click", () => {
+        const enabled = pre.toggleAttribute("data-wrap");
+        wrap.setAttribute("aria-pressed", String(enabled));
+      });
+
+      actions.append(copy, wrap);
+      toolbar.append(label, actions);
+      pre.before(toolbar);
+    });
+  }
+</script>
+
+<style>
+  .article-progress {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: var(--z-index-banner);
+    height: var(--spacing-1);
+    pointer-events: none;
+  }
+
+  .article-progress span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: var(--link);
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
+  .article-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-md);
+    padding-block: var(--space-md);
+    border-block: 1px solid var(--border);
+  }
+
+  .article-tools button,
+  .article-tools a {
+    min-height: var(--control-md);
+    padding: var(--space-xs) var(--space-sm);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--link);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .article-tools button:hover,
+  .article-tools a:hover {
+    background: var(--muted);
+    color: var(--link-hover);
+  }
+
+  .article-tools button:focus-visible,
+  .article-tools a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .article-tools button[aria-pressed="true"] {
+    color: var(--success);
+  }
+
+  :global(.heading-anchor) {
+    margin-inline-start: var(--space-xs);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-normal);
+    text-decoration: none;
+  }
+
+  :global(.heading-anchor:hover),
+  :global(.heading-anchor:focus-visible) {
+    color: var(--link);
+  }
+
+  :global(.heading-anchor:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  :global(.code-tools) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--border);
+    border-bottom: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  :global(.code-tools + pre) {
+    margin-top: 0;
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+  }
+
+  :global(.code-tools > span:last-child) {
+    display: flex;
+    gap: var(--space-xs);
+  }
+
+  :global(.code-tools button) {
+    padding: var(--space-xs) var(--space-sm);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  :global(.code-tools button:hover),
+  :global(.code-tools button:focus-visible) {
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  :global(.code-tools button:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  /*
+   * Astro's generated Shiki markup includes inline wrapping declarations.
+   * These two rules establish the documented toolbar state: scroll by
+   * default, then wrap only after the reader selects Wrap.
+   */
+  :global(.blog-layout__article pre.astro-code),
+  :global(.blog-layout__article pre.astro-code code) {
+    white-space: pre !important;
+    overflow-wrap: normal !important;
+    word-wrap: normal !important;
+  }
+
+  :global(.blog-layout__article pre[data-wrap]),
+  :global(.blog-layout__article pre[data-wrap] code) {
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    word-wrap: anywhere !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .article-progress {
+      display: none;
+    }
+  }
+
+  @media print {
+    .article-progress,
+    .article-tools,
+    :global(.code-tools) {
+      display: none;
+    }
+  }
+</style>
