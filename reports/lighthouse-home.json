@@ -1,0 +1,47 @@
+{
+  "lighthouseVersion": "13.4.1",
+  "requestedUrl": "http://127.0.0.1:4323/",
+  "finalUrl": "http://127.0.0.1:4323/",
+  "fetchTime": "2026-07-30T15:32:55.561Z",
+  "runtimeError": null,
+  "runWarnings": [],
+  "categories": {
+    "performance": 99,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 100,
+    "agentic-browsing": 100
+  },
+  "metrics": {
+    "first-contentful-paint": {
+      "score": 0.96,
+      "numericValue": 1507.6337999999998,
+      "numericUnit": "millisecond",
+      "displayValue": "1.5 s"
+    },
+    "largest-contentful-paint": {
+      "score": 0.99,
+      "numericValue": 1657.6337999999998,
+      "numericUnit": "millisecond",
+      "displayValue": "1.7 s"
+    },
+    "total-blocking-time": {
+      "score": 1,
+      "numericValue": 0,
+      "numericUnit": "millisecond",
+      "displayValue": "0 ms"
+    },
+    "cumulative-layout-shift": {
+      "score": 1,
+      "numericValue": 0,
+      "numericUnit": "unitless",
+      "displayValue": "0"
+    },
+    "speed-index": {
+      "score": 1,
+      "numericValue": 1507.6337999999998,
+      "numericUnit": "millisecond",
+      "displayValue": "1.5 s"
+    }
+  }
+}

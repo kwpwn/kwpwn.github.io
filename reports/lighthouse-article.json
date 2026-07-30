@@ -1,0 +1,47 @@
+{
+  "lighthouseVersion": "13.4.1",
+  "requestedUrl": "http://127.0.0.1:4323/blog/access-tokens-sids-integrity-privileges/",
+  "finalUrl": "http://127.0.0.1:4323/blog/access-tokens-sids-integrity-privileges/",
+  "fetchTime": "2026-07-30T15:36:07.375Z",
+  "runtimeError": null,
+  "runWarnings": [],
+  "categories": {
+    "performance": 99,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 100,
+    "agentic-browsing": 100
+  },
+  "metrics": {
+    "first-contentful-paint": {
+      "score": 0.93,
+      "numericValue": 1666.2825,
+      "numericUnit": "millisecond",
+      "displayValue": "1.7 s"
+    },
+    "largest-contentful-paint": {
+      "score": 0.98,
+      "numericValue": 1816.2825,
+      "numericUnit": "millisecond",
+      "displayValue": "1.8 s"
+    },
+    "total-blocking-time": {
+      "score": 1,
+      "numericValue": 0,
+      "numericUnit": "millisecond",
+      "displayValue": "0 ms"
+    },
+    "cumulative-layout-shift": {
+      "score": 1,
+      "numericValue": 0.0003461541656334941,
+      "numericUnit": "unitless",
+      "displayValue": "0"
+    },
+    "speed-index": {
+      "score": 1,
+      "numericValue": 1666.2825,
+      "numericUnit": "millisecond",
+      "displayValue": "1.7 s"
+    }
+  }
+}

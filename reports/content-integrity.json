@@ -1,0 +1,2315 @@
+{
+  "generatedAt": "2026-07-30T15:47:46.091Z",
+  "summary": {
+    "totalArticles": 76,
+    "confirmedArticles": 0,
+    "articlesRequiringRevision": 76,
+    "articlesWithUnsupportedClaimCoverage": 75,
+    "articlesMissingPrimarySources": 0,
+    "templateHeavyArticles": 63,
+    "brokenInternalLinks": 0,
+    "brokenAnchors": 0,
+    "duplicateHtmlIds": 0,
+    "unbalancedCodeSnippets": 0,
+    "unlabeledCodeBlocks": 0
+  },
+  "errors": [],
+  "warnings": [
+    {
+      "file": "access-tokens-sids-integrity-privileges.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "access-tokens-sids-integrity-privileges.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "access-tokens-sids-integrity-privileges.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "alpc-ports-messages-impersonation.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "alpc-ports-messages-impersonation.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "alpc-ports-messages-impersonation.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "alwaysinstallelevated-policy-boundary.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "alwaysinstallelevated-policy-boundary.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "alwaysinstallelevated-policy-boundary.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "amsi-defender-scanning-boundaries-hardening.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "amsi-defender-scanning-boundaries-hardening.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "amsi-defender-scanning-boundaries-hardening.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "applocker-wdac-policy-design-gaps.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "applocker-wdac-policy-design-gaps.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "applocker-wdac-policy-design-gaps.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "authentication-coercion-petitpotam-relay-boundaries.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "authentication-coercion-petitpotam-relay-boundaries.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "authentication-coercion-petitpotam-relay-boundaries.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "backup-restore-privileges-lab.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "backup-restore-privileges-lab.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "beacon-object-files-coff-loader-analysis.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "beacon-object-files-coff-loader-analysis.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "beacon-object-files-coff-loader-analysis.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "bits-jobs-transfer-persistence-telemetry.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "bits-jobs-transfer-persistence-telemetry.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "bits-jobs-transfer-persistence-telemetry.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "c2-framework-architecture-comparison.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "c2-framework-architecture-comparison.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "c2-framework-architecture-comparison.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "c2-transport-design-detection.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "c2-transport-design-detection.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "com-activation-hijacking-boundaries-telemetry.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "com-activation-hijacking-boundaries-telemetry.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "com-activation-hijacking-boundaries-telemetry.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "dispatcher-objects-synchronization-irql.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "dispatcher-objects-synchronization-irql.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "dispatcher-objects-synchronization-irql.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "dll-search-order-privileged-sink.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "dll-search-order-privileged-sink.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "dpapi-credential-manager-protection-boundaries.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "dpapi-credential-manager-protection-boundaries.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "dpapi-credential-manager-protection-boundaries.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "dynamic-malware-analysis-evidence-workflow.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "dynamic-malware-analysis-evidence-workflow.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "dynamic-malware-analysis-evidence-workflow.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "eprocess-process-lifetime-address-space.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "eprocess-process-lifetime-address-space.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "eprocess-process-lifetime-address-space.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "ethread-kthread-scheduler-context-switch.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "ethread-kthread-scheduler-context-switch.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "ethread-kthread-scheduler-context-switch.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "etw-providers-sessions-consumers-internals.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "etw-providers-sessions-consumers-internals.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "etw-providers-sessions-consumers-internals.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "filter-manager-minifilter-altitudes-callbacks.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "filter-manager-minifilter-altitudes-callbacks.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "filter-manager-minifilter-altitudes-callbacks.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "io-manager-irp-ioctl-buffering.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "io-manager-irp-ioctl-buffering.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "irql-interrupts-dpcs-apcs.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "irql-interrupts-dpcs-apcs.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "irql-interrupts-dpcs-apcs.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "job-objects-silos-containers.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "job-objects-silos-containers.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "job-objects-silos-containers.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "kernel-pool-allocators-tags-segment-heap.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "kernel-pool-allocators-tags-segment-heap.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "kernel-pool-allocators-tags-segment-heap.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "kernel-protections-patchguard-dse-hvci.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "kernel-protections-patchguard-dse-hvci.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "kernel-protections-patchguard-dse-hvci.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "kuser-shared-data-time-version-mitigations.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "kuser-shared-data-time-version-mitigations.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "kuser-shared-data-time-version-mitigations.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "linux-persistence-systemd-udev-pam-analysis.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "linux-persistence-systemd-udev-pam-analysis.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "linux-persistence-systemd-udev-pam-analysis.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "lolbins-trust-boundaries-and-telemetry.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "lolbins-trust-boundaries-and-telemetry.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "lolbins-trust-boundaries-and-telemetry.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "lsa-authentication-logon-sessions-credential-guard.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "lsa-authentication-logon-sessions-credential-guard.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "lsa-authentication-logon-sessions-credential-guard.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "lsass-credential-material-ppl-credential-guard.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "lsass-credential-material-ppl-credential-guard.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "lsass-credential-material-ppl-credential-guard.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "malicious-office-documents-static-dynamic-triage.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "malicious-office-documents-static-dynamic-triage.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "malicious-office-documents-static-dynamic-triage.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "malleable-c2-profiles-protocol-telemetry.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "malleable-c2-profiles-protocol-telemetry.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "malleable-c2-profiles-protocol-telemetry.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "malware-c2-execution-tasking-telemetry-model.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "malware-c2-execution-tasking-telemetry-model.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "named-pipe-impersonation-security-context.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "named-pipe-impersonation-security-context.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "named-pipe-impersonation-security-context.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "object-manager-names-handles-security.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "object-manager-names-handles-security.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "packed-malware-unpacking-anti-debugging.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "packed-malware-unpacking-anti-debugging.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "packed-malware-unpacking-anti-debugging.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "pe-static-triage-bounds-checked.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "pe-static-triage-bounds-checked.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "peb-teb-loader-thread-state.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "peb-teb-loader-thread-state.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "peb-teb-loader-thread-state.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "powershell-language-modes-logging-and-obfuscation.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "powershell-language-modes-logging-and-obfuscation.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "powershell-language-modes-logging-and-obfuscation.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "print-spooler-boundaries-and-printnightmare.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "print-spooler-boundaries-and-printnightmare.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "print-spooler-boundaries-and-printnightmare.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "process-injection-state-transitions-detection.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "process-injection-state-transitions-detection.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "process-injection-state-transitions-detection.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "registry-autoruns-imagepath-permission-boundaries.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "registry-autoruns-imagepath-permission-boundaries.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "registry-autoruns-imagepath-permission-boundaries.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "registry-hives-cells-configuration-manager.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "registry-hives-cells-configuration-manager.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "registry-hives-cells-configuration-manager.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "reproducible-windows-malware-analysis-lab.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "reproducible-windows-malware-analysis-lab.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "scheduled-tasks-startup-folders-privilege-boundaries.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "scheduled-tasks-startup-folders-privilege-boundaries.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "scheduled-tasks-startup-folders-privilege-boundaries.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "section-objects-mapped-files-copy-on-write.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "section-objects-mapped-files-copy-on-write.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "section-objects-mapped-files-copy-on-write.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "security-research-index.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "seh-veh-unwind-dispatch.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "seh-veh-unwind-dispatch.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "seh-veh-unwind-dispatch.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "service-control-manager-services-svchost.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "service-control-manager-services-svchost.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "service-control-manager-services-svchost.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "shellcode-loader-memory-protection-telemetry.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "shellcode-loader-memory-protection-telemetry.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "shellcode-loader-memory-protection-telemetry.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "system-calls-previousmode-wow64.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "system-calls-previousmode-wow64.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "token-impersonation-potato-family-boundaries.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "token-impersonation-potato-family-boundaries.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "token-impersonation-potato-family-boundaries.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "uac-auto-elevation-boundary-model.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "uac-auto-elevation-boundary-model.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "uac-auto-elevation-boundary-model.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "unquoted-service-path-reachability.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "unquoted-service-path-reachability.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "unquoted-service-path-reachability.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "volume-shadow-copy-security-boundaries.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "volume-shadow-copy-security-boundaries.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "volume-shadow-copy-security-boundaries.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "weak-service-dacls-and-binary-path-control.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "weak-service-dacls-and-binary-path-control.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "win32k-user-gdi-sessions-attack-surface.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "win32k-user-gdi-sessions-attack-surface.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "win32k-user-gdi-sessions-attack-surface.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-boot-chain-uefi-winload-smss.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-boot-chain-uefi-winload-smss.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-boot-chain-uefi-winload-smss.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-cache-manager-fast-io-coherency.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-cache-manager-fast-io-coherency.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-cache-manager-fast-io-coherency.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-driver-model-wdm-kmdf-driver-objects.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-driver-model-wdm-kmdf-driver-objects.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-driver-model-wdm-kmdf-driver-objects.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-event-logs-evidence-and-tamper-signals.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-event-logs-evidence-and-tamper-signals.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-event-logs-evidence-and-tamper-signals.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-firewall-wfp-policy-telemetry.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-firewall-wfp-policy-telemetry.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-firewall-wfp-policy-telemetry.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-heaps-nt-heap-segment-heap.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-heaps-nt-heap-segment-heap.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-heaps-nt-heap-segment-heap.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-loader-pe-imports-relocations-tls.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-loader-pe-imports-relocations-tls.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-loader-pe-imports-relocations-tls.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-persistence-run-keys-services-wmi.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-persistence-run-keys-services-wmi.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-persistence-run-keys-services-wmi.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-privesc-enumeration-evidence-workflow.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-privesc-enumeration-evidence-workflow.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-privesc-enumeration-evidence-workflow.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-privesc-trust-boundary-model.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-privesc-trust-boundary-model.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-process-thread-token-handle-model.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-process-thread-token-handle-model.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-shellcode-position-independent-analysis.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-shellcode-position-independent-analysis.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-shellcode-position-independent-analysis.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-thread-pools-worker-factories.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-thread-pools-worker-factories.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-thread-pools-worker-factories.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "windows-virtual-memory-page-tables-vads-working-sets.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "windows-virtual-memory-page-tables-vads-working-sets.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "windows-virtual-memory-page-tables-vads-working-sets.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "wmi-internals-providers-repository-eventing.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "wmi-internals-providers-repository-eventing.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "wmi-internals-providers-repository-eventing.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "wmi-lateral-movement-persistence-telemetry.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "wmi-lateral-movement-persistence-telemetry.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "wmi-lateral-movement-persistence-telemetry.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "wow64-thunking-redirection-dual-ntdll.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "wow64-thunking-redirection-dual-ntdll.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "wow64-thunking-redirection-dual-ntdll.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "wsl-security-boundaries-and-telemetry.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "wsl-security-boundaries-and-telemetry.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "wsl-security-boundaries-and-telemetry.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    },
+    {
+      "file": "yara-rule-engineering-test-quality.mdx",
+      "kind": "missing-structured-sources"
+    },
+    {
+      "file": "yara-rule-engineering-test-quality.mdx",
+      "kind": "no-claim-adjacent-citations"
+    },
+    {
+      "file": "yara-rule-engineering-test-quality.mdx",
+      "kind": "template-heavy",
+      "detail": "14 shared curriculum headings"
+    }
+  ],
+  "articles": [
+    {
+      "file": "access-tokens-sids-integrity-privileges.mdx",
+      "slug": "access-tokens-sids-integrity-privileges",
+      "title": "Windows Access Tokens: SIDs, Integrity Levels, Privileges, and DACLs",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Foundation",
+      "wordCount": 4313,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "alpc-ports-messages-impersonation.mdx",
+      "slug": "alpc-ports-messages-impersonation",
+      "title": "ALPC: Advanced Local Procedure Call Internals",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4056,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "alwaysinstallelevated-policy-boundary.mdx",
+      "slug": "alwaysinstallelevated-policy-boundary",
+      "title": "Abusing AlwaysInstallElevated for Windows Privilege Escalation",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4009,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "amsi-defender-scanning-boundaries-hardening.mdx",
+      "slug": "amsi-defender-scanning-boundaries-hardening",
+      "title": "AMSI and Defender: Scanning Boundaries, Failure Modes, and Hardening",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4219,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "applocker-wdac-policy-design-gaps.mdx",
+      "slug": "applocker-wdac-policy-design-gaps",
+      "title": "Application Control with AppLocker and WDAC: Design and Gaps",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4137,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "authentication-coercion-petitpotam-relay-boundaries.mdx",
+      "slug": "authentication-coercion-petitpotam-relay-boundaries",
+      "title": "PetitPotam and Coercion Attacks: Forcing Authentication and Relaying to AD CS",
+      "contentType": "vulnerability",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4297,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "backup-restore-privileges-lab.mdx",
+      "slug": "backup-restore-privileges-lab",
+      "title": "SeBackupPrivilege and SeRestorePrivilege Without the Myths",
+      "contentType": "lab",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 1767,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 5,
+      "templateHeavy": false,
+      "templateHeadingCount": 1,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "beacon-object-files-coff-loader-analysis.mdx",
+      "slug": "beacon-object-files-coff-loader-analysis",
+      "title": "Beacon Object Files and In-Memory Tradecraft",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4071,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "bits-jobs-transfer-persistence-telemetry.mdx",
+      "slug": "bits-jobs-transfer-persistence-telemetry",
+      "title": "Abusing BITS Jobs for Download and Persistence",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4024,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "c2-framework-architecture-comparison.mdx",
+      "slug": "c2-framework-architecture-comparison",
+      "title": "C2 Framework Architecture: Cobalt Strike, Sliver, and Mythic Compared",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4231,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "c2-transport-design-detection.mdx",
+      "slug": "c2-transport-design-detection",
+      "title": "C2 Transport Design and Detection: HTTP, DNS, and WebSocket",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 1781,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 1,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "com-activation-hijacking-boundaries-telemetry.mdx",
+      "slug": "com-activation-hijacking-boundaries-telemetry",
+      "title": "COM Activation and Hijacking: Resolution, Security Boundaries, and Telemetry",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4244,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "dispatcher-objects-synchronization-irql.mdx",
+      "slug": "dispatcher-objects-synchronization-irql",
+      "title": "Synchronization Primitives and Dispatcher Objects",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 3988,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "dll-search-order-privileged-sink.mdx",
+      "slug": "dll-search-order-privileged-sink",
+      "title": "DLL Search Order: From Writable Directory to Privileged Sink",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 1844,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 5,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "dpapi-credential-manager-protection-boundaries.mdx",
+      "slug": "dpapi-credential-manager-protection-boundaries",
+      "title": "Looting Windows Secrets: Attacking DPAPI and Credential Manager",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4197,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "dynamic-malware-analysis-evidence-workflow.mdx",
+      "slug": "dynamic-malware-analysis-evidence-workflow",
+      "title": "Dynamic Malware Analysis in a Sandbox: A Practical Behavioral Workflow",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4206,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "eprocess-process-lifetime-address-space.mdx",
+      "slug": "eprocess-process-lifetime-address-space",
+      "title": "Processes and the EPROCESS Structure",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Foundation",
+      "wordCount": 3953,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "ethread-kthread-scheduler-context-switch.mdx",
+      "slug": "ethread-kthread-scheduler-context-switch",
+      "title": "Threads, KTHREAD, and the Windows Scheduler",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4007,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "etw-providers-sessions-consumers-internals.mdx",
+      "slug": "etw-providers-sessions-consumers-internals",
+      "title": "Event Tracing for Windows (ETW) Internals",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 3975,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "filter-manager-minifilter-altitudes-callbacks.mdx",
+      "slug": "filter-manager-minifilter-altitudes-callbacks",
+      "title": "The Filter Manager and Minifilter Drivers",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4010,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "io-manager-irp-ioctl-buffering.mdx",
+      "slug": "io-manager-irp-ioctl-buffering",
+      "title": "I/O Manager, IRPs, IOCTLs, and Buffering Methods",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 1756,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 5,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "irql-interrupts-dpcs-apcs.mdx",
+      "slug": "irql-interrupts-dpcs-apcs",
+      "title": "Interrupts, IRQLs, DPCs, and APCs",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 3961,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "job-objects-silos-containers.mdx",
+      "slug": "job-objects-silos-containers",
+      "title": "Job Objects and Server Silos",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 3950,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "kernel-pool-allocators-tags-segment-heap.mdx",
+      "slug": "kernel-pool-allocators-tags-segment-heap",
+      "title": "Windows Kernel Pool: Allocators, Tags, and Failure Analysis",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4091,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "kernel-protections-patchguard-dse-hvci.mdx",
+      "slug": "kernel-protections-patchguard-dse-hvci",
+      "title": "Modern Windows Kernel Protections: PatchGuard, DSE, and HVCI",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4166,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "kuser-shared-data-time-version-mitigations.mdx",
+      "slug": "kuser-shared-data-time-version-mitigations",
+      "title": "KUSER_SHARED_DATA and the Shared User Data Page",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4080,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "linux-persistence-systemd-udev-pam-analysis.mdx",
+      "slug": "linux-persistence-systemd-udev-pam-analysis",
+      "title": "Linux Persistence: systemd Timers, udev Rules, and PAM Modules",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4149,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "lolbins-trust-boundaries-and-telemetry.mdx",
+      "slug": "lolbins-trust-boundaries-and-telemetry",
+      "title": "LOLBins: Trust Boundaries, Reachability, and Telemetry",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4040,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "lsa-authentication-logon-sessions-credential-guard.mdx",
+      "slug": "lsa-authentication-logon-sessions-credential-guard",
+      "title": "LSA Internals: Authentication, Logon Sessions, and Credential Guard",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4130,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "lsass-credential-material-ppl-credential-guard.mdx",
+      "slug": "lsass-credential-material-ppl-credential-guard",
+      "title": "LSASS Credential Material, LSA Protection, and Credential Guard",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4200,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "malicious-office-documents-static-dynamic-triage.mdx",
+      "slug": "malicious-office-documents-static-dynamic-triage",
+      "title": "Dissecting Malicious Office Documents: VBA Macros, Stomping, and IOC Extraction",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4241,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "malleable-c2-profiles-protocol-telemetry.mdx",
+      "slug": "malleable-c2-profiles-protocol-telemetry",
+      "title": "Malleable C2 Profiles and Network Signature Evasion",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4097,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "malware-c2-execution-tasking-telemetry-model.mdx",
+      "slug": "malware-c2-execution-tasking-telemetry-model",
+      "title": "Malware and C2 as an Execution–Tasking–Telemetry System",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Foundation",
+      "wordCount": 1917,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 2,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "named-pipe-impersonation-security-context.mdx",
+      "slug": "named-pipe-impersonation-security-context",
+      "title": "Named Pipe Impersonation: How Windows getsystem Really Works",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4152,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "object-manager-names-handles-security.mdx",
+      "slug": "object-manager-names-handles-security",
+      "title": "Object Manager: Names, Handles, Security, and Lifetime",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 1809,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 7,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "packed-malware-unpacking-anti-debugging.mdx",
+      "slug": "packed-malware-unpacking-anti-debugging",
+      "title": "Packed Malware and Anti-Debugging: Evidence-Led Unpacking",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4057,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "pe-static-triage-bounds-checked.mdx",
+      "slug": "pe-static-triage-bounds-checked",
+      "title": "Static PE Triage with a Bounds-Checked Mental Model",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 1792,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "peb-teb-loader-thread-state.mdx",
+      "slug": "peb-teb-loader-thread-state",
+      "title": "TEB and PEB: A Deep Dive",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4043,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "powershell-language-modes-logging-and-obfuscation.mdx",
+      "slug": "powershell-language-modes-logging-and-obfuscation",
+      "title": "PowerShell Obfuscation and Execution Policy Bypass",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 3962,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "print-spooler-boundaries-and-printnightmare.mdx",
+      "slug": "print-spooler-boundaries-and-printnightmare",
+      "title": "PrintNightmare: Abusing the Windows Print Spooler for Privilege Escalation and RCE",
+      "contentType": "vulnerability",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4277,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "process-injection-state-transitions-detection.mdx",
+      "slug": "process-injection-state-transitions-detection",
+      "title": "Process Injection Internals: DLL Injection, Reflective Loading, and Process Hollowing",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4228,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "registry-autoruns-imagepath-permission-boundaries.mdx",
+      "slug": "registry-autoruns-imagepath-permission-boundaries",
+      "title": "Abusing Registry Autoruns for Windows Persistence and Privilege Escalation",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4278,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "registry-hives-cells-configuration-manager.mdx",
+      "slug": "registry-hives-cells-configuration-manager",
+      "title": "Windows Registry Internals: Hives, Cells, and the Configuration Manager",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4186,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "reproducible-windows-malware-analysis-lab.mdx",
+      "slug": "reproducible-windows-malware-analysis-lab",
+      "title": "A Reproducible Windows Malware-Analysis Lab",
+      "contentType": "lab",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 1749,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "scheduled-tasks-startup-folders-privilege-boundaries.mdx",
+      "slug": "scheduled-tasks-startup-folders-privilege-boundaries",
+      "title": "Abusing Scheduled Tasks for Windows Persistence and Privilege Escalation",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4159,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "section-objects-mapped-files-copy-on-write.mdx",
+      "slug": "section-objects-mapped-files-copy-on-write",
+      "title": "Section Objects and Memory-Mapped Files",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 3985,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "security-research-index.mdx",
+      "slug": "security-research-index",
+      "title": "Windows Security Research Atlas",
+      "contentType": "interactive-atlas",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "wordCount": 354,
+      "hasReferences": false,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 0,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "seh-veh-unwind-dispatch.mdx",
+      "slug": "seh-veh-unwind-dispatch",
+      "title": "Structured and Vectored Exception Handling Internals",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 3995,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "service-control-manager-services-svchost.mdx",
+      "slug": "service-control-manager-services-svchost",
+      "title": "Windows Services and the Service Control Manager",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4117,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "shellcode-loader-memory-protection-telemetry.mdx",
+      "slug": "shellcode-loader-memory-protection-telemetry",
+      "title": "Shellcode Loaders and Common Evasion Patterns",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4004,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "system-calls-previousmode-wow64.mdx",
+      "slug": "system-calls-previousmode-wow64",
+      "title": "System Calls, PreviousMode, and WOW64 Trust Boundaries",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 1788,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "token-impersonation-potato-family-boundaries.mdx",
+      "slug": "token-impersonation-potato-family-boundaries",
+      "title": "Token Impersonation and the Potato Family: Boundaries, Preconditions, and Mitigations",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4272,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "uac-auto-elevation-boundary-model.mdx",
+      "slug": "uac-auto-elevation-boundary-model",
+      "title": "UAC Bypass Techniques: A Practical Overview of Auto-Elevation Abuse",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4173,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "unquoted-service-path-reachability.mdx",
+      "slug": "unquoted-service-path-reachability",
+      "title": "Privilege Escalation via Unquoted Service Paths on Windows",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4121,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "volume-shadow-copy-security-boundaries.mdx",
+      "slug": "volume-shadow-copy-security-boundaries",
+      "title": "Volume Shadow Copies (VSS) for Credential and File Recovery",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4127,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "weak-service-dacls-and-binary-path-control.mdx",
+      "slug": "weak-service-dacls-and-binary-path-control",
+      "title": "Weak Service DACLs and Binary-Path Control",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 2001,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "win32k-user-gdi-sessions-attack-surface.mdx",
+      "slug": "win32k-user-gdi-sessions-attack-surface",
+      "title": "The win32k GUI Subsystem: USER, GDI, and the Kernel Attack Surface",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4254,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-boot-chain-uefi-winload-smss.mdx",
+      "slug": "windows-boot-chain-uefi-winload-smss",
+      "title": "The Windows Boot Process: From UEFI to the Session Manager",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4270,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-cache-manager-fast-io-coherency.mdx",
+      "slug": "windows-cache-manager-fast-io-coherency",
+      "title": "The Windows Cache Manager",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 3953,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-driver-model-wdm-kmdf-driver-objects.mdx",
+      "slug": "windows-driver-model-wdm-kmdf-driver-objects",
+      "title": "The Windows Driver Model: WDM, KMDF, and Driver Objects",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4204,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-event-logs-evidence-and-tamper-signals.mdx",
+      "slug": "windows-event-logs-evidence-and-tamper-signals",
+      "title": "Windows Event Logs and Forensic Artifacts: Tracking and Tampering",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4138,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-firewall-wfp-policy-telemetry.mdx",
+      "slug": "windows-firewall-wfp-policy-telemetry",
+      "title": "Windows Firewall and WFP Tampering: Risks and Detection",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4123,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-heaps-nt-heap-segment-heap.mdx",
+      "slug": "windows-heaps-nt-heap-segment-heap",
+      "title": "Windows Heap Internals: The NT Heap and Segment Heap",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4187,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-loader-pe-imports-relocations-tls.mdx",
+      "slug": "windows-loader-pe-imports-relocations-tls",
+      "title": "The Windows DLL Loader and the PE File Format",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4155,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-persistence-run-keys-services-wmi.mdx",
+      "slug": "windows-persistence-run-keys-services-wmi",
+      "title": "Persistence Techniques on Windows: Run Keys to WMI",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4133,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-privesc-enumeration-evidence-workflow.mdx",
+      "slug": "windows-privesc-enumeration-evidence-workflow",
+      "title": "Practical Windows Enumeration with winPEAS",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 3898,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-privesc-trust-boundary-model.mdx",
+      "slug": "windows-privesc-trust-boundary-model",
+      "title": "Windows Privilege Escalation as a Trust-Boundary Problem",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Foundation",
+      "wordCount": 2225,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 5,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-process-thread-token-handle-model.mdx",
+      "slug": "windows-process-thread-token-handle-model",
+      "title": "Processes, Threads, Tokens, and Handles as One Windows Model",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Foundation",
+      "wordCount": 1854,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 5,
+      "templateHeavy": false,
+      "templateHeadingCount": 0,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-shellcode-position-independent-analysis.mdx",
+      "slug": "windows-shellcode-position-independent-analysis",
+      "title": "Windows Shellcode: Writing and Analyzing Position-Independent Payloads",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4078,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-thread-pools-worker-factories.mdx",
+      "slug": "windows-thread-pools-worker-factories",
+      "title": "Windows Thread Pools",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 3837,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "windows-virtual-memory-page-tables-vads-working-sets.mdx",
+      "slug": "windows-virtual-memory-page-tables-vads-working-sets",
+      "title": "Windows Virtual Memory: Page Tables, VADs, and Working Sets",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4205,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "wmi-internals-providers-repository-eventing.mdx",
+      "slug": "wmi-internals-providers-repository-eventing",
+      "title": "WMI Internals: Providers, the CIM Repository, and Eventing",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4144,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "wmi-lateral-movement-persistence-telemetry.mdx",
+      "slug": "wmi-lateral-movement-persistence-telemetry",
+      "title": "Lateral Movement and Persistence with WMI",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4029,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "wow64-thunking-redirection-dual-ntdll.mdx",
+      "slug": "wow64-thunking-redirection-dual-ntdll",
+      "title": "WoW64: Running 32-bit Processes on 64-bit Windows",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Advanced",
+      "wordCount": 4063,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 4,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "wsl-security-boundaries-and-telemetry.mdx",
+      "slug": "wsl-security-boundaries-and-telemetry",
+      "title": "Windows Subsystem for Linux (WSL) as an Attack Surface",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 4113,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 6,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    },
+    {
+      "file": "yara-rule-engineering-test-quality.mdx",
+      "slug": "yara-rule-engineering-test-quality",
+      "title": "Writing Effective YARA Detection Rules",
+      "contentType": "concept",
+      "status": "preliminary",
+      "evidenceLevel": "unverified",
+      "difficulty": "Intermediate",
+      "wordCount": 3969,
+      "hasReferences": true,
+      "inlineCitationCount": 0,
+      "structuredSourceCount": 0,
+      "primarySourceCount": 3,
+      "templateHeavy": true,
+      "templateHeadingCount": 14,
+      "unlabeledCodeFences": 0
+    }
+  ],
+  "recommendations": {
+    "merge": "Move the repeated research method into /windows-security-concepts/research-evidence/ and link to it from topic-specific lessons.",
+    "splitCandidates": [
+      "access-tokens-sids-integrity-privileges.mdx",
+      "alpc-ports-messages-impersonation.mdx",
+      "alwaysinstallelevated-policy-boundary.mdx",
+      "amsi-defender-scanning-boundaries-hardening.mdx",
+      "applocker-wdac-policy-design-gaps.mdx",
+      "authentication-coercion-petitpotam-relay-boundaries.mdx",
+      "beacon-object-files-coff-loader-analysis.mdx",
+      "bits-jobs-transfer-persistence-telemetry.mdx",
+      "c2-framework-architecture-comparison.mdx",
+      "com-activation-hijacking-boundaries-telemetry.mdx",
+      "dpapi-credential-manager-protection-boundaries.mdx",
+      "dynamic-malware-analysis-evidence-workflow.mdx",
+      "ethread-kthread-scheduler-context-switch.mdx",
+      "filter-manager-minifilter-altitudes-callbacks.mdx",
+      "kernel-pool-allocators-tags-segment-heap.mdx",
+      "kernel-protections-patchguard-dse-hvci.mdx",
+      "kuser-shared-data-time-version-mitigations.mdx",
+      "linux-persistence-systemd-udev-pam-analysis.mdx",
+      "lolbins-trust-boundaries-and-telemetry.mdx",
+      "lsa-authentication-logon-sessions-credential-guard.mdx",
+      "lsass-credential-material-ppl-credential-guard.mdx",
+      "malicious-office-documents-static-dynamic-triage.mdx",
+      "malleable-c2-profiles-protocol-telemetry.mdx",
+      "named-pipe-impersonation-security-context.mdx",
+      "packed-malware-unpacking-anti-debugging.mdx",
+      "peb-teb-loader-thread-state.mdx",
+      "print-spooler-boundaries-and-printnightmare.mdx",
+      "process-injection-state-transitions-detection.mdx",
+      "registry-autoruns-imagepath-permission-boundaries.mdx",
+      "registry-hives-cells-configuration-manager.mdx",
+      "scheduled-tasks-startup-folders-privilege-boundaries.mdx",
+      "service-control-manager-services-svchost.mdx",
+      "shellcode-loader-memory-protection-telemetry.mdx",
+      "token-impersonation-potato-family-boundaries.mdx",
+      "uac-auto-elevation-boundary-model.mdx",
+      "unquoted-service-path-reachability.mdx",
+      "volume-shadow-copy-security-boundaries.mdx",
+      "win32k-user-gdi-sessions-attack-surface.mdx",
+      "windows-boot-chain-uefi-winload-smss.mdx",
+      "windows-driver-model-wdm-kmdf-driver-objects.mdx",
+      "windows-event-logs-evidence-and-tamper-signals.mdx",
+      "windows-firewall-wfp-policy-telemetry.mdx",
+      "windows-heaps-nt-heap-segment-heap.mdx",
+      "windows-loader-pe-imports-relocations-tls.mdx",
+      "windows-persistence-run-keys-services-wmi.mdx",
+      "windows-shellcode-position-independent-analysis.mdx",
+      "windows-virtual-memory-page-tables-vads-working-sets.mdx",
+      "wmi-internals-providers-repository-eventing.mdx",
+      "wmi-lateral-movement-persistence-telemetry.mdx",
+      "wow64-thunking-redirection-dual-ntdll.mdx",
+      "wsl-security-boundaries-and-telemetry.mdx"
+    ],
+    "downgradeAdvancedCandidates": [
+      "alpc-ports-messages-impersonation.mdx",
+      "amsi-defender-scanning-boundaries-hardening.mdx",
+      "beacon-object-files-coff-loader-analysis.mdx",
+      "bits-jobs-transfer-persistence-telemetry.mdx",
+      "c2-framework-architecture-comparison.mdx",
+      "com-activation-hijacking-boundaries-telemetry.mdx",
+      "etw-providers-sessions-consumers-internals.mdx",
+      "io-manager-irp-ioctl-buffering.mdx",
+      "irql-interrupts-dpcs-apcs.mdx",
+      "kernel-protections-patchguard-dse-hvci.mdx",
+      "kuser-shared-data-time-version-mitigations.mdx",
+      "linux-persistence-systemd-udev-pam-analysis.mdx",
+      "lolbins-trust-boundaries-and-telemetry.mdx",
+      "malleable-c2-profiles-protocol-telemetry.mdx",
+      "process-injection-state-transitions-detection.mdx",
+      "registry-hives-cells-configuration-manager.mdx",
+      "seh-veh-unwind-dispatch.mdx",
+      "service-control-manager-services-svchost.mdx",
+      "shellcode-loader-memory-protection-telemetry.mdx",
+      "system-calls-previousmode-wow64.mdx",
+      "win32k-user-gdi-sessions-attack-surface.mdx",
+      "windows-persistence-run-keys-services-wmi.mdx",
+      "windows-shellcode-position-independent-analysis.mdx",
+      "wmi-internals-providers-repository-eventing.mdx",
+      "wow64-thunking-redirection-dual-ntdll.mdx"
+    ],
+    "archive": "No article was auto-archived. Archive decisions require a human technical review and replacement/redirect plan."
+  }
+}
